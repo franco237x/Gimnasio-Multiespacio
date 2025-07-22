@@ -94,6 +94,18 @@ body {
   text-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
 }
 
+.nav-logo img {
+  display: block; /* Asegura que el logo se comporte como un bloque */
+  margin: 0 auto; /* Centra el logo horizontalmente */
+  max-height: 100px; /* Ajusta el tamaño del logo */
+  width: auto; /* Mantiene la proporción del logo */
+}
+
+.nav-logo-fortaleza {
+  margin-top: -250px; /* Reduce el margen superior */
+  margin-bottom: -20rem; /* Añade un margen inferior para separar del contenido */
+}
+
 .nav-menu {
   display: flex;
   gap: 2rem;
@@ -145,13 +157,15 @@ body {
 
 /* Hero Section - Tema Oscuro */
 .hero {
-  height: 100vh;
+  min-height: 100vh;
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible; /* Cambiado de hidden a visible */
   background: var(--gradient-hero);
+  padding-top: 100px; /* Espacio para el navbar fijo */
+  padding-bottom: 2rem; /* Espacio inferior para el contenido */
 }
 
 .hero-background {
@@ -183,6 +197,13 @@ body {
   max-width: 800px;
   padding: 0 2rem;
   animation: fadeInUp 1s ease-out;
+  position: relative; /* Asegura que los elementos dentro se posicionen correctamente */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem; /* Espaciado entre el logo, descripción y botón */
+  padding-top: 0; /* Ajusta el espacio superior */
 }
 
 .hero-title {
@@ -209,6 +230,15 @@ body {
   letter-spacing: 6px;
 }
 
+.fortaleza-font {
+  font-family: var(--font-secondary);
+  font-weight: 900;
+  color: var(--text-light);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
+}
+
 .hero-description {
   font-size: clamp(1.2rem, 3vw, 1.5rem);
   margin-bottom: 2.5rem;
@@ -216,6 +246,10 @@ body {
   letter-spacing: 2px;
   opacity: 0.9;
   text-transform: uppercase;
+   /* Agregando las propiedades de la fuente Fortaleza */
+   font-family: var(--font-secondary);
+   font-weight: 900;
+   text-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
 }
 
 .hero-button {
@@ -232,6 +266,9 @@ body {
   text-transform: uppercase;
   letter-spacing: 2px;
   border: 2px solid transparent;
+  margin-top: 1rem; /* Espaciado entre el botón y el contenido superior */
+  position: relative; /* Asegura que el botón no se desplace fuera del contenedor */
+  z-index: 1; /* Asegura que el botón esté por encima del logo */
 }
 
 .hero-button:hover {
@@ -244,7 +281,7 @@ body {
 
 .scroll-indicator {
   position: absolute;
-  bottom: 2rem;
+  bottom: 0.5rem;
   left: 50%;
   transform: translateX(-50%);
   animation: bounce 2s infinite;
@@ -261,9 +298,14 @@ body {
 
 /* Sections - Tema Oscuro */
 .section {
-  padding: 5rem 0;
+  padding: 4rem 0;
   position: relative;
+  overflow: hidden;
   background-color: var(--bg-dark);
+}
+
+#quienes-somos{
+  margin-top: 2rem;
 }
 
 .bg-dark {
@@ -284,7 +326,7 @@ body {
 
 .section-header {
   text-align: center;
-  margin-bottom: 4rem;
+  margin-bottom: 2rem;
 }
 
 .section-title {
@@ -313,8 +355,9 @@ body {
 .about-content {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 4rem;
+  gap: 2rem;
   align-items: center;
+  margin-top: 1rem;
 }
 
 .about-text p {
