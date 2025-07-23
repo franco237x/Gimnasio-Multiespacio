@@ -23,6 +23,9 @@ html {
 body {
   -webkit-overflow-scrolling: touch;
   transform: translateZ(0);
+  font-family: 'Arial', sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
 }
 
 :root {
@@ -73,6 +76,7 @@ body {
   transition: all 0.3s ease;
   box-shadow: var(--shadow-dark);
   border-bottom: 1px solid rgba(255, 51, 51, 0.2);
+  padding: 1rem 0;
 }
 
 .nav-container {
@@ -81,7 +85,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0 2rem;
 }
 
 .nav-logo h3 {
@@ -104,10 +108,13 @@ body {
 .nav-logo-fortaleza {
   margin-top: -250px; /* Reduce el margen superior */
   margin-bottom: -20rem; /* Añade un margen inferior para separar del contenido */
+  max-width: 100%;
+  height: auto;
 }
 
 .nav-menu {
   display: flex;
+  align-items: center;
   gap: 2rem;
 }
 
@@ -192,7 +199,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  overflow: visible; /* Cambiado de hidden a visible */
+  overflow: hidden; /* Cambiado de hidden a visible */
   background: var(--gradient-hero);
   padding-top: 100px; /* Espacio para el navbar fijo */
   padding-bottom: 2rem; /* Espacio inferior para el contenido */
@@ -225,7 +232,7 @@ body {
   text-align: center;
   color: var(--text-light);
   max-width: 800px;
-  padding: 0 2rem;
+  padding: 0 1rem;
   animation: fadeInUp 1s ease-out;
   position: relative; /* Asegura que los elementos dentro se posicionen correctamente */
   display: flex;
@@ -234,6 +241,8 @@ body {
   justify-content: center;
   gap: 1rem; /* Espaciado entre el logo, descripción y botón */
   padding-top: 0; /* Ajusta el espacio superior */
+  z-index: 2;
+  margin: 0 auto; /* Centra el contenido horizontalmente */
 }
 
 .hero-title {
@@ -328,7 +337,7 @@ body {
 
 /* Sections - Tema Oscuro */
 .section {
-  padding: 4rem 0;
+  padding: 4rem 1rem;
   position: relative;
   overflow: hidden;
   background-color: var(--bg-dark);
@@ -501,6 +510,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
+  padding: 2rem 0;
 }
 
 .service-card {
@@ -542,8 +552,8 @@ body {
 /* Contact Section - Tema Oscuro */
 .contact-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
 }
 
 .contact-info h3 {
@@ -584,6 +594,9 @@ body {
   border-radius: 10px;
   border: 1px solid rgba(255, 51, 51, 0.2);
   box-shadow: var(--shadow-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .contact-form form {
@@ -644,8 +657,9 @@ body {
 
 .footer-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 2rem;
+  padding: 2rem 0;
   margin-bottom: 2rem;
 }
 
@@ -728,13 +742,41 @@ body {
 
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
   40% {
-    transform: translateX(-50%) translateY(-10px);
+    transform: translateY(-30px);
   }
   60% {
-    transform: translateX(-50%) translateY(-5px);
+    transform: translateY(-15px);
+  }
+}
+
+/* Estilos adicionales para mejorar la accesibilidad */
+button, 
+a {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+button:hover,
+a:hover {
+  opacity: 0.8;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
@@ -779,15 +821,46 @@ body {
 @media (max-width: 768px) {
   .nav-menu {
     display: none;
+    position: fixed;
+    top: 80px;
+    left: -100%;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.95);
+    width: 100%;
+    padding: 2rem;
+    transition: var(--transition);
   }
   
   .nav-menu.active {
     display: flex;
+    left: 0;
   }
   
   .nav-toggle {
-    display: flex;
+    display: block;
     z-index: 1001;
+    cursor: pointer;
+  }
+
+  .nav-toggle span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background: var(--text-light);
+    margin: 5px 0;
+    transition: var(--transition);
+  }
+
+  .nav-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+
+  .nav-toggle.active span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .nav-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
   }
   
   .hero-content h1 {
@@ -801,6 +874,7 @@ body {
   .hero-content {
     padding: 0 1rem;
     text-align: center;
+    padding-top: 100px;
   }
   
   .section {
@@ -814,11 +888,13 @@ body {
   .about-content {
     grid-template-columns: 1fr;
     gap: 2rem;
+    flex-direction: column;
   }
   
   .location-content {
     grid-template-columns: 1fr;
     gap: 2rem;
+    flex-direction: column;
   }
   
   .contact-content {
@@ -848,10 +924,27 @@ body {
 }
 
 @media (max-width: 480px) {
+
+  .section {
+    padding: 3rem 1rem;
+  }
+
   .nav-container {
     padding: 1rem;
   }
   
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.2rem;
+  }
+
+  .nav-logo-fortaleza img {
+    width: 80%;
+  }
+
   .hero-content h1 {
     font-size: 2rem;
   }
@@ -872,6 +965,10 @@ body {
   .services-grid {
     grid-template-columns: 1fr;
   }
+
+  .service-card {
+    padding: 1.5rem;
+  }
   
   .about-stats {
     flex-direction: column;
@@ -880,6 +977,10 @@ body {
   
   .stat {
     min-width: auto;
+  }
+
+  .stat h3 {
+    font-size: 1.5rem;
   }
   
   .contact-form {
@@ -904,6 +1005,14 @@ body {
   .nav-menu.active .nav-link {
     font-size: 1.1rem;
     padding: 0.8rem 1.5rem;
+  }
+
+  .scroll-indicator {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bounce 2s infinite;
   }
 }
 
