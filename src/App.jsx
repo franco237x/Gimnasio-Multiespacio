@@ -64,6 +64,7 @@ function App() {
             <a href="#ubicacion" className="nav-link" onClick={closeMenu}>Ubicación</a>
             <a href="#servicios" className="nav-link" onClick={closeMenu}>Servicios</a>
             <a href="#contacto" className="nav-link" onClick={closeMenu}>Contacto</a>
+            <button className="nav-login-btn" onClick={closeMenu}>Iniciar Sesión</button>
           </div>
           <div className={`nav-toggle ${isMenuOpen ? 'active' : ''}`} onClick={toggleMenu}>
             <span></span>
@@ -172,9 +173,15 @@ function App() {
               </div>
             </div>
             <div className="location-map" data-aos="fade-left">
-              <div className="map-placeholder">
-                <p>Mapa Interactivo</p>
-              </div>
+              <iframe
+    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d704.9256799651057!2d-55.90002176572633!3d-27.365488563350787!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9457be311db67cf7%3A0x557af3e84aa4ced2!2sSan%20Mart%C3%ADn%202381%2C%20N3300%20Posadas%2C%20Misiones!5e0!3m2!1ses-419!2sar!4v1753231122447!5m2!1ses-419!2sar"
+    width="100%"
+    height="450"
+    style={{ border: 0, borderRadius: '8px' }}
+    allowFullScreen=""
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+  ></iframe>
             </div>
           </div>
         </div>
