@@ -1,13 +1,9 @@
-// Ejemplo de rutas de usuarios
-// import express from 'express';
-// import { getUsers, getUserById } from '../controllers/userController.js';
+import express from 'express';
+import { login, register } from '../controllers/authController.js';
 
-// const router = express.Router();
+const router = express.Router();
 
-// // GET /api/users
-// router.get('/', getUsers);
+router.post('/login', login);
+router.post('/register', register);
 
-// // GET /api/users/:id
-// router.get('/:id', getUserById);
-
-// export default router;
+export default router;
