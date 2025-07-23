@@ -83,10 +83,15 @@ function App() {
         ></div>
         <div className="hero-overlay"></div>
         <div className="hero-content">
-          <h1 className="hero-title">
+          {/* <h1 className="hero-title">
             FORTALEZA
             <span className="hero-subtitle">MULTIESPACIO</span>
-          </h1>
+          </h1> */}
+
+<div className="nav-logo-fortaleza">
+  <img src="/public/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png"/>
+</div>
+
           <p className="hero-description">
             Tu espacio de transformación y bienestar
           </p>
