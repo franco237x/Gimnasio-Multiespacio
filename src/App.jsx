@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import './App.css'
 
 function App() {
+  const navigate = useNavigate()
   const [scrollY, setScrollY] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -50,6 +52,11 @@ function App() {
     setIsMenuOpen(false)
   }
 
+  const handleLoginClick = () => {
+    navigate('/login')
+    closeMenu()
+  }
+
   return (
     <div className="app">
       {/* Navigation */}
@@ -64,7 +71,7 @@ function App() {
             <a href="#ubicacion" className="nav-link" onClick={closeMenu}>Ubicación</a>
             <a href="#servicios" className="nav-link" onClick={closeMenu}>Servicios</a>
             <a href="#contacto" className="nav-link" onClick={closeMenu}>Contacto</a>
-            <button className="nav-login-btn" onClick={closeMenu}>Iniciar Sesión</button>
+            <button className="nav-login-btn" onClick={handleLoginClick}>Iniciar Sesión</button>
           </div>
           <div className={`nav-toggle ${isMenuOpen ? 'active' : ''}`} onClick={toggleMenu}>
             <span></span>
