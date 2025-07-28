@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import './App.css'
 
 function App() {
   const navigate = useNavigate()
+  const { user, logout, isAuthenticated } = useAuth()
   const [scrollY, setScrollY] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -57,6 +59,12 @@ function App() {
     closeMenu()
   }
 
+  const handleLogout = () => {
+    logout()
+    alert('Sesión cerrada exitosamente')
+    closeMenu()
+  }
+
   return (
     <div className="app">
       {/* Navigation */}
@@ -71,7 +79,14 @@ function App() {
             <a href="#ubicacion" className="nav-link" onClick={closeMenu}>Ubicación</a>
             <a href="#servicios" className="nav-link" onClick={closeMenu}>Servicios</a>
             <a href="#contacto" className="nav-link" onClick={closeMenu}>Contacto</a>
-            <button className="nav-login-btn" onClick={handleLoginClick}>Iniciar Sesión</button>
+            {isAuthenticated() ? (
+              <div className="nav-user-section">
+                <span className="nav-user-name">Hola, {user?.name}</span>
+                <button className="nav-logout-btn" onClick={handleLogout}>Cerrar Sesión</button>
+              </div>
+            ) : (
+              <button className="nav-login-btn" onClick={handleLoginClick}>Iniciar Sesión</button>
+            )}
           </div>
           <div className={`nav-toggle ${isMenuOpen ? 'active' : ''}`} onClick={toggleMenu}>
             <span></span>
