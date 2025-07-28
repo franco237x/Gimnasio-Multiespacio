@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login, error: authError } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -16,22 +19,35 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
+    // Limpiar error cuando el usuario empiece a escribir
+    if (error) {
+      setError('');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // Simulamos una llamada a API
-    setTimeout(() => {
-      setIsLoading(false);
-      // Por ahora solo mostramos un alert ya que el backend no está configurado
-      alert('Login funcionará cuando el backend esté configurado');
-    }, 1500);
+    const success = await login(formData);
+    
+    if (success) {
+      alert('¡Inicio de sesión exitoso!');
+      navigate('/');
+    } else {
+      setError(authError || 'Error en el inicio de sesión');
+    }
+    
+    setIsLoading(false);
   };
 
   const goHome = () => {
     navigate('/');
+  };
+
+  const goToRegister = () => {
+    navigate('/register');
   };
 
   return (
@@ -66,6 +82,11 @@ const LoginPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">
+              {error && (
+                <div className="error-message">
+                  {error}
+                </div>
+              )}
               <div className="input-group">
                 <div className="input-container">
                   <span className="input-icon">📧</span>
@@ -120,7 +141,11 @@ const LoginPage = () => {
             </form>
 
             <div className="signup-section">
-              <p>¿No tienes una cuenta? <a href="#" className="signup-link">Regístrate aquí</a></p>
+              <p>¿No tienes una cuenta? 
+                <button onClick={goToRegister} className="signup-link">
+                  Regístrate aquí
+                </button>
+              </p>
             </div>
 
             <div className="social-login">

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/database.js';
+import authRoutes from './components/auth/auth.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -29,8 +30,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Routes will be added here
-// app.use('/api/auth', authRoutes);
+// API Routes
+app.use('/api/auth', authRoutes);
 // app.use('/api/users', userRoutes);
 // app.use('/api/classes', classRoutes);
 // app.use('/api/memberships', membershipRoutes);
