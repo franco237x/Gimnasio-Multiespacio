@@ -118,9 +118,6 @@ function App() {
           <p className="hero-description">
             Tu espacio de transformación y bienestar
           </p>
-          <button className="hero-button">
-            Comienza Tu Transformación
-          </button>
         </div>
         <div className="scroll-indicator">
           <div className="scroll-arrow"></div>
