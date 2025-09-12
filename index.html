@@ -3,13 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logopequeño.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Meta viewport optimizado para mejor responsividad -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <!-- Meta para mejorar renderizado en dispositivos móviles -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#1a1a1a" />
+    
     <title>Fortaleza Multiespacio - Tu Espacio de Bienestar</title>
     <meta name="description" content="Fortaleza Multiespacio - El mejor lugar para entrenar y cuidar tu salud. Equipos modernos, clases especializadas y ambiente profesional.">
-    <!-- Google Fonts -->
+    
+    <!-- Precargas para mejorar rendimiento -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap"></noscript>
   </head>
   <body>
     <div id="root"></div>
