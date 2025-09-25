@@ -64,16 +64,16 @@ const LoginPage = () => {
             <p className="brand-subtitle">Tu espacio de transformación</p>
           </div>
           <div className="decorative-elements">
-            <div className="floating-icon">🏋️</div>
-            <div className="floating-icon">💪</div>
-            <div className="floating-icon">⚡</div>
+            <div className="floating-icon"><i className='bx bx-dumbbell'></i></div>
+            <div className="floating-icon"><i className='bx bxs-hand'></i></div>
+            <div className="floating-icon"><i className='bx bx-bolt'></i></div>
           </div>
         </div>
         
         <div className="login-right">
           <div className="login-form-container">
             <button className="back-button" onClick={goHome}>
-              ← Volver al inicio
+              <i className='bx bx-arrow-back'></i> Volver al inicio
             </button>
             
             <div className="login-header">
@@ -89,7 +89,7 @@ const LoginPage = () => {
               )}
               <div className="input-group">
                 <div className="input-container">
-                  <span className="input-icon">📧</span>
+                  <span className="input-icon"><i className='bx bx-envelope'></i></span>
                   <input
                     type="email"
                     name="email"
@@ -103,7 +103,7 @@ const LoginPage = () => {
 
               <div className="input-group">
                 <div className="input-container">
-                  <span className="input-icon">🔒</span>
+                  <span className="input-icon"><i className='bx bx-lock-alt'></i></span>
                   <input
                     type="password"
                     name="password"
@@ -154,11 +154,11 @@ const LoginPage = () => {
               </div>
               <div className="social-buttons">
                 <button className="social-button google">
-                  <span>G</span>
+                  <i className='bx bxl-google'></i>
                   Google
                 </button>
                 <button className="social-button facebook">
-                  <span>f</span>
+                  <i className='bx bxl-facebook'></i>
                   Facebook
                 </button>
               </div>
