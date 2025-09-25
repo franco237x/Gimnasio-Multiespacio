@@ -89,9 +89,7 @@ function App() {
             )}
           </div>
           <div className={`nav-toggle ${isMenuOpen ? 'active' : ''}`} onClick={toggleMenu}>
-            <span></span>
-            <span></span>
-            <span></span>
+            <i className='bx bx-menu'></i>
           </div>
         </div>
       </nav>
@@ -120,7 +118,7 @@ function App() {
           </p>
         </div>
         <div className="scroll-indicator">
-          <div className="scroll-arrow"></div>
+          <i className='bx bx-chevron-down scroll-arrow'></i>
         </div>
       </section>
 
@@ -216,32 +214,32 @@ function App() {
           </div>
           <div className="services-grid">
             <div className="service-card" data-aos="fade-up" data-aos-delay="100">
-              <div className="service-icon">🏋️</div>
+              <div className="service-icon"><i className='bx bx-dumbbell'></i></div>
               <h3>Entrenamiento Personalizado</h3>
               <p>Programas diseñados específicamente para tus objetivos y necesidades.</p>
             </div>
             <div className="service-card" data-aos="fade-up" data-aos-delay="200">
-              <div className="service-icon">🥊</div>
+              <div className="service-icon"><i className='bx bxs-group'></i></div>
               <h3>Clases Grupales</h3>
               <p>Variedad de clases: CrossFit, Spinning, Yoga, Pilates y más.</p>
             </div>
             <div className="service-card" data-aos="fade-up" data-aos-delay="300">
-              <div className="service-icon">⚡</div>
+              <div className="service-icon"><i className='bx bxs-bolt'></i></div>
               <h3>Área Funcional</h3>
               <p>Espacio dedicado al entrenamiento funcional y ejercicios TRX.</p>
             </div>
             <div className="service-card" data-aos="fade-up" data-aos-delay="400">
-              <div className="service-icon">💪</div>
+              <div className="service-icon"><i className='bx bxs-hand'></i></div>
               <h3>Zona de Pesas</h3>
               <p>Equipamiento completo para entrenamiento de fuerza y musculación.</p>
             </div>
             <div className="service-card" data-aos="fade-up" data-aos-delay="500">
-              <div className="service-icon">�</div>
+              <div className="service-icon"><i className='bx bx-heart'></i></div>
               <h3>Cardio Moderno</h3>
               <p>Máquinas de última generación para entrenamiento cardiovascular.</p>
             </div>
             <div className="service-card" data-aos="fade-up" data-aos-delay="600">
-              <div className="service-icon">🧘</div>
+              <div className="service-icon"><i className='bx bx-spa'></i></div>
               <h3>Sala de Relajación</h3>
               <p>Espacio para estiramientos, meditación y recuperación.</p>
             </div>
@@ -262,15 +260,15 @@ function App() {
               <p>Contáctanos y da el primer paso hacia tu transformación</p>
               <div className="contact-methods">
                 <div className="contact-method" data-aos="fade-up" data-aos-delay="100">
-                  <span className="contact-icon">📞</span>
+                  <span className="contact-icon"><i className='bx bx-phone'></i></span>
                   <span>+54 11 1234-5678</span>
                 </div>
                 <div className="contact-method" data-aos="fade-up" data-aos-delay="200">
-                  <span className="contact-icon">📧</span>
+                  <span className="contact-icon"><i className='bx bx-envelope'></i></span>
                   <span>info@multiespaciogym.com</span>
                 </div>
                 <div className="contact-method" data-aos="fade-up" data-aos-delay="300">
-                  <span className="contact-icon">📍</span>
+                  <span className="contact-icon"><i className='bx bx-map'></i></span>
                   <span>Av. Principal 123, Centro</span>
                 </div>
               </div>
@@ -307,10 +305,10 @@ function App() {
             <div className="footer-section" data-aos="fade-up" data-aos-delay="300">
               <h4>Síguenos</h4>
               <div className="social-links">
-                <a href="#" className="social-link">Facebook</a>
-                <a href="#" className="social-link">Instagram</a>
-                <a href="#" className="social-link">Twitter</a>
-                <a href="#" className="social-link">YouTube</a>
+                <a href="#" className="social-link"><i className='bx bxl-facebook'></i> Facebook</a>
+                <a href="#" className="social-link"><i className='bx bxl-instagram'></i> Instagram</a>
+                <a href="#" className="social-link"><i className='bx bxl-twitter'></i> Twitter</a>
+                <a href="#" className="social-link"><i className='bx bxl-youtube'></i> YouTube</a>
               </div>
             </div>
             <div className="footer-section" data-aos="fade-up" data-aos-delay="400">

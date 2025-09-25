@@ -106,30 +106,30 @@ const RegisterPage = () => {
             <p className="brand-subtitle">Únete a nuestra comunidad</p>
             <div className="register-benefits">
               <div className="benefit">
-                <span className="benefit-icon">💪</span>
+                <span className="benefit-icon"><i className='bx bxs-hand'></i></span>
                 <span>Entrenamientos personalizados</span>
               </div>
               <div className="benefit">
-                <span className="benefit-icon">⚡</span>
+                <span className="benefit-icon"><i className='bx bxs-bolt'></i></span>
                 <span>Equipamiento de última generación</span>
               </div>
               <div className="benefit">
-                <span className="benefit-icon">🏆</span>
+                <span className="benefit-icon"><i className='bx bx-trophy'></i></span>
                 <span>Acompañamiento profesional</span>
               </div>
             </div>
           </div>
           <div className="decorative-elements">
-            <div className="floating-icon">🏋️</div>
-            <div className="floating-icon">💪</div>
-            <div className="floating-icon">⚡</div>
+            <div className="floating-icon"><i className='bx bx-dumbbell'></i></div>
+            <div className="floating-icon"><i className='bx bxs-hand'></i></div>
+            <div className="floating-icon"><i className='bx bx-bolt'></i></div>
           </div>
         </div>
         
         <div className="register-right">
           <div className="register-form-container">
             <button className="back-button" onClick={goHome}>
-              ← Volver al inicio
+              <i className='bx bx-arrow-back'></i> Volver al inicio
             </button>
             
             <div className="register-header">
@@ -146,7 +146,7 @@ const RegisterPage = () => {
 
               <div className="input-group">
                 <div className="input-container">
-                  <span className="input-icon">👤</span>
+                  <span className="input-icon"><i className='bx bx-user'></i></span>
                   <input
                     type="text"
                     name="name"
@@ -161,7 +161,7 @@ const RegisterPage = () => {
 
               <div className="input-group">
                 <div className="input-container">
-                  <span className="input-icon">📧</span>
+                  <span className="input-icon"><i className='bx bx-envelope'></i></span>
                   <input
                     type="email"
                     name="email"
@@ -176,7 +176,7 @@ const RegisterPage = () => {
 
               <div className="input-group">
                 <div className="input-container">
-                  <span className="input-icon">🔒</span>
+                  <span className="input-icon"><i className='bx bx-lock-alt'></i></span>
                   <input
                     type="password"
                     name="password"
@@ -191,7 +191,7 @@ const RegisterPage = () => {
 
               <div className="input-group">
                 <div className="input-container">
-                  <span className="input-icon">🔒</span>
+                  <span className="input-icon"><i className='bx bx-lock-alt'></i></span>
                   <input
                     type="password"
                     name="confirmPassword"
