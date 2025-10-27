@@ -2,6 +2,10 @@ import { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
+// Configurar la URL base de la API
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const IS_DEVELOPMENT = import.meta.env.MODE === 'development';
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,7 +25,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async (token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -42,7 +46,24 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      
+      // Modo desarrollo - simular login exitoso
+      if (IS_DEVELOPMENT && !API_URL.includes('localhost:5000')) {
+        console.log('Modo desarrollo: simulando login exitoso');
+        const mockUser = { 
+          id: 1, 
+          email: credentials.email, 
+          name: 'Usuario Demo' 
+        };
+        const mockToken = 'demo-token-' + Date.now();
+        
+        localStorage.setItem('authToken', mockToken);
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        setUser(mockUser);
+        return true;
+      }
+      
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error en login:', error);
-      setError('Error de conexión. Intenta nuevamente.');
+      setError('No se puede conectar al servidor. Verifica que el backend esté corriendo.');
       return false;
     }
   };
@@ -72,7 +93,24 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      
+      // Modo desarrollo - simular registro exitoso
+      if (IS_DEVELOPMENT && !API_URL.includes('localhost:5000')) {
+        console.log('Modo desarrollo: simulando registro exitoso');
+        const mockUser = { 
+          id: Date.now(), 
+          email: userData.email, 
+          name: userData.name || 'Usuario Demo' 
+        };
+        const mockToken = 'demo-token-' + Date.now();
+        
+        localStorage.setItem('authToken', mockToken);
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        setUser(mockUser);
+        return true;
+      }
+      
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +132,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error en registro:', error);
-      setError('Error de conexión. Intenta nuevamente.');
+      setError('No se puede conectar al servidor. Verifica que el backend esté corriendo.');
       return false;
     }
   };
