@@ -181,13 +181,18 @@
 
 .input-container input {
   width: 100%;
-  padding: 18px 20px 18px 50px;
+  padding: 18px 50px 18px 50px;
   border: 2px solid #374151;
   border-radius: 12px;
   font-size: 1rem;
   transition: all 0.3s ease;
   background: #2d2d2d;
   color: #ffffff;
+}
+
+.input-container input.error {
+  border-color: #ef4444;
+  background: #2d1b1b;
 }
 
 .input-container input:focus {
@@ -199,6 +204,32 @@
 
 .input-container input::placeholder {
   color: #9ca3af;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+  color: #dc2626;
+}
+
+.error-text {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  display: block;
 }
 
 .form-options {

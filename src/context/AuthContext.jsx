@@ -87,15 +87,17 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(user));
         setUser(user);
-        return true;
+        return { success: true };
       } else {
-        setError(data.message || 'Error en el registro');
-        return false;
+        const errorMessage = data.message || 'Error en el registro';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error('Error en registro:', error);
-      setError('Error de conexión. Intenta nuevamente.');
-      return false;
+      const errorMessage = 'Error de conexión. Intenta nuevamente.';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     }
   };
 

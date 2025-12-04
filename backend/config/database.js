@@ -54,6 +54,32 @@ const executeQuery = async (query, params = []) => {
 // Función para inicializar las tablas
 const initializeTables = async () => {
   try {
+    // Crear tabla de roles
+    const createRolesTable = `
+      CREATE TABLE IF NOT EXISTS roles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50) UNIQUE NOT NULL,
+        hierarchy INT NOT NULL DEFAULT 0,
+        description VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+
+    await executeQuery(createRolesTable);
+    console.log('✅ Tabla roles creada/verificada correctamente');
+
+    // Insertar roles por defecto si no existen
+    const insertRoles = `
+      INSERT IGNORE INTO roles (name, hierarchy, description) VALUES
+        ('administrador', 4, 'Acceso total al sistema'),
+        ('recepcionista', 3, 'Gestión de recepción y atención al cliente'),
+        ('profesor', 2, 'Gestión de clases y alumnos'),
+        ('alumno', 1, 'Usuario básico del gimnasio');
+    `;
+
+    await executeQuery(insertRoles);
+    console.log('✅ Roles por defecto insertados/verificados');
+
     // Crear tabla de usuarios
     const createUsersTable = `
       CREATE TABLE IF NOT EXISTS users (
@@ -62,15 +88,36 @@ const initializeTables = async () => {
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         phone VARCHAR(20),
+        role_id INT DEFAULT 4,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `;
 
     await executeQuery(createUsersTable);
     console.log('✅ Tabla users creada/verificada correctamente');
 
-    // Agregar más tablas según sea necesario
+    // Si la tabla users ya existe pero no tiene role_id, agregarlo
+    try {
+      const addRoleColumn = `
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS role_id INT DEFAULT 4,
+        ADD CONSTRAINT fk_user_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL;
+      `;
+      await executeQuery(addRoleColumn);
+    } catch (alterError) {
+      // Ignorar si la columna ya existe o hay error de constraint duplicado
+      if (!alterError.message.includes('Duplicate')) {
+        console.log('ℹ️ Columna role_id ya existe o se agregó correctamente');
+      }
+    }
+
+    // Actualizar usuarios existentes sin rol para que tengan rol de alumno
+    const updateUsersWithoutRole = `
+      UPDATE users SET role_id = 4 WHERE role_id IS NULL;
+    `;
+    await executeQuery(updateUsersWithoutRole);
     
   } catch (error) {
     console.error('❌ Error al inicializar las tablas:', error);

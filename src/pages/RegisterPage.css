@@ -193,7 +193,7 @@
 
 .input-container input {
   width: 100%;
-  padding: 18px 20px 18px 50px;
+  padding: 18px 50px 18px 50px;
   border: 2px solid #374151;
   border-radius: 12px;
   font-size: 1rem;
@@ -216,6 +216,53 @@
 .input-container input.error {
   border-color: #ef4444;
   background: #2d1b1b;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+  color: #dc2626;
+}
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.strength-bar {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  background: #374151;
+  transition: background-color 0.3s ease;
+}
+
+.strength-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  min-width: 80px;
+  text-align: right;
 }
 
 .error-text {
