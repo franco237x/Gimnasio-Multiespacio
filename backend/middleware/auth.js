@@ -1,5 +1,14 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { ROLES } = require('../models/User');
+
+// Jerarquía de roles (mayor número = mayor jerarquía)
+const ROLE_HIERARCHY = {
+  1: 4, // administrador
+  2: 3, // recepcionista
+  3: 2, // profesor
+  4: 1  // alumno
+};
 
 // Middleware para verificar el token JWT
 const authenticateToken = async (req, res, next) => {
@@ -78,8 +87,81 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+// Middleware para verificar rol específico
+const requireRole = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        message: 'Autenticación requerida' 
+      });
+    }
+
+    const userRoleId = req.user.role_id;
+    
+    if (!allowedRoles.includes(userRoleId)) {
+      return res.status(403).json({ 
+        message: 'No tienes permisos para realizar esta acción',
+        requiredRoles: allowedRoles,
+        userRole: userRoleId
+      });
+    }
+
+    next();
+  };
+};
+
+// Middleware para verificar jerarquía mínima de rol
+const requireMinRole = (minRoleId) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        message: 'Autenticación requerida' 
+      });
+    }
+
+    const userHierarchy = ROLE_HIERARCHY[req.user.role_id] || 0;
+    const requiredHierarchy = ROLE_HIERARCHY[minRoleId] || 0;
+
+    if (userHierarchy < requiredHierarchy) {
+      return res.status(403).json({ 
+        message: 'No tienes el nivel de permisos necesario',
+        requiredLevel: requiredHierarchy,
+        userLevel: userHierarchy
+      });
+    }
+
+    next();
+  };
+};
+
+// Middleware para verificar si es el propio usuario o admin
+const requireSelfOrAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ 
+      message: 'Autenticación requerida' 
+    });
+  }
+
+  const targetUserId = parseInt(req.params.userId || req.params.id);
+  const isOwnProfile = req.user.id === targetUserId;
+  const isAdmin = req.user.role_id === ROLES.ADMINISTRADOR;
+
+  if (!isOwnProfile && !isAdmin) {
+    return res.status(403).json({ 
+      message: 'Solo puedes acceder a tu propia información' 
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
   generateToken,
-  optionalAuth
+  optionalAuth,
+  requireRole,
+  requireMinRole,
+  requireSelfOrAdmin,
+  ROLES,
+  ROLE_HIERARCHY
 };
