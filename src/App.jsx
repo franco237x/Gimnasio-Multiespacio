@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { ToastContainer, useToast } from './components/ui/Toast'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import './App.css'
@@ -8,6 +9,7 @@ import './App.css'
 function App() {
   const navigate = useNavigate()
   const { user, logout, isAuthenticated } = useAuth()
+  const { toasts, addToast, removeToast } = useToast()
   const [scrollY, setScrollY] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -61,12 +63,22 @@ function App() {
 
   const handleLogout = () => {
     logout()
-    alert('Sesión cerrada exitosamente')
+    addToast('Sesión cerrada exitosamente', 'success')
+    closeMenu()
+    // Volver al inicio de la página
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleDashboardClick = () => {
+    navigate('/dashboard')
     closeMenu()
   }
 
   return (
     <div className="app">
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+      
       {/* Navigation */}
       <nav className="navbar">
         <div className="nav-container">
@@ -82,7 +94,12 @@ function App() {
             {isAuthenticated() ? (
               <div className="nav-user-section">
                 <span className="nav-user-name">Hola, {user?.name}</span>
-                <button className="nav-logout-btn" onClick={handleLogout}>Cerrar Sesión</button>
+                <button className="nav-dashboard-btn" onClick={handleDashboardClick}>
+                  <i className='bx bxs-dashboard'></i> Dashboard
+                </button>
+                <button className="nav-logout-btn" onClick={handleLogout}>
+                  <i className='bx bx-log-out'></i> Salir
+                </button>
               </div>
             ) : (
               <button className="nav-login-btn" onClick={handleLoginClick}>Iniciar Sesión</button>

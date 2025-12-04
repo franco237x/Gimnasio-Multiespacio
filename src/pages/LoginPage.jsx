@@ -12,6 +12,8 @@ const LoginPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -19,24 +21,61 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
-    // Limpiar error cuando el usuario empiece a escribir
+    // Limpiar errores cuando el usuario empiece a escribir
     if (error) {
       setError('');
     }
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    // Validar email
+    if (!formData.email.trim()) {
+      errors.email = 'El correo electrónico es requerido';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Ingresa un correo electrónico válido';
+    }
+    
+    // Validar contraseña
+    if (!formData.password) {
+      errors.password = 'La contraseña es requerida';
+    } else if (formData.password.length < 6) {
+      errors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validar formulario antes de enviar
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     
     const success = await login(formData);
     
     if (success) {
-      alert('¡Inicio de sesión exitoso!');
-      navigate('/');
+      // Redirigir al dashboard
+      navigate('/dashboard');
     } else {
-      setError(authError || 'Error en el inicio de sesión');
+      setError(authError || 'Credenciales inválidas. Verifica tu correo y contraseña.');
     }
     
     setIsLoading(false);
@@ -96,23 +135,35 @@ const LoginPage = () => {
                     placeholder="Correo electrónico"
                     value={formData.email}
                     onChange={handleInputChange}
-                    required
+                    className={validationErrors.email ? 'error' : ''}
+                    autoComplete="email"
                   />
                 </div>
+                {validationErrors.email && <span className="error-text">{validationErrors.email}</span>}
               </div>
 
               <div className="input-group">
                 <div className="input-container">
                   <span className="input-icon"><i className='bx bx-lock-alt'></i></span>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     placeholder="Contraseña"
                     value={formData.password}
                     onChange={handleInputChange}
-                    required
+                    className={validationErrors.password ? 'error' : ''}
+                    autoComplete="current-password"
                   />
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={togglePasswordVisibility}
+                    tabIndex={-1}
+                  >
+                    <i className={`bx ${showPassword ? 'bx-hide' : 'bx-show'}`}></i>
+                  </button>
                 </div>
+                {validationErrors.password && <span className="error-text">{validationErrors.password}</span>}
               </div>
 
               <div className="form-options">

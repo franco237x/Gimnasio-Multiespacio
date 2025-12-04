@@ -14,6 +14,9 @@ const RegisterPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, text: '', color: '' });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -28,27 +31,71 @@ const RegisterPage = () => {
         [name]: ''
       }));
     }
+    // Calcular fuerza de contraseña en tiempo real
+    if (name === 'password') {
+      calculatePasswordStrength(value);
+    }
+  };
+
+  const calculatePasswordStrength = (password) => {
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 8) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+    
+    const strengthLevels = [
+      { text: '', color: '' },
+      { text: 'Muy débil', color: '#ef4444' },
+      { text: 'Débil', color: '#f97316' },
+      { text: 'Regular', color: '#eab308' },
+      { text: 'Fuerte', color: '#22c55e' },
+      { text: 'Muy fuerte', color: '#16a34a' }
+    ];
+    
+    setPasswordStrength({ score, ...strengthLevels[score] });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const validateForm = () => {
     const newErrors = {};
 
+    // Validar nombre
     if (!formData.name.trim()) {
       newErrors.name = 'El nombre es requerido';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'El nombre debe tener al menos 2 caracteres';
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.name)) {
+      newErrors.name = 'El nombre solo puede contener letras';
     }
 
+    // Validar email
     if (!formData.email.trim()) {
       newErrors.email = 'El email es requerido';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'El email no es válido';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Ingresa un email válido';
     }
 
+    // Validar contraseña con reglas más estrictas
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida';
     } else if (formData.password.length < 6) {
       newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])/.test(formData.password)) {
+      newErrors.password = 'Debe incluir mayúsculas y minúsculas';
+    } else if (!/(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Debe incluir al menos un número';
     }
 
+    // Validar confirmación de contraseña
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Confirma tu contraseña';
     } else if (formData.password !== formData.confirmPassword) {
@@ -68,17 +115,17 @@ const RegisterPage = () => {
 
     setIsLoading(true);
 
-    const success = await register({
-      name: formData.name,
-      email: formData.email,
+    const result = await register({
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
       password: formData.password
     });
 
-    if (success) {
-      alert('¡Registro exitoso! Bienvenido a Fortaleza');
-      navigate('/');
+    if (result.success) {
+      // Redirigir al dashboard
+      navigate('/dashboard');
     } else {
-      setErrors({ submit: authError || 'Error en el registro' });
+      setErrors({ submit: result.error });
     }
     
     setIsLoading(false);
@@ -178,14 +225,39 @@ const RegisterPage = () => {
                 <div className="input-container">
                   <span className="input-icon"><i className='bx bx-lock-alt'></i></span>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     placeholder="Contraseña"
                     value={formData.password}
                     onChange={handleInputChange}
                     className={errors.password ? 'error' : ''}
+                    autoComplete="new-password"
                   />
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={togglePasswordVisibility}
+                    tabIndex={-1}
+                  >
+                    <i className={`bx ${showPassword ? 'bx-hide' : 'bx-show'}`}></i>
+                  </button>
                 </div>
+                {formData.password && (
+                  <div className="password-strength">
+                    <div className="strength-bars">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <div
+                          key={level}
+                          className={`strength-bar ${passwordStrength.score >= level ? 'active' : ''}`}
+                          style={{ backgroundColor: passwordStrength.score >= level ? passwordStrength.color : '#374151' }}
+                        />
+                      ))}
+                    </div>
+                    <span className="strength-text" style={{ color: passwordStrength.color }}>
+                      {passwordStrength.text}
+                    </span>
+                  </div>
+                )}
                 {errors.password && <span className="error-text">{errors.password}</span>}
               </div>
 
@@ -193,13 +265,22 @@ const RegisterPage = () => {
                 <div className="input-container">
                   <span className="input-icon"><i className='bx bx-lock-alt'></i></span>
                   <input
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     name="confirmPassword"
                     placeholder="Confirmar contraseña"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     className={errors.confirmPassword ? 'error' : ''}
+                    autoComplete="new-password"
                   />
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={toggleConfirmPasswordVisibility}
+                    tabIndex={-1}
+                  >
+                    <i className={`bx ${showConfirmPassword ? 'bx-hide' : 'bx-show'}`}></i>
+                  </button>
                 </div>
                 {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
               </div>
