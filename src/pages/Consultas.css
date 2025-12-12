@@ -1,0 +1,394 @@
+.consultas-page {
+    padding: 0;
+}
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    font-size: 1.75rem;
+    margin: 0 0 8px;
+}
+
+.page-header h2 i {
+    color: #7c3aed;
+}
+
+.page-header p {
+    color: #9ca3af;
+    margin: 0;
+}
+
+/* Search Section */
+.search-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.search-form {
+    display: flex;
+    gap: 12px;
+}
+
+.search-type {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 1rem;
+    min-width: 140px;
+}
+
+.search-type option {
+    background: #1f2937;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.search-input-wrapper i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 1.2rem;
+}
+
+.search-input-wrapper input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.search-input-wrapper input:focus {
+    outline: none;
+    border-color: #7c3aed;
+}
+
+.btn-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-search:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+}
+
+/* Resultados Section */
+.resultados-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.resultados-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+    margin: 0 0 20px;
+    font-size: 1.1rem;
+}
+
+.resultados-section h3 i {
+    color: #7c3aed;
+}
+
+.resultados-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.resultado-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    transition: all 0.2s ease;
+}
+
+.resultado-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(124, 58, 237, 0.3);
+}
+
+.resultado-avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+}
+
+.resultado-info {
+    flex: 1;
+}
+
+.resultado-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.resultado-header h4 {
+    color: #ffffff;
+    margin: 0;
+}
+
+.rol-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.rol-badge.alumno {
+    background: rgba(22, 163, 74, 0.2);
+    color: #22c55e;
+}
+
+.rol-badge.profesor {
+    background: rgba(8, 145, 178, 0.2);
+    color: #0891b2;
+}
+
+.resultado-details {
+    display: flex;
+    gap: 20px;
+}
+
+.resultado-details span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+}
+
+.resultado-status {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.estado-badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.estado-badge.activo {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.estado-badge.inactivo {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+.cuota-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+}
+
+.cuota-badge.al_dia {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.cuota-badge.pendiente {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.cuota-badge.vencida {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.resultado-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-action {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+    background: rgba(124, 58, 237, 0.2);
+    color: #a78bfa;
+}
+
+.btn-action i {
+    font-size: 1.2rem;
+}
+
+/* Quick Stats */
+.quick-stats {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+}
+
+.quick-stats h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+    margin: 0 0 20px;
+    font-size: 1.1rem;
+}
+
+.quick-stats h3 i {
+    color: #7c3aed;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.quick-stat-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #7c3aed;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+/* Notification */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.notification-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.notification-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.notification-info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .search-form {
+        flex-direction: column;
+    }
+
+    .resultado-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .resultado-header {
+        justify-content: center;
+    }
+
+    .resultado-details {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .resultado-status {
+        align-items: center;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

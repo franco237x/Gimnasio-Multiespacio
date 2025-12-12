@@ -39,11 +39,9 @@ const DashboardPage = () => {
       return [
         ...commonItems,
         { icon: 'bx-group', label: 'Gestionar Usuarios', path: '/dashboard/usuarios' },
-        { icon: 'bx-user-voice', label: 'Gestionar Profesores', path: '/dashboard/profesores' },
         { icon: 'bx-calendar-event', label: 'Gestionar Actividades', path: '/dashboard/actividades' },
         { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' },
-        { icon: 'bx-money', label: 'Gestión de Cuotas', path: '/dashboard/cuotas' },
-        { icon: 'bx-file', label: 'Generar Comprobante', path: '/dashboard/comprobantes' },
+        { icon: 'bx-money', label: 'Gestión de Pagos', path: '/dashboard/pagos' },
         { icon: 'bx-bar-chart-alt-2', label: 'Reportes', path: '/dashboard/reportes' },
         { icon: 'bx-cog', label: 'Configuración', path: '/dashboard/configuracion' }
       ];
@@ -53,9 +51,7 @@ const DashboardPage = () => {
       return [
         ...commonItems,
         { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' },
-        { icon: 'bx-money', label: 'Pago de Cuota', path: '/dashboard/cuotas' },
-        { icon: 'bx-plus-circle', label: 'Alta de Cuotas', path: '/dashboard/alta-cuotas' },
-        { icon: 'bx-file', label: 'Generar Comprobante', path: '/dashboard/comprobantes' },
+        { icon: 'bx-money', label: 'Gestión de Pagos', path: '/dashboard/pagos' },
         { icon: 'bx-search', label: 'Consultas', path: '/dashboard/consultas' }
       ];
     }
@@ -75,7 +71,6 @@ const DashboardPage = () => {
       ...commonItems,
       { icon: 'bx-credit-card', label: 'Mis Cuotas', path: '/dashboard/mis-cuotas' },
       { icon: 'bx-calendar-check', label: 'Mis Reservas', path: '/dashboard/mis-reservas' },
-      { icon: 'bx-info-circle', label: 'Ver Información', path: '/dashboard/informacion' },
       { icon: 'bx-user', label: 'Mi Perfil', path: '/dashboard/perfil' }
     ];
   };
@@ -323,39 +318,7 @@ const DashboardHome = ({ user, roleId }) => {
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <div className="section-header">
-        <h3>Actividad Reciente</h3>
-      </div>
-      <div className="activity-list">
-        <div className="activity-item">
-          <div className="activity-icon success">
-            <i className='bx bx-check'></i>
-          </div>
-          <div className="activity-info">
-            <span className="activity-text">Sistema de roles implementado correctamente</span>
-            <span className="activity-time">Hace 5 minutos</span>
-          </div>
-        </div>
-        <div className="activity-item">
-          <div className="activity-icon info">
-            <i className='bx bx-info-circle'></i>
-          </div>
-          <div className="activity-info">
-            <span className="activity-text">Dashboard actualizado con nuevas funcionalidades</span>
-            <span className="activity-time">Hace 10 minutos</span>
-          </div>
-        </div>
-        <div className="activity-item">
-          <div className="activity-icon warning">
-            <i className='bx bx-time'></i>
-          </div>
-          <div className="activity-info">
-            <span className="activity-text">Próximas funcionalidades en desarrollo</span>
-            <span className="activity-time">En progreso</span>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };

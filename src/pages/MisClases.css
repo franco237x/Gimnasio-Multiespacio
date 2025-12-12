@@ -1,0 +1,348 @@
+.mis-clases {
+    padding: 0;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.header-content h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    font-size: 1.75rem;
+    margin: 0 0 8px;
+}
+
+.header-content h2 i {
+    color: #0891b2;
+}
+
+.header-content p {
+    color: #9ca3af;
+    margin: 0;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 8px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.view-toggle button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-toggle button.active {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: white;
+}
+
+/* Stats Row */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-icon.green {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.stat-icon.cyan {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.stat-icon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+/* Clases Hoy */
+.clases-hoy h3,
+.horario-semanal h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+    margin: 0 0 20px;
+    font-size: 1.1rem;
+}
+
+.clases-hoy h3 i,
+.horario-semanal h3 i {
+    color: #0891b2;
+}
+
+.clases-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.clase-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.clase-card:hover {
+    transform: translateX(4px);
+    border-color: rgba(8, 145, 178, 0.3);
+}
+
+.clase-hora {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    border-radius: 12px;
+    min-width: 70px;
+}
+
+.clase-hora .hora {
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.clase-hora .duracion {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+}
+
+.clase-info {
+    flex: 1;
+}
+
+.clase-info h4 {
+    color: #ffffff;
+    margin: 0 0 6px;
+}
+
+.clase-info p {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.clase-alumnos {
+    width: 120px;
+}
+
+.alumnos-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #22c55e);
+    border-radius: 3px;
+}
+
+.btn-asistencia {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-asistencia:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(8, 145, 178, 0.4);
+}
+
+/* Horario Semanal */
+.semana-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+}
+
+.dia-column {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.dia-header {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.dia-clases {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 150px;
+}
+
+.clase-mini {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mini-hora {
+    color: #0891b2;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.mini-nombre {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.mini-sala {
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
+/* Notification */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.notification-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .semana-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .clase-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .clase-alumnos {
+        width: 100%;
+    }
+
+    .semana-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

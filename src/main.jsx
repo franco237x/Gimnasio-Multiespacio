@@ -6,20 +6,20 @@ import App from './App.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
+import GestionPagos from './pages/GestionPagos.jsx'
+import GestionUsuarios from './pages/GestionUsuarios.jsx'
+import GestionActividades from './pages/GestionActividades.jsx'
+import AlquileresReservas from './pages/AlquileresReservas.jsx'
+import Reportes from './pages/Reportes.jsx'
+import Configuracion from './pages/Configuracion.jsx'
+import MisClases from './pages/MisClases.jsx'
+import MisAlumnos from './pages/MisAlumnos.jsx'
+import MisCuotas from './pages/MisCuotas.jsx'
+import MisReservas from './pages/MisReservas.jsx'
+import MiPerfil from './pages/MiPerfil.jsx'
+import Consultas from './pages/Consultas.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ProtectedRoute, RoleProtectedRoute, ROLES } from './components/auth/RoleProtectedRoute.jsx'
-
-// Página temporal para rutas en desarrollo
-const ComingSoon = ({ title }) => (
-  <div style={{ 
-    padding: '40px', 
-    textAlign: 'center', 
-    color: '#9ca3af' 
-  }}>
-    <h2 style={{ color: '#ffffff', marginBottom: '16px' }}>{title}</h2>
-    <p>Esta sección está en desarrollo.</p>
-  </div>
-);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -30,7 +30,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/" element={<App />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          
+
           {/* Dashboard - Ruta protegida con subrutas */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
@@ -40,93 +40,74 @@ createRoot(document.getElementById('root')).render(
             {/* Rutas de Administrador */}
             <Route path="usuarios" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                <ComingSoon title="Gestionar Usuarios" />
-              </RoleProtectedRoute>
-            } />
-            <Route path="profesores" element={
-              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                <ComingSoon title="Gestionar Profesores" />
+                <GestionUsuarios />
               </RoleProtectedRoute>
             } />
             <Route path="reportes" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                <ComingSoon title="Reportes" />
+                <Reportes />
               </RoleProtectedRoute>
             } />
             <Route path="configuracion" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                <ComingSoon title="Configuración" />
+                <Configuracion />
               </RoleProtectedRoute>
             } />
 
             {/* Rutas compartidas Admin/Recepcionista */}
-            <Route path="cuotas" element={
+            <Route path="pagos" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
-                <ComingSoon title="Gestión de Cuotas" />
-              </RoleProtectedRoute>
-            } />
-            <Route path="alta-cuotas" element={
-              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
-                <ComingSoon title="Alta de Cuotas" />
-              </RoleProtectedRoute>
-            } />
-            <Route path="comprobantes" element={
-              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
-                <ComingSoon title="Generar Comprobante" />
+                <GestionPagos />
               </RoleProtectedRoute>
             } />
             <Route path="consultas" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
-                <ComingSoon title="Consultas" />
+                <Consultas />
               </RoleProtectedRoute>
             } />
 
-            {/* Rutas compartidas Admin/Recepcionista/Profesor */}
+            {/* Rutas compartidas Admin/Profesor */}
             <Route path="actividades" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.PROFESOR]}>
-                <ComingSoon title="Gestionar Actividades" />
+                <GestionActividades />
               </RoleProtectedRoute>
             } />
             <Route path="alquileres" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR]}>
-                <ComingSoon title="Alquileres y Reservas" />
+                <AlquileresReservas />
               </RoleProtectedRoute>
             } />
 
             {/* Rutas de Profesor */}
             <Route path="mis-clases" element={
               <RoleProtectedRoute allowedRoles={[ROLES.PROFESOR]}>
-                <ComingSoon title="Mis Clases" />
+                <MisClases />
               </RoleProtectedRoute>
             } />
             <Route path="alumnos" element={
               <RoleProtectedRoute allowedRoles={[ROLES.PROFESOR]}>
-                <ComingSoon title="Mis Alumnos" />
+                <MisAlumnos />
               </RoleProtectedRoute>
             } />
 
             {/* Rutas de Alumno */}
             <Route path="mis-cuotas" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ALUMNO]}>
-                <ComingSoon title="Mis Cuotas" />
+                <MisCuotas />
               </RoleProtectedRoute>
             } />
             <Route path="mis-reservas" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ALUMNO]}>
-                <ComingSoon title="Mis Reservas" />
-              </RoleProtectedRoute>
-            } />
-            <Route path="informacion" element={
-              <RoleProtectedRoute allowedRoles={[ROLES.ALUMNO]}>
-                <ComingSoon title="Ver Información" />
+                <MisReservas />
               </RoleProtectedRoute>
             } />
 
             {/* Perfil - Todos los usuarios autenticados */}
-            <Route path="perfil" element={<ComingSoon title="Mi Perfil" />} />
+            <Route path="perfil" element={<MiPerfil />} />
           </Route>
         </Routes>
       </Router>
     </AuthProvider>
   </StrictMode>,
 )
+
