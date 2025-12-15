@@ -88,6 +88,11 @@ const initializeTables = async () => {
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         phone VARCHAR(20),
+        email_verified TINYINT(1) NOT NULL DEFAULT 0,
+        verification_token VARCHAR(255),
+        verification_token_expires DATETIME,
+        reset_token VARCHAR(255),
+        reset_token_expires DATETIME,
         role_id INT DEFAULT 4,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -110,6 +115,25 @@ const initializeTables = async () => {
       // Ignorar si la columna ya existe o hay error de constraint duplicado
       if (!alterError.message.includes('Duplicate')) {
         console.log('ℹ️ Columna role_id ya existe o se agregó correctamente');
+      }
+    }
+
+    // Agregar columnas de verificación y recuperación si faltan
+    const authColumns = [
+      'ADD COLUMN IF NOT EXISTS email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER phone',
+      'ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255) AFTER email_verified',
+      'ADD COLUMN IF NOT EXISTS verification_token_expires DATETIME AFTER verification_token',
+      'ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) AFTER verification_token_expires',
+      'ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME AFTER reset_token'
+    ];
+
+    for (const clause of authColumns) {
+      try {
+        await executeQuery(`ALTER TABLE users ${clause};`);
+      } catch (alterError) {
+        if (!alterError.message.includes('Duplicate')) {
+          console.log('ℹ️ Columna de autenticación ya existe o se agregó correctamente:', clause);
+        }
       }
     }
 

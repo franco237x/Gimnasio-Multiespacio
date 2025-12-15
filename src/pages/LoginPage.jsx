@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
+import './AuthFlow.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -69,11 +70,12 @@ const LoginPage = () => {
     setIsLoading(true);
     setError('');
     
-    const success = await login(formData);
+    const result = await login(formData);
     
-    if (success) {
-      // Redirigir al dashboard
+    if (result.success) {
       navigate('/dashboard');
+    } else if (result.requiresVerification) {
+      setError('Debes validar tu correo. Revisa tu bandeja o solicita un nuevo enlace.');
     } else {
       setError(authError || 'Credenciales inválidas. Verifica tu correo y contraseña.');
     }
@@ -87,6 +89,10 @@ const LoginPage = () => {
 
   const goToRegister = () => {
     navigate('/register');
+  };
+
+  const goToForgotPassword = () => {
+    navigate('/forgot-password');
   };
 
   return (
@@ -172,7 +178,9 @@ const LoginPage = () => {
                   <span className="checkmark"></span>
                   Recordarme
                 </label>
-                <a href="#" className="forgot-password">¿Olvidaste tu contraseña?</a>
+                <button type="button" className="forgot-password" onClick={goToForgotPassword}>
+                  ¿Olvidaste tu contraseña?
+                </button>
               </div>
 
               <button 
@@ -198,6 +206,7 @@ const LoginPage = () => {
                 </button>
               </p>
             </div>
+
 
             <div className="social-login">
               <div className="divider">

@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const { generateToken, authenticateToken } = require('../middleware/auth');
+const { sendTokenEmail } = require('../services/phpMailer');
 
 const router = express.Router();
 
@@ -47,13 +48,20 @@ router.post('/register', async (req, res) => {
 
     console.log('✅ Usuario creado exitosamente:', newUser.id);
 
-    // Generar token
-    const token = generateToken(newUser.id);
+    // Crear token de verificación de email
+    const { token: verificationToken, expiresAt } = await User.createEmailVerification(newUser.id);
+
+    // Enviar al endpoint PHP para que dispare el email
+    await sendTokenEmail({
+      email: newUser.email,
+      token: verificationToken,
+      expiresAt,
+      type: 'verification'
+    });
 
     res.status(201).json({
-      message: 'Usuario registrado exitosamente',
-      token,
-      user: newUser.toSafeObject()
+      message: 'Usuario registrado exitosamente. Revisa tu correo para validar tu cuenta.',
+      requiresVerification: true
     });
 
   } catch (error) {
@@ -104,7 +112,22 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generar token
+    // Validar verificación de email
+    if (!user.email_verified) {
+      const { token: verificationToken, expiresAt } = await User.createEmailVerification(user.id);
+      await sendTokenEmail({
+        email: user.email,
+        token: verificationToken,
+        expiresAt,
+        type: 'verification'
+      });
+
+      return res.status(403).json({
+        message: 'Debes validar tu correo antes de iniciar sesión.',
+        requiresVerification: true
+      });
+    }
+
     const token = generateToken(user.id);
 
     res.json({
@@ -117,6 +140,132 @@ router.post('/login', async (req, res) => {
     console.error('Error en login:', error);
     res.status(500).json({
       message: 'Error interno del servidor'
+    });
+  }
+});
+
+// POST /api/auth/verify-email - Validar email
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Token de verificación requerido' });
+    }
+
+    const verifiedUser = await User.verifyEmailWithToken(token);
+    const authToken = generateToken(verifiedUser.id);
+
+    res.json({
+      message: 'Email verificado correctamente',
+      token: authToken,
+      user: verifiedUser.toSafeObject()
+    });
+  } catch (error) {
+    console.error('Error verificando email:', error);
+    res.status(400).json({
+      message: error.message || 'Token inválido o expirado'
+    });
+  }
+});
+
+// POST /api/auth/resend-verification - Reenviar token de verificación
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email requerido' });
+    }
+
+    const user = await User.findByEmail(email.toLowerCase());
+
+    if (!user) {
+      // Responder genérico para evitar enumeración
+      return res.json({ message: 'Si existe una cuenta con ese email, se enviará un enlace de verificación.' });
+    }
+
+    if (user.email_verified) {
+      return res.status(409).json({ message: 'Este email ya está verificado' });
+    }
+
+    const { token: verificationToken, expiresAt } = await User.createEmailVerification(user.id);
+
+    await sendTokenEmail({
+      email: user.email,
+      token: verificationToken,
+      expiresAt,
+      type: 'verification'
+    });
+
+    res.json({
+      message: 'Se generó un nuevo enlace de verificación.'
+    });
+  } catch (error) {
+    console.error('Error reenviando verificación:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/auth/forgot-password - Solicitar recuperación de contraseña
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email requerido' });
+    }
+
+    const user = await User.findByEmail(email.toLowerCase());
+
+    if (!user) {
+      // Responder genérico para evitar enumeración
+      return res.json({ message: 'Si el correo está registrado, se enviará un enlace para restablecer.' });
+    }
+
+    const { token: resetToken, expiresAt } = await User.createPasswordResetToken(user.id);
+
+    await sendTokenEmail({
+      email: user.email,
+      token: resetToken,
+      expiresAt,
+      type: 'reset'
+    });
+
+    res.json({
+      message: 'Si el correo está registrado, se generó un enlace para restablecer la contraseña.'
+    });
+  } catch (error) {
+    console.error('Error en forgot-password:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/auth/reset-password - Restablecer contraseña
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token y nueva contraseña son requeridos' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+
+    const updatedUser = await User.resetPasswordWithToken(token, password);
+    const authToken = generateToken(updatedUser.id);
+
+    res.json({
+      message: 'Contraseña restablecida exitosamente',
+      token: authToken,
+      user: updatedUser.toSafeObject()
+    });
+  } catch (error) {
+    console.error('Error restableciendo contraseña:', error);
+    res.status(400).json({
+      message: error.message || 'Token inválido o expirado'
     });
   }
 });

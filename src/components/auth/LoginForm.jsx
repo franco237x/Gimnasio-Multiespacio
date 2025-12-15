@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './LoginForm.css';
+import '../../pages/AuthFlow.css';
 
 export const LoginForm = () => {
   const navigate = useNavigate();
@@ -15,10 +16,13 @@ export const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const success = await login(credentials);
+    const result = await login(credentials);
     setLoading(false);
-    if (success) {
+    if (result.success) {
       navigate('/dashboard');
+    } else if (result.requiresVerification) {
+      // Redirigir al flujo de verificación
+      navigate('/verify-email');
     }
   };
 

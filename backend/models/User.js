@@ -1,5 +1,6 @@
 const { executeQuery } = require('../config/database');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 // Constantes de roles para usar en el código
 const ROLES = {
@@ -16,6 +17,11 @@ class User {
     this.email = data.email;
     this.password = data.password;
     this.phone = data.phone;
+    this.email_verified = Boolean(data.email_verified);
+    this.verification_token = data.verification_token;
+    this.verification_token_expires = data.verification_token_expires;
+    this.reset_token = data.reset_token;
+    this.reset_token_expires = data.reset_token_expires;
     this.role_id = data.role_id;
     this.role_name = data.role_name;
     this.role_hierarchy = data.role_hierarchy;
@@ -104,6 +110,106 @@ class User {
     } catch (error) {
       throw error;
     }
+  }
+
+  // Generar y guardar token de verificación de email
+  static async createEmailVerification(userId, hoursToExpire = 24) {
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + hoursToExpire * 60 * 60 * 1000);
+
+    await executeQuery(
+      'UPDATE users SET verification_token = ?, verification_token_expires = ? WHERE id = ?',
+      [hashedToken, expiresAt, userId]
+    );
+
+    return { token: rawToken, expiresAt };
+  }
+
+  // Confirmar email usando token
+  static async verifyEmailWithToken(rawToken) {
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const query = `
+      SELECT * FROM users
+      WHERE verification_token = ?
+        AND verification_token_expires > NOW()
+        AND email_verified = 0
+      LIMIT 1
+    `;
+
+    const results = await executeQuery(query, [hashedToken]);
+
+    if (results.length === 0) {
+      throw new Error('Token inválido o expirado');
+    }
+
+    const userId = results[0].id;
+
+    await executeQuery(
+      `UPDATE users 
+       SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = ?`,
+      [userId]
+    );
+
+    return await User.findById(userId);
+  }
+
+  // Generar y guardar token de recuperación de contraseña
+  static async createPasswordResetToken(userId, hoursToExpire = 1) {
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + hoursToExpire * 60 * 60 * 1000);
+
+    await executeQuery(
+      'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
+      [hashedToken, expiresAt, userId]
+    );
+
+    return { token: rawToken, expiresAt };
+  }
+
+  // Restablecer contraseña usando token
+  static async resetPasswordWithToken(rawToken, newPassword) {
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const query = `
+      SELECT * FROM users
+      WHERE reset_token = ?
+        AND reset_token_expires > NOW()
+      LIMIT 1
+    `;
+
+    const results = await executeQuery(query, [hashedToken]);
+
+    if (results.length === 0) {
+      throw new Error('Token inválido o expirado');
+    }
+
+    const userId = results[0].id;
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    await executeQuery(
+      `UPDATE users 
+       SET password = ?, reset_token = NULL, reset_token_expires = NULL, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = ?`,
+      [hashedPassword, userId]
+    );
+
+    return await User.findById(userId);
+  }
+
+  // Actualizar contraseña directamente
+  static async updatePassword(userId, newPassword) {
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    await executeQuery(
+      'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [hashedPassword, userId]
+    );
+    return await User.findById(userId);
   }
 
   // Actualizar información del usuario
@@ -200,6 +306,7 @@ class User {
       name: this.name,
       email: this.email,
       phone: this.phone,
+      email_verified: this.email_verified,
       role: {
         id: this.role_id,
         name: this.role_name,

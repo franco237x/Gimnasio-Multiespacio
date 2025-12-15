@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './RegisterPage.css';
+import './AuthFlow.css';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, text: '', color: '' });
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -114,6 +116,7 @@ const RegisterPage = () => {
     }
 
     setIsLoading(true);
+    setSuccessMessage('');
 
     const result = await register({
       name: formData.name.trim(),
@@ -122,8 +125,7 @@ const RegisterPage = () => {
     });
 
     if (result.success) {
-      // Redirigir al dashboard
-      navigate('/dashboard');
+      setSuccessMessage('Cuenta creada. Revisa tu correo para validar tu cuenta.');
     } else {
       setErrors({ submit: result.error });
     }
@@ -188,6 +190,11 @@ const RegisterPage = () => {
               {errors.submit && (
                 <div className="error-message global-error">
                   {errors.submit}
+                </div>
+              )}
+              {successMessage && (
+                <div className="success-message">
+                  {successMessage}
                 </div>
               )}
 
@@ -299,6 +306,7 @@ const RegisterPage = () => {
                   'Crear Cuenta'
                 )}
               </button>
+
             </form>
 
             <div className="login-section">

@@ -1,5 +1,7 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -21,7 +23,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async (token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -42,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,22 +59,25 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(user));
         setUser(user);
-        return true;
+        return { success: true };
       } else {
         setError(data.message || 'Error al iniciar sesión');
-        return false;
+        return {
+          success: false,
+          requiresVerification: data.requiresVerification
+        };
       }
     } catch (error) {
       console.error('Error en login:', error);
       setError('Error de conexión. Intenta nuevamente.');
-      return false;
+      return { success: false };
     }
   };
 
   const register = async (userData) => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,11 +88,10 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
       
       if (response.ok) {
-        const { token, user } = data;
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        setUser(user);
-        return { success: true };
+        return {
+          success: true,
+          requiresVerification: data.requiresVerification
+        };
       } else {
         const errorMessage = data.message || 'Error en el registro';
         setError(errorMessage);
@@ -98,6 +102,116 @@ export const AuthProvider = ({ children }) => {
       const errorMessage = 'Error de conexión. Intenta nuevamente.';
       setError(errorMessage);
       return { success: false, error: errorMessage };
+    }
+  };
+
+  const verifyEmail = async (token) => {
+    try {
+      setError(null);
+      const response = await fetch(`${API_URL}/api/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const { token: authToken, user } = data;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
+        return { success: true, user };
+      }
+
+      setError(data.message || 'No se pudo verificar el email');
+      return { success: false, error: data.message };
+    } catch (err) {
+      console.error('Error verificando email:', err);
+      setError('Error de conexión. Intenta nuevamente.');
+      return { success: false, error: 'Error de conexión. Intenta nuevamente.' };
+    }
+  };
+
+  const resendVerification = async (email) => {
+    try {
+      setError(null);
+      const response = await fetch(`${API_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: data.message
+        };
+      }
+
+      setError(data.message || 'No se pudo reenviar el email');
+      return { success: false, error: data.message };
+    } catch (err) {
+      console.error('Error reenviando verificación:', err);
+      setError('Error de conexión. Intenta nuevamente.');
+      return { success: false, error: 'Error de conexión. Intenta nuevamente.' };
+    }
+  };
+
+  const requestPasswordReset = async (email) => {
+    try {
+      setError(null);
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: data.message
+        };
+      }
+
+      setError(data.message || 'No se pudo iniciar la recuperación');
+      return { success: false, error: data.message };
+    } catch (err) {
+      console.error('Error solicitando recuperación:', err);
+      setError('Error de conexión. Intenta nuevamente.');
+      return { success: false, error: 'Error de conexión. Intenta nuevamente.' };
+    }
+  };
+
+  const resetPassword = async ({ token, password }) => {
+    try {
+      setError(null);
+      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const { token: authToken, user } = data;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
+        return { success: true, user };
+      }
+
+      setError(data.message || 'No se pudo restablecer la contraseña');
+      return { success: false, error: data.message };
+    } catch (err) {
+      console.error('Error restableciendo contraseña:', err);
+      setError('Error de conexión. Intenta nuevamente.');
+      return { success: false, error: 'Error de conexión. Intenta nuevamente.' };
     }
   };
 
@@ -119,6 +233,10 @@ export const AuthProvider = ({ children }) => {
       error, 
       login, 
       register, 
+      verifyEmail,
+      resendVerification,
+      requestPasswordReset,
+      resetPassword,
       logout, 
       isAuthenticated 
     }}>

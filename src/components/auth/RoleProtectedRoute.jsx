@@ -72,6 +72,10 @@ export const ProtectedRoute = ({ children }) => {
     );
   }
 
+  if (user && user.email_verified === false) {
+    return <Navigate to="/verify-email" state={{ from: location }} replace />;
+  }
+
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
@@ -91,6 +95,10 @@ export const RoleProtectedRoute = ({ children, allowedRoles = [] }) => {
         <p>Cargando...</p>
       </div>
     );
+  }
+
+  if (user && user.email_verified === false) {
+    return <Navigate to="/verify-email" state={{ from: location }} replace />;
   }
 
   if (!user) {
@@ -124,6 +132,10 @@ export const MinRoleRoute = ({ children, minRole }) => {
         <p>Cargando...</p>
       </div>
     );
+  }
+
+  if (user && user.email_verified === false) {
+    return <Navigate to="/verify-email" state={{ from: location }} replace />;
   }
 
   if (!user) {

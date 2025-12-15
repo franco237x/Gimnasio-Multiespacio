@@ -14,6 +14,10 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
+  if (user && user.email_verified === false) {
+    return <Navigate to="/verify-email" state={{ from: location }} replace />;
+  }
+
   if (!user) {
     // Redirigir a login y guardar la ubicación actual
     return <Navigate to="/login" state={{ from: location }} replace />;
