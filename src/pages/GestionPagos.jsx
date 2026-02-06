@@ -1,34 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { paymentsAPI, usersAPI } from '../services/apiService';
 import './GestionPagos.css';
 
 const GestionPagos = () => {
-    const [activeTab, setActiveTab] = useState('pagos');
+    const [activeTab, setActiveTab] = useState('pago');
     const [showModal, setShowModal] = useState(false);
-    const [modalType, setModalType] = useState('');
-    const [formData, setFormData] = useState({
-        alumnoId: '',
-        monto: '',
-        concepto: 'mensualidad',
-        metodoPago: 'efectivo',
-        fechaVencimiento: ''
-    });
+    const [modalType, setModalType] = useState('pago');
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const [alumnos, setAlumnos] = useState([]);
+    const [planes, setPlanes] = useState([]);
+    const [historialPagos, setHistorialPagos] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Datos simulados de alumnos
-    const alumnos = [
-        { id: 1, nombre: 'Juan Pérez', dni: '12345678', cuotaEstado: 'al_dia', ultimoPago: '2024-12-01' },
-        { id: 2, nombre: 'María García', dni: '23456789', cuotaEstado: 'pendiente', ultimoPago: '2024-11-15' },
-        { id: 3, nombre: 'Carlos López', dni: '34567890', cuotaEstado: 'vencida', ultimoPago: '2024-10-20' },
-        { id: 4, nombre: 'Ana Martínez', dni: '45678901', cuotaEstado: 'al_dia', ultimoPago: '2024-12-05' },
-        { id: 5, nombre: 'Pedro Sánchez', dni: '56789012', cuotaEstado: 'pendiente', ultimoPago: '2024-11-28' },
-    ];
+    const [formData, setFormData] = useState({
+        user_id: '',
+        plan_id: '',
+        amount: '',
+        concept: 'mensualidad',
+        payment_method: 'efectivo',
+        notes: ''
+    });
 
-    // Historial de pagos simulado
-    const [historialPagos] = useState([
-        { id: 1, alumno: 'Juan Pérez', monto: 5000, fecha: '2024-12-01', concepto: 'Mensualidad Diciembre', estado: 'completado' },
-        { id: 2, alumno: 'Ana Martínez', monto: 5000, fecha: '2024-12-05', concepto: 'Mensualidad Diciembre', estado: 'completado' },
-        { id: 3, alumno: 'María García', monto: 2500, fecha: '2024-11-15', concepto: 'Mensualidad Nov (parcial)', estado: 'parcial' },
-    ]);
+    const [planFormData, setPlanFormData] = useState({
+        name: '',
+        description: '',
+        price: '',
+        duration_days: 30
+    });
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [usersRes, plansRes, paymentsRes] = await Promise.all([
+                usersAPI.getAll({ role: 'alumno' }),
+                paymentsAPI.getPlans(),
+                paymentsAPI.getAll({ limit: 50 })
+            ]);
+
+            if (usersRes.success) {
+                setAlumnos(usersRes.data.filter(u => u.role_name?.toLowerCase() === 'alumno'));
+            }
+            if (plansRes.success) setPlanes(plansRes.data);
+            if (paymentsRes.success) setHistorialPagos(paymentsRes.data);
+        } catch (error) {
+            showNotification('❌ Error al cargar datos', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const showNotification = (message, type) => {
         setNotification({ show: true, message, type });
@@ -37,331 +60,364 @@ const GestionPagos = () => {
 
     const handleOpenModal = (type) => {
         setModalType(type);
+        if (type === 'pago') {
+            setFormData({
+                user_id: '',
+                plan_id: '',
+                amount: '',
+                concept: 'mensualidad',
+                payment_method: 'efectivo',
+                notes: ''
+            });
+        } else {
+            setPlanFormData({
+                name: '',
+                description: '',
+                price: '',
+                duration_days: 30
+            });
+        }
         setShowModal(true);
     };
 
     const handleCloseModal = () => {
         setShowModal(false);
-        setFormData({
-            alumnoId: '',
-            monto: '',
-            concepto: 'mensualidad',
-            metodoPago: 'efectivo',
-            fechaVencimiento: ''
-        });
     };
 
-    const handleSubmit = (e) => {
+    const handlePlanSelect = (planId) => {
+        const plan = planes.find(p => p.id === parseInt(planId));
+        if (plan) {
+            setFormData({
+                ...formData,
+                plan_id: planId,
+                amount: plan.price
+            });
+        }
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (modalType === 'pago') {
-            showNotification('✅ Pago registrado exitosamente', 'success');
-        } else if (modalType === 'cuota') {
-            showNotification('✅ Cuota creada exitosamente', 'success');
+        try {
+            if (modalType === 'pago') {
+                // Registrar pago
+                await paymentsAPI.create({
+                    user_id: parseInt(formData.user_id),
+                    amount: parseFloat(formData.amount),
+                    concept: formData.concept,
+                    payment_method: formData.payment_method,
+                    notes: formData.notes
+                });
+
+                // Si hay plan seleccionado, crear suscripción
+                if (formData.plan_id) {
+                    await paymentsAPI.createSubscription({
+                        user_id: parseInt(formData.user_id),
+                        plan_id: parseInt(formData.plan_id)
+                    });
+                }
+
+                showNotification('✅ Pago registrado exitosamente', 'success');
+            } else {
+                // Crear plan
+                await paymentsAPI.createPlan({
+                    name: planFormData.name,
+                    description: planFormData.description,
+                    price: parseFloat(planFormData.price),
+                    duration_days: parseInt(planFormData.duration_days)
+                });
+                showNotification('✅ Cuota creada exitosamente', 'success');
+            }
+
+            handleCloseModal();
+            loadData();
+        } catch (error) {
+            showNotification('❌ Error: ' + error.message, 'error');
         }
-        handleCloseModal();
     };
 
-    const handleGenerarComprobante = (pagoId) => {
-        showNotification('📄 Comprobante generado y listo para imprimir', 'success');
+    const getConceptoLabel = (concept) => {
+        const labels = {
+            mensualidad: 'Mensualidad',
+            inscripcion: 'Inscripción',
+            clase_especial: 'Clase Especial',
+            alquiler: 'Alquiler',
+            otro: 'Otro'
+        };
+        return labels[concept] || concept;
     };
 
-    const getEstadoBadge = (estado) => {
-        switch (estado) {
-            case 'al_dia':
-                return <span className="badge badge-success">Al día</span>;
-            case 'pendiente':
-                return <span className="badge badge-warning">Pendiente</span>;
-            case 'vencida':
-                return <span className="badge badge-danger">Vencida</span>;
-            case 'completado':
-                return <span className="badge badge-success">Completado</span>;
-            case 'parcial':
-                return <span className="badge badge-warning">Parcial</span>;
-            default:
-                return <span className="badge">{estado}</span>;
-        }
+    const getMetodoPagoLabel = (method) => {
+        const labels = {
+            efectivo: 'Efectivo',
+            tarjeta: 'Tarjeta',
+            transferencia: 'Transferencia',
+            mercadopago: 'MercadoPago'
+        };
+        return labels[method] || method;
     };
 
     return (
         <div className="gestion-pagos">
-            {/* Notificación */}
             {notification.show && (
                 <div className={`notification notification-${notification.type}`}>
                     {notification.message}
                 </div>
             )}
 
-            {/* Header */}
-            <div className="pagos-header">
-                <h2><i className='bx bx-money'></i> Gestión de Pagos</h2>
-                <p>Administra pagos, cuotas y comprobantes desde un solo lugar</p>
+            <div className="page-header">
+                <h1><i className='bx bx-money'></i> Gestión de Pagos</h1>
             </div>
 
-            {/* Tabs */}
             <div className="tabs-container">
-                <button
-                    className={`tab-btn ${activeTab === 'pagos' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('pagos')}
-                >
-                    <i className='bx bx-credit-card'></i>
-                    Registrar Pago
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'cuotas' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('cuotas')}
-                >
-                    <i className='bx bx-plus-circle'></i>
-                    Alta de Cuotas
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'historial' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('historial')}
-                >
-                    <i className='bx bx-history'></i>
-                    Historial
-                </button>
+                <div className="tabs">
+                    <button
+                        className={`tab ${activeTab === 'pago' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('pago')}
+                    >
+                        <i className='bx bx-credit-card'></i> Registrar Pago
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'cuota' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('cuota')}
+                    >
+                        <i className='bx bx-receipt'></i> Planes/Cuotas
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'historial' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('historial')}
+                    >
+                        <i className='bx bx-history'></i> Historial
+                    </button>
+                </div>
             </div>
 
-            {/* Contenido según tab activo */}
-            <div className="tab-content">
-                {/* Tab Pagos */}
-                {activeTab === 'pagos' && (
-                    <div className="pagos-section">
-                        <div className="section-actions">
-                            <button className="btn-primary" onClick={() => handleOpenModal('pago')}>
-                                <i className='bx bx-plus'></i> Nuevo Pago
-                            </button>
-                        </div>
+            {loading ? (
+                <div className="loading-state">
+                    <i className='bx bx-loader-alt bx-spin'></i>
+                    <p>Cargando datos...</p>
+                </div>
+            ) : (
+                <div className="tab-content">
+                    {activeTab === 'pago' && (
+                        <div className="registro-pago-section">
+                            <div className="quick-actions">
+                                <button className="btn-primary" onClick={() => handleOpenModal('pago')}>
+                                    <i className='bx bx-plus'></i> Registrar Nuevo Pago
+                                </button>
+                            </div>
 
-                        <div className="alumnos-table-container">
-                            <h3>Estado de Cuotas de Alumnos</h3>
-                            <table className="data-table">
+                            <div className="plans-grid">
+                                <h3>Planes Disponibles</h3>
+                                <div className="plans-list">
+                                    {planes.map(plan => (
+                                        <div key={plan.id} className="plan-card">
+                                            <h4>{plan.name}</h4>
+                                            <p className="plan-price">${plan.price?.toLocaleString('es-AR')}</p>
+                                            <p className="plan-duration">{plan.duration_days} días</p>
+                                            <p className="plan-description">{plan.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'cuota' && (
+                        <div className="cuotas-section">
+                            <div className="section-header">
+                                <h3>Planes de Membresía</h3>
+                                <button className="btn-primary" onClick={() => handleOpenModal('cuota')}>
+                                    <i className='bx bx-plus'></i> Nuevo Plan
+                                </button>
+                            </div>
+                            <div className="plans-table-container">
+                                <table className="payments-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Descripción</th>
+                                            <th>Precio</th>
+                                            <th>Duración</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {planes.map(plan => (
+                                            <tr key={plan.id}>
+                                                <td><strong>{plan.name}</strong></td>
+                                                <td>{plan.description || '-'}</td>
+                                                <td className="amount">${plan.price?.toLocaleString('es-AR')}</td>
+                                                <td>{plan.duration_days} días</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'historial' && (
+                        <div className="historial-section">
+                            <h3>Historial de Pagos</h3>
+                            <table className="payments-table">
                                 <thead>
                                     <tr>
+                                        <th>Fecha</th>
                                         <th>Alumno</th>
-                                        <th>DNI</th>
-                                        <th>Estado Cuota</th>
-                                        <th>Último Pago</th>
-                                        <th>Acciones</th>
+                                        <th>Concepto</th>
+                                        <th>Método</th>
+                                        <th>Monto</th>
+                                        <th>Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {alumnos.map((alumno) => (
-                                        <tr key={alumno.id}>
+                                    {historialPagos.map(pago => (
+                                        <tr key={pago.id}>
+                                            <td>{new Date(pago.payment_date).toLocaleDateString('es-AR')}</td>
+                                            <td>{pago.user_name}</td>
+                                            <td>{getConceptoLabel(pago.concept)}</td>
+                                            <td>{getMetodoPagoLabel(pago.payment_method)}</td>
+                                            <td className="amount">${pago.amount?.toLocaleString('es-AR')}</td>
                                             <td>
-                                                <div className="alumno-info">
-                                                    <div className="alumno-avatar">
-                                                        {alumno.nombre.charAt(0)}
-                                                    </div>
-                                                    {alumno.nombre}
-                                                </div>
-                                            </td>
-                                            <td>{alumno.dni}</td>
-                                            <td>{getEstadoBadge(alumno.cuotaEstado)}</td>
-                                            <td>{alumno.ultimoPago}</td>
-                                            <td>
-                                                <button
-                                                    className="btn-action btn-pay"
-                                                    onClick={() => handleOpenModal('pago')}
-                                                    title="Registrar Pago"
-                                                >
-                                                    <i className='bx bx-dollar'></i>
-                                                </button>
-                                                <button
-                                                    className="btn-action btn-receipt"
-                                                    onClick={() => handleGenerarComprobante(alumno.id)}
-                                                    title="Generar Comprobante"
-                                                >
-                                                    <i className='bx bx-file'></i>
-                                                </button>
+                                                <span className={`status-badge status-${pago.status}`}>
+                                                    {pago.status === 'completed' ? 'Completado' : pago.status}
+                                                </span>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                )}
-
-                {/* Tab Cuotas */}
-                {activeTab === 'cuotas' && (
-                    <div className="cuotas-section">
-                        <div className="section-actions">
-                            <button className="btn-primary" onClick={() => handleOpenModal('cuota')}>
-                                <i className='bx bx-plus'></i> Nueva Cuota
-                            </button>
-                        </div>
-
-                        <div className="cuotas-cards">
-                            <div className="cuota-card">
-                                <div className="cuota-icon">
-                                    <i className='bx bx-dumbbell'></i>
-                                </div>
-                                <div className="cuota-details">
-                                    <h4>Mensualidad Básica</h4>
-                                    <p className="cuota-precio">$5,000</p>
-                                    <span className="cuota-desc">Acceso a sala de musculación</span>
-                                </div>
-                                <span className="badge badge-success">Activa</span>
-                            </div>
-
-                            <div className="cuota-card">
-                                <div className="cuota-icon premium">
-                                    <i className='bx bx-star'></i>
-                                </div>
-                                <div className="cuota-details">
-                                    <h4>Mensualidad Premium</h4>
-                                    <p className="cuota-precio">$8,000</p>
-                                    <span className="cuota-desc">Musculación + Clases grupales</span>
-                                </div>
-                                <span className="badge badge-success">Activa</span>
-                            </div>
-
-                            <div className="cuota-card">
-                                <div className="cuota-icon vip">
-                                    <i className='bx bx-crown'></i>
-                                </div>
-                                <div className="cuota-details">
-                                    <h4>Pase VIP</h4>
-                                    <p className="cuota-precio">$12,000</p>
-                                    <span className="cuota-desc">Acceso ilimitado + Personal Trainer</span>
-                                </div>
-                                <span className="badge badge-success">Activa</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Tab Historial */}
-                {activeTab === 'historial' && (
-                    <div className="historial-section">
-                        <h3>Historial de Pagos</h3>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Alumno</th>
-                                    <th>Monto</th>
-                                    <th>Fecha</th>
-                                    <th>Concepto</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {historialPagos.map((pago) => (
-                                    <tr key={pago.id}>
-                                        <td>#{pago.id.toString().padStart(4, '0')}</td>
-                                        <td>{pago.alumno}</td>
-                                        <td className="monto">${pago.monto.toLocaleString()}</td>
-                                        <td>{pago.fecha}</td>
-                                        <td>{pago.concepto}</td>
-                                        <td>{getEstadoBadge(pago.estado)}</td>
-                                        <td>
-                                            <button
-                                                className="btn-action btn-receipt"
-                                                onClick={() => handleGenerarComprobante(pago.id)}
-                                                title="Generar Comprobante"
-                                            >
-                                                <i className='bx bx-printer'></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            )}
 
             {/* Modal */}
             {showModal && (
                 <div className="modal-overlay" onClick={handleCloseModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>
-                                {modalType === 'pago' ? (
-                                    <><i className='bx bx-credit-card'></i> Registrar Nuevo Pago</>
-                                ) : (
-                                    <><i className='bx bx-plus-circle'></i> Crear Nueva Cuota</>
-                                )}
-                            </h3>
-                            <button className="modal-close" onClick={handleCloseModal}>
+                            <h2>{modalType === 'pago' ? 'Registrar Pago' : 'Nuevo Plan/Cuota'}</h2>
+                            <button className="close-btn" onClick={handleCloseModal}>
                                 <i className='bx bx-x'></i>
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Alumno</label>
-                                <select
-                                    value={formData.alumnoId}
-                                    onChange={(e) => setFormData({ ...formData, alumnoId: e.target.value })}
-                                    required
-                                >
-                                    <option value="">Seleccionar alumno</option>
-                                    {alumnos.map((alumno) => (
-                                        <option key={alumno.id} value={alumno.id}>{alumno.nombre}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Monto ($)</label>
-                                <input
-                                    type="number"
-                                    value={formData.monto}
-                                    onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                                    placeholder="Ingrese monto"
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label>Concepto</label>
-                                <select
-                                    value={formData.concepto}
-                                    onChange={(e) => setFormData({ ...formData, concepto: e.target.value })}
-                                >
-                                    <option value="mensualidad">Mensualidad</option>
-                                    <option value="inscripcion">Inscripción</option>
-                                    <option value="clase_especial">Clase Especial</option>
-                                    <option value="otro">Otro</option>
-                                </select>
-                            </div>
-
-                            {modalType === 'pago' && (
-                                <div className="form-group">
-                                    <label>Método de Pago</label>
-                                    <select
-                                        value={formData.metodoPago}
-                                        onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })}
-                                    >
-                                        <option value="efectivo">Efectivo</option>
-                                        <option value="tarjeta">Tarjeta de Débito/Crédito</option>
-                                        <option value="transferencia">Transferencia Bancaria</option>
-                                        <option value="mercadopago">MercadoPago</option>
-                                    </select>
-                                </div>
+                            {modalType === 'pago' ? (
+                                <>
+                                    <div className="form-group">
+                                        <label>Alumno</label>
+                                        <select
+                                            value={formData.user_id}
+                                            onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
+                                            required
+                                        >
+                                            <option value="">Seleccionar alumno...</option>
+                                            {alumnos.map(a => (
+                                                <option key={a.id} value={a.id}>{a.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Plan (opcional)</label>
+                                        <select
+                                            value={formData.plan_id}
+                                            onChange={(e) => handlePlanSelect(e.target.value)}
+                                        >
+                                            <option value="">Sin plan específico</option>
+                                            {planes.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name} - ${p.price}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Monto</label>
+                                            <input
+                                                type="number"
+                                                value={formData.amount}
+                                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Concepto</label>
+                                            <select
+                                                value={formData.concept}
+                                                onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
+                                            >
+                                                <option value="mensualidad">Mensualidad</option>
+                                                <option value="inscripcion">Inscripción</option>
+                                                <option value="clase_especial">Clase Especial</option>
+                                                <option value="alquiler">Alquiler</option>
+                                                <option value="otro">Otro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Método de Pago</label>
+                                        <select
+                                            value={formData.payment_method}
+                                            onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                                        >
+                                            <option value="efectivo">Efectivo</option>
+                                            <option value="tarjeta">Tarjeta</option>
+                                            <option value="transferencia">Transferencia</option>
+                                            <option value="mercadopago">MercadoPago</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Notas</label>
+                                        <textarea
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                            rows="2"
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="form-group">
+                                        <label>Nombre del Plan</label>
+                                        <input
+                                            type="text"
+                                            value={planFormData.name}
+                                            onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Descripción</label>
+                                        <textarea
+                                            value={planFormData.description}
+                                            onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
+                                            rows="2"
+                                        />
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Precio</label>
+                                            <input
+                                                type="number"
+                                                value={planFormData.price}
+                                                onChange={(e) => setPlanFormData({ ...planFormData, price: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Duración (días)</label>
+                                            <input
+                                                type="number"
+                                                value={planFormData.duration_days}
+                                                onChange={(e) => setPlanFormData({ ...planFormData, duration_days: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
                             )}
-
-                            {modalType === 'cuota' && (
-                                <div className="form-group">
-                                    <label>Fecha de Vencimiento</label>
-                                    <input
-                                        type="date"
-                                        value={formData.fechaVencimiento}
-                                        onChange={(e) => setFormData({ ...formData, fechaVencimiento: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            )}
-
-                            <div className="modal-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>
-                                    Cancelar
-                                </button>
+                            <div className="form-actions">
+                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
                                 <button type="submit" className="btn-primary">
-                                    {modalType === 'pago' ? 'Registrar Pago' : 'Crear Cuota'}
+                                    {modalType === 'pago' ? 'Registrar Pago' : 'Crear Plan'}
                                 </button>
                             </div>
                         </form>

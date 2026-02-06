@@ -1,52 +1,139 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { reservationsAPI } from '../services/apiService';
 import './AlquileresReservas.css';
 
 const AlquileresReservas = () => {
     const [activeTab, setActiveTab] = useState('reservas');
     const [showModal, setShowModal] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-
-    const [reservas] = useState([
-        { id: 1, cliente: 'Club de Fútbol Aurora', espacio: 'Cancha Principal', fecha: '2024-12-15', horario: '09:00 - 12:00', estado: 'confirmada', monto: 15000 },
-        { id: 2, cliente: 'Escuela de Danza Sol', espacio: 'Sala Principal', fecha: '2024-12-16', horario: '18:00 - 21:00', estado: 'pendiente', monto: 8000 },
-        { id: 3, cliente: 'Evento Corporativo XYZ', espacio: 'Salón de Eventos', fecha: '2024-12-20', horario: '14:00 - 20:00', estado: 'confirmada', monto: 25000 },
-        { id: 4, cliente: 'Cumpleaños Juan', espacio: 'Sala B', fecha: '2024-12-22', horario: '15:00 - 19:00', estado: 'pendiente', monto: 6000 },
-    ]);
-
-    const [espacios] = useState([
-        { id: 1, nombre: 'Cancha Principal', tipo: 'Deportivo', capacidad: 30, precioHora: 5000, estado: 'disponible' },
-        { id: 2, nombre: 'Sala Principal', tipo: 'Multiusos', capacidad: 50, precioHora: 3000, estado: 'disponible' },
-        { id: 3, nombre: 'Salón de Eventos', tipo: 'Eventos', capacidad: 100, precioHora: 4500, estado: 'ocupado' },
-        { id: 4, nombre: 'Sala B', tipo: 'Clases', capacidad: 20, precioHora: 2000, estado: 'disponible' },
-        { id: 5, nombre: 'Patio Exterior', tipo: 'Aire Libre', capacidad: 80, precioHora: 3500, estado: 'disponible' },
-    ]);
+    const [reservas, setReservas] = useState([]);
+    const [espacios, setEspacios] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const [formData, setFormData] = useState({
-        cliente: '',
-        espacio: '',
-        fecha: '',
-        horaInicio: '',
-        horaFin: '',
-        observaciones: ''
+        space_id: '',
+        client_name: '',
+        client_phone: '',
+        client_email: '',
+        reservation_date: '',
+        start_time: '08:00',
+        end_time: '10:00',
+        notes: ''
     });
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [resRes, spacesRes] = await Promise.all([
+                reservationsAPI.getUpcoming(30),
+                reservationsAPI.getSpaces()
+            ]);
+
+            if (resRes.success) setReservas(resRes.data);
+            if (spacesRes.success) setEspacios(spacesRes.data);
+        } catch (error) {
+            showNotification('❌ Error al cargar datos', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const showNotification = (message, type) => {
         setNotification({ show: true, message, type });
         setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        showNotification('✅ Reserva creada exitosamente', 'success');
+    const handleOpenModal = () => {
+        const today = new Date().toISOString().split('T')[0];
+        setFormData({
+            space_id: espacios[0]?.id || '',
+            client_name: '',
+            client_phone: '',
+            client_email: '',
+            reservation_date: today,
+            start_time: '08:00',
+            end_time: '10:00',
+            notes: ''
+        });
+        setShowModal(true);
+    };
+
+    const handleCloseModal = () => {
         setShowModal(false);
     };
 
-    const handleConfirm = (id) => {
-        showNotification('✅ Reserva confirmada', 'success');
+    const calculateTotal = () => {
+        const space = espacios.find(s => s.id === parseInt(formData.space_id));
+        if (!space || !formData.start_time || !formData.end_time) return 0;
+
+        const start = parseInt(formData.start_time.split(':')[0]);
+        const end = parseInt(formData.end_time.split(':')[0]);
+        const hours = end - start;
+
+        return hours * (space.price_per_hour || 0);
     };
 
-    const handleCancel = (id) => {
-        showNotification('❌ Reserva cancelada', 'success');
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const total = calculateTotal();
+            await reservationsAPI.create({
+                ...formData,
+                space_id: parseInt(formData.space_id),
+                total_amount: total
+            });
+            showNotification('✅ Reserva creada exitosamente', 'success');
+            handleCloseModal();
+            loadData();
+        } catch (error) {
+            showNotification('❌ ' + error.message, 'error');
+        }
+    };
+
+    const handleConfirm = async (reservaId) => {
+        try {
+            await reservationsAPI.confirm(reservaId);
+            showNotification('✅ Reserva confirmada', 'success');
+            loadData();
+        } catch (error) {
+            showNotification('❌ Error al confirmar', 'error');
+        }
+    };
+
+    const handleCancel = async (reservaId) => {
+        if (!confirm('¿Está seguro de cancelar esta reserva?')) return;
+        try {
+            await reservationsAPI.cancel(reservaId);
+            showNotification('🗑️ Reserva cancelada', 'success');
+            loadData();
+        } catch (error) {
+            showNotification('❌ Error al cancelar', 'error');
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        const styles = {
+            pending: { bg: 'rgba(234, 179, 8, 0.2)', color: '#eab308', label: 'Pendiente' },
+            confirmed: { bg: 'rgba(22, 163, 74, 0.2)', color: '#16a34a', label: 'Confirmada' },
+            cancelled: { bg: 'rgba(220, 38, 38, 0.2)', color: '#dc2626', label: 'Cancelada' }
+        };
+        const style = styles[status] || styles.pending;
+        return <span className="badge" style={{ background: style.bg, color: style.color }}>{style.label}</span>;
+    };
+
+    const getSpaceTypeBadge = (type) => {
+        const labels = {
+            deportivo: 'Deportivo',
+            multiusos: 'Multiusos',
+            eventos: 'Eventos',
+            clases: 'Clases',
+            aire_libre: 'Aire Libre'
+        };
+        return labels[type] || type;
     };
 
     return (
@@ -58,158 +145,175 @@ const AlquileresReservas = () => {
             )}
 
             <div className="page-header">
-                <div className="header-content">
-                    <h2><i className='bx bx-building-house'></i> Alquileres y Reservas</h2>
-                    <p>Gestiona los espacios y reservas del gimnasio</p>
-                </div>
-                <button className="btn-primary" onClick={() => setShowModal(true)}>
+                <h1><i className='bx bx-calendar-check'></i> Alquileres y Reservas</h1>
+                <button className="btn-primary" onClick={handleOpenModal}>
                     <i className='bx bx-plus'></i> Nueva Reserva
                 </button>
             </div>
 
-            {/* Tabs */}
             <div className="tabs-container">
-                <button
-                    className={`tab-btn ${activeTab === 'reservas' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('reservas')}
-                >
-                    <i className='bx bx-calendar'></i> Reservas
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'espacios' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('espacios')}
-                >
-                    <i className='bx bx-building'></i> Espacios
-                </button>
+                <div className="tabs">
+                    <button className={`tab ${activeTab === 'reservas' ? 'active' : ''}`} onClick={() => setActiveTab('reservas')}>
+                        <i className='bx bx-calendar'></i> Reservas
+                    </button>
+                    <button className={`tab ${activeTab === 'espacios' ? 'active' : ''}`} onClick={() => setActiveTab('espacios')}>
+                        <i className='bx bx-building-house'></i> Espacios
+                    </button>
+                </div>
             </div>
 
-            {/* Reservas Tab */}
-            {activeTab === 'reservas' && (
-                <div className="reservas-section">
-                    <div className="reservas-grid">
-                        {reservas.map((reserva) => (
-                            <div key={reserva.id} className={`reserva-card ${reserva.estado}`}>
-                                <div className="reserva-header">
-                                    <span className={`estado-badge ${reserva.estado}`}>
-                                        {reserva.estado === 'confirmada' ? 'Confirmada' : 'Pendiente'}
-                                    </span>
-                                    <span className="reserva-id">#{reserva.id.toString().padStart(4, '0')}</span>
-                                </div>
-                                <div className="reserva-body">
-                                    <h4>{reserva.cliente}</h4>
-                                    <div className="reserva-details">
-                                        <div className="detail">
-                                            <i className='bx bx-map'></i>
-                                            <span>{reserva.espacio}</span>
-                                        </div>
-                                        <div className="detail">
-                                            <i className='bx bx-calendar'></i>
-                                            <span>{reserva.fecha}</span>
-                                        </div>
-                                        <div className="detail">
-                                            <i className='bx bx-time'></i>
-                                            <span>{reserva.horario}</span>
-                                        </div>
-                                    </div>
-                                    <div className="reserva-monto">
-                                        <span className="monto-label">Total:</span>
-                                        <span className="monto-value">${reserva.monto.toLocaleString()}</span>
-                                    </div>
-                                </div>
-                                <div className="reserva-actions">
-                                    {reserva.estado === 'pendiente' && (
-                                        <button className="btn-confirm" onClick={() => handleConfirm(reserva.id)}>
-                                            <i className='bx bx-check'></i> Confirmar
-                                        </button>
-                                    )}
-                                    <button className="btn-cancel" onClick={() => handleCancel(reserva.id)}>
-                                        <i className='bx bx-x'></i> Cancelar
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+            {loading ? (
+                <div className="loading-state">
+                    <i className='bx bx-loader-alt bx-spin'></i>
+                    <p>Cargando datos...</p>
                 </div>
-            )}
+            ) : (
+                <div className="tab-content">
+                    {activeTab === 'reservas' && (
+                        <div className="reservas-section">
+                            <table className="reservas-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Horario</th>
+                                        <th>Espacio</th>
+                                        <th>Cliente</th>
+                                        <th>Monto</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reservas.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="7" className="no-results">No hay reservas próximas</td>
+                                        </tr>
+                                    ) : (
+                                        reservas.map(reserva => (
+                                            <tr key={reserva.id}>
+                                                <td>{new Date(reserva.reservation_date).toLocaleDateString('es-AR')}</td>
+                                                <td>{reserva.start_time?.slice(0, 5)} - {reserva.end_time?.slice(0, 5)}</td>
+                                                <td><strong>{reserva.space_name}</strong></td>
+                                                <td>
+                                                    <div>{reserva.client_name}</div>
+                                                    {reserva.client_phone && <small>{reserva.client_phone}</small>}
+                                                </td>
+                                                <td className="amount">${reserva.total_amount?.toLocaleString('es-AR')}</td>
+                                                <td>{getStatusBadge(reserva.status)}</td>
+                                                <td className="actions">
+                                                    {reserva.status === 'pending' && (
+                                                        <>
+                                                            <button className="action-btn confirm" title="Confirmar" onClick={() => handleConfirm(reserva.id)}>
+                                                                <i className='bx bx-check'></i>
+                                                            </button>
+                                                            <button className="action-btn cancel" title="Cancelar" onClick={() => handleCancel(reserva.id)}>
+                                                                <i className='bx bx-x'></i>
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
-            {/* Espacios Tab */}
-            {activeTab === 'espacios' && (
-                <div className="espacios-section">
-                    <div className="espacios-grid">
-                        {espacios.map((espacio) => (
-                            <div key={espacio.id} className="espacio-card">
-                                <div className="espacio-icon">
-                                    <i className='bx bx-building'></i>
-                                </div>
-                                <div className="espacio-info">
-                                    <h4>{espacio.nombre}</h4>
-                                    <span className="espacio-tipo">{espacio.tipo}</span>
-                                    <div className="espacio-details">
-                                        <span><i className='bx bx-group'></i> {espacio.capacidad} personas</span>
-                                        <span><i className='bx bx-dollar'></i> ${espacio.precioHora.toLocaleString()}/hora</span>
+                    {activeTab === 'espacios' && (
+                        <div className="espacios-section">
+                            <div className="espacios-grid">
+                                {espacios.map(espacio => (
+                                    <div key={espacio.id} className="espacio-card">
+                                        <div className="espacio-header">
+                                            <h3>{espacio.name}</h3>
+                                            <span className={`status-indicator ${espacio.status}`}></span>
+                                        </div>
+                                        <div className="espacio-info">
+                                            <p><i className='bx bx-category'></i> {getSpaceTypeBadge(espacio.type)}</p>
+                                            <p><i className='bx bx-group'></i> Capacidad: {espacio.capacity} personas</p>
+                                            <p><i className='bx bx-money'></i> ${espacio.price_per_hour?.toLocaleString('es-AR')}/hora</p>
+                                        </div>
+                                        <div className="espacio-status">
+                                            <span className={`badge badge-${espacio.status}`}>
+                                                {espacio.status === 'available' ? 'Disponible' :
+                                                    espacio.status === 'occupied' ? 'Ocupado' : 'Mantenimiento'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <span className={`estado-badge ${espacio.estado}`}>
-                                    {espacio.estado === 'disponible' ? 'Disponible' : 'Ocupado'}
-                                </span>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        </div>
+                    )}
                 </div>
             )}
 
             {/* Modal */}
             {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                <div className="modal-overlay" onClick={handleCloseModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3><i className='bx bx-calendar-plus'></i> Nueva Reserva</h3>
-                            <button className="modal-close" onClick={() => setShowModal(false)}>
+                            <h2>Nueva Reserva</h2>
+                            <button className="close-btn" onClick={handleCloseModal}>
                                 <i className='bx bx-x'></i>
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label>Cliente / Evento</label>
-                                <input
-                                    type="text"
-                                    value={formData.cliente}
-                                    onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-                                    placeholder="Nombre del cliente o evento"
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
                                 <label>Espacio</label>
                                 <select
-                                    value={formData.espacio}
-                                    onChange={(e) => setFormData({ ...formData, espacio: e.target.value })}
+                                    value={formData.space_id}
+                                    onChange={(e) => setFormData({ ...formData, space_id: e.target.value })}
                                     required
                                 >
-                                    <option value="">Seleccionar espacio</option>
-                                    {espacios.filter(e => e.estado === 'disponible').map((esp) => (
-                                        <option key={esp.id} value={esp.nombre}>
-                                            {esp.nombre} - ${esp.precioHora}/hora
-                                        </option>
+                                    {espacios.filter(e => e.status === 'available').map(e => (
+                                        <option key={e.id} value={e.id}>{e.name} - ${e.price_per_hour}/hora</option>
                                     ))}
                                 </select>
                             </div>
+                            <div className="form-group">
+                                <label>Nombre del Cliente</label>
+                                <input
+                                    type="text"
+                                    value={formData.client_name}
+                                    onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                                    required
+                                />
+                            </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Fecha</label>
+                                    <label>Teléfono</label>
                                     <input
-                                        type="date"
-                                        value={formData.fecha}
-                                        onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                                        required
+                                        type="text"
+                                        value={formData.client_phone}
+                                        onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
                                     />
                                 </div>
+                                <div className="form-group">
+                                    <label>Email</label>
+                                    <input
+                                        type="email"
+                                        value={formData.client_email}
+                                        onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Fecha</label>
+                                <input
+                                    type="date"
+                                    value={formData.reservation_date}
+                                    onChange={(e) => setFormData({ ...formData, reservation_date: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-row">
                                 <div className="form-group">
                                     <label>Hora Inicio</label>
                                     <input
                                         type="time"
-                                        value={formData.horaInicio}
-                                        onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
+                                        value={formData.start_time}
+                                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                                         required
                                     />
                                 </div>
@@ -217,28 +321,26 @@ const AlquileresReservas = () => {
                                     <label>Hora Fin</label>
                                     <input
                                         type="time"
-                                        value={formData.horaFin}
-                                        onChange={(e) => setFormData({ ...formData, horaFin: e.target.value })}
+                                        value={formData.end_time}
+                                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                                         required
                                     />
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label>Observaciones</label>
+                                <label>Notas</label>
                                 <textarea
-                                    value={formData.observaciones}
-                                    onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-                                    placeholder="Detalles adicionales (opcional)"
-                                    rows="3"
-                                ></textarea>
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    rows="2"
+                                />
                             </div>
-                            <div className="modal-actions">
-                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    Crear Reserva
-                                </button>
+                            <div className="reservation-total">
+                                <strong>Total Estimado: ${calculateTotal().toLocaleString('es-AR')}</strong>
+                            </div>
+                            <div className="form-actions">
+                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
+                                <button type="submit" className="btn-primary">Crear Reserva</button>
                             </div>
                         </form>
                     </div>

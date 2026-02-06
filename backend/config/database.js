@@ -1,4 +1,6 @@
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 // Configuración de la conexión a MySQL
@@ -20,15 +22,15 @@ const testConnection = async () => {
     // Primero intentamos conectar sin especificar la base de datos
     const tempConfig = { ...dbConfig };
     delete tempConfig.database;
-    
+
     const tempConnection = await mysql.createConnection(tempConfig);
-    
+
     // Crear la base de datos si no existe
     await tempConnection.execute(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
     console.log(`✅ Base de datos '${dbConfig.database}' verificada/creada`);
-    
+
     await tempConnection.end();
-    
+
     // Ahora conectar con la base de datos específica
     const connection = await pool.getConnection();
     console.log('✅ Conexión a MySQL establecida correctamente');
@@ -50,6 +52,66 @@ const executeQuery = async (query, params = []) => {
     throw error;
   }
 };
+
+// Función para ejecutar el script de migración
+const runMigration = async () => {
+  try {
+    const migrationPath = path.join(__dirname, 'migration.sql');
+
+    if (!fs.existsSync(migrationPath)) {
+      console.log('ℹ️ No se encontró archivo de migración');
+      return;
+    }
+
+    const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+
+    // Remover comentarios de línea completa y comentarios inline
+    const cleanSQL = migrationSQL
+      .split('\n')
+      .map(line => {
+        // Remover comentarios que empiezan con --
+        const commentIndex = line.indexOf('--');
+        if (commentIndex >= 0) {
+          return line.substring(0, commentIndex);
+        }
+        return line;
+      })
+      .join('\n');
+
+    // Separar las declaraciones SQL por punto y coma
+    const statements = cleanSQL
+      .split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt.length > 0);
+
+    console.log(`📦 Ejecutando ${statements.length} sentencias de migración...`);
+
+    let successCount = 0;
+    for (const statement of statements) {
+      try {
+        await executeQuery(statement);
+        successCount++;
+      } catch (err) {
+        // Ignorar errores comunes de migración idempotente
+        const ignorableErrors = [
+          'Duplicate', 'already exists', 'ER_DUP',
+          'ER_TABLE_EXISTS_ERROR', 'ER_DUP_KEYNAME'
+        ];
+        const isIgnorable = ignorableErrors.some(e =>
+          err.message?.includes(e) || err.code?.includes(e)
+        );
+
+        if (!isIgnorable) {
+          console.log(`⚠️ SQL Error: ${err.message.substring(0, 80)}`);
+        }
+      }
+    }
+
+    console.log(`✅ Migración completada (${successCount}/${statements.length} sentencias)`);
+  } catch (error) {
+    console.error('❌ Error en migración:', error.message);
+  }
+};;
 
 // Función para inicializar las tablas
 const initializeTables = async () => {
@@ -142,7 +204,10 @@ const initializeTables = async () => {
       UPDATE users SET role_id = 4 WHERE role_id IS NULL;
     `;
     await executeQuery(updateUsersWithoutRole);
-    
+
+    // Ejecutar migración para tablas adicionales
+    await runMigration();
+
   } catch (error) {
     console.error('❌ Error al inicializar las tablas:', error);
     throw error;

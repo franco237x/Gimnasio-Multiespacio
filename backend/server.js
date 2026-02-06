@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 
 // Rutas
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'API del Gimnasio Multiespacio',
     status: 'funcionando',
     timestamp: new Date().toISOString()
@@ -34,10 +34,18 @@ app.get('/', (req, res) => {
 // Rutas de autenticación
 app.use('/api/auth', require('./routes/auth'));
 
+// Rutas de la API
+app.use('/api/users', require('./routes/users'));
+app.use('/api/activities', require('./routes/activities'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/reservations', require('./routes/reservations'));
+app.use('/api/config', require('./routes/config'));
+app.use('/api/reports', require('./routes/reports'));
+
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     message: 'Error interno del servidor',
     error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });

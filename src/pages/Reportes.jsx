@@ -1,51 +1,93 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { reportsAPI, paymentsAPI } from '../services/apiService';
 import './Reportes.css';
 
 const Reportes = () => {
-    const [periodoSeleccionado, setPeriodoSeleccionado] = useState('mes');
+    const [periodo, setPeriodo] = useState('month');
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const [loading, setLoading] = useState(true);
+
+    const [stats, setStats] = useState({
+        income: 0,
+        activeStudents: 0,
+        totalClasses: 0,
+        pendingReservations: 0
+    });
+
+    const [incomeByConceptStats, setIncomeByConceptStats] = useState([]);
+    const [activitiesStats, setActivitiesStats] = useState({ popular: [], byDay: [] });
+
+    useEffect(() => {
+        loadData();
+    }, [periodo]);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [dashRes, incomeRes, actRes] = await Promise.all([
+                reportsAPI.getDashboard(),
+                reportsAPI.getIncome(periodo),
+                reportsAPI.getActivities()
+            ]);
+
+            if (dashRes.success) setStats(dashRes.data);
+            if (incomeRes.success) setIncomeByConceptStats(incomeRes.data.byConceptStats || []);
+            if (actRes.success) setActivitiesStats({
+                popular: actRes.data.popular || [],
+                byDay: actRes.data.byDay || []
+            });
+        } catch (error) {
+            showNotification('❌ Error al cargar reportes', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const showNotification = (message, type) => {
         setNotification({ show: true, message, type });
         setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
     };
 
-    const handleExportar = (tipo) => {
-        showNotification(`📊 Reporte exportado en formato ${tipo.toUpperCase()}`, 'success');
+    const handleExport = (format) => {
+        showNotification(`📥 Exportando reporte en formato ${format.toUpperCase()}...`, 'success');
+        // En el futuro, implementar exportación real
     };
 
-    // Datos simulados
-    const estadisticas = {
-        ingresosMes: 245000,
-        ingresosAnterior: 220000,
-        alumnosActivos: 156,
-        nuevosAlumnos: 12,
-        clasesRealizadas: 180,
-        ocupacionPromedio: 78
+    const getConceptLabel = (concept) => {
+        const labels = {
+            mensualidad: 'Mensualidades',
+            inscripcion: 'Inscripciones',
+            clase_especial: 'Clases Especiales',
+            alquiler: 'Alquileres',
+            otro: 'Otros'
+        };
+        return labels[concept] || concept;
     };
 
-    const ingresosPorConcepto = [
-        { concepto: 'Mensualidades', monto: 180000, porcentaje: 73 },
-        { concepto: 'Inscripciones', monto: 25000, porcentaje: 10 },
-        { concepto: 'Alquileres', monto: 30000, porcentaje: 12 },
-        { concepto: 'Otros', monto: 10000, porcentaje: 5 }
-    ];
-
-    const topClases = [
-        { nombre: 'CrossFit', inscritos: 45, valoracion: 4.8 },
-        { nombre: 'Spinning', inscritos: 38, valoracion: 4.6 },
-        { nombre: 'Yoga', inscritos: 35, valoracion: 4.9 },
-        { nombre: 'Zumba', inscritos: 32, valoracion: 4.5 },
-        { nombre: 'Funcional', inscritos: 28, valoracion: 4.7 }
-    ];
-
-    const calcularCambio = (actual, anterior) => {
-        const cambio = ((actual - anterior) / anterior * 100).toFixed(1);
-        return cambio > 0 ? `+${cambio}%` : `${cambio}%`;
+    const getDayLabel = (day) => {
+        const labels = {
+            lunes: 'Lun',
+            martes: 'Mar',
+            miercoles: 'Mié',
+            jueves: 'Jue',
+            viernes: 'Vie',
+            sabado: 'Sáb',
+            domingo: 'Dom'
+        };
+        return labels[day] || day;
     };
+
+    if (loading) {
+        return (
+            <div className="reportes loading-state">
+                <i className='bx bx-loader-alt bx-spin'></i>
+                <p>Cargando reportes...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="reportes-page">
+        <div className="reportes">
             {notification.show && (
                 <div className={`notification notification-${notification.type}`}>
                     {notification.message}
@@ -53,149 +95,142 @@ const Reportes = () => {
             )}
 
             <div className="page-header">
-                <div className="header-content">
-                    <h2><i className='bx bx-bar-chart-alt-2'></i> Reportes</h2>
-                    <p>Análisis y estadísticas del gimnasio</p>
-                </div>
+                <h1><i className='bx bx-bar-chart-alt-2'></i> Reportes y Estadísticas</h1>
                 <div className="header-actions">
-                    <select
-                        className="periodo-select"
-                        value={periodoSeleccionado}
-                        onChange={(e) => setPeriodoSeleccionado(e.target.value)}
-                    >
-                        <option value="semana">Esta Semana</option>
-                        <option value="mes">Este Mes</option>
-                        <option value="trimestre">Trimestre</option>
-                        <option value="anio">Este Año</option>
+                    <select value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
+                        <option value="week">Última Semana</option>
+                        <option value="month">Este Mes</option>
+                        <option value="year">Este Año</option>
                     </select>
-                    <div className="export-buttons">
-                        <button className="btn-export" onClick={() => handleExportar('pdf')}>
-                            <i className='bx bxs-file-pdf'></i> PDF
-                        </button>
-                        <button className="btn-export" onClick={() => handleExportar('excel')}>
-                            <i className='bx bxs-file-export'></i> Excel
-                        </button>
-                    </div>
+                    <button className="btn-secondary" onClick={() => handleExport('pdf')}>
+                        <i className='bx bxs-file-pdf'></i> PDF
+                    </button>
+                    <button className="btn-secondary" onClick={() => handleExport('excel')}>
+                        <i className='bx bxs-file-export'></i> Excel
+                    </button>
                 </div>
             </div>
 
-            {/* Stats Overview */}
-            <div className="stats-overview">
-                <div className="stat-card primary">
-                    <div className="stat-header">
-                        <div className="stat-icon">
-                            <i className='bx bx-dollar'></i>
-                        </div>
-                        <span className={`stat-change ${estadisticas.ingresosMes > estadisticas.ingresosAnterior ? 'positive' : 'negative'}`}>
-                            {calcularCambio(estadisticas.ingresosMes, estadisticas.ingresosAnterior)}
-                        </span>
+            {/* Tarjetas de Resumen */}
+            <div className="stats-grid">
+                <div className="stat-card income">
+                    <div className="stat-icon"><i className='bx bx-dollar-circle'></i></div>
+                    <div className="stat-content">
+                        <h3>Ingresos Totales</h3>
+                        <p className="stat-value">${(stats.income || 0).toLocaleString('es-AR')}</p>
                     </div>
-                    <div className="stat-value">${estadisticas.ingresosMes.toLocaleString()}</div>
-                    <div className="stat-label">Ingresos del Mes</div>
                 </div>
-
-                <div className="stat-card">
-                    <div className="stat-header">
-                        <div className="stat-icon green">
-                            <i className='bx bx-group'></i>
-                        </div>
-                        <span className="stat-change positive">+{estadisticas.nuevosAlumnos}</span>
+                <div className="stat-card students">
+                    <div className="stat-icon"><i className='bx bx-group'></i></div>
+                    <div className="stat-content">
+                        <h3>Alumnos Activos</h3>
+                        <p className="stat-value">{stats.activeStudents || 0}</p>
                     </div>
-                    <div className="stat-value">{estadisticas.alumnosActivos}</div>
-                    <div className="stat-label">Alumnos Activos</div>
                 </div>
-
-                <div className="stat-card">
-                    <div className="stat-header">
-                        <div className="stat-icon purple">
-                            <i className='bx bx-calendar-check'></i>
-                        </div>
+                <div className="stat-card classes">
+                    <div className="stat-icon"><i className='bx bx-calendar-check'></i></div>
+                    <div className="stat-content">
+                        <h3>Clases Activas</h3>
+                        <p className="stat-value">{stats.totalClasses || 0}</p>
                     </div>
-                    <div className="stat-value">{estadisticas.clasesRealizadas}</div>
-                    <div className="stat-label">Clases Realizadas</div>
                 </div>
-
-                <div className="stat-card">
-                    <div className="stat-header">
-                        <div className="stat-icon cyan">
-                            <i className='bx bx-trending-up'></i>
-                        </div>
+                <div className="stat-card reservations">
+                    <div className="stat-icon"><i className='bx bx-calendar'></i></div>
+                    <div className="stat-content">
+                        <h3>Reservas Pendientes</h3>
+                        <p className="stat-value">{stats.pendingReservations || 0}</p>
                     </div>
-                    <div className="stat-value">{estadisticas.ocupacionPromedio}%</div>
-                    <div className="stat-label">Ocupación Promedio</div>
                 </div>
             </div>
 
             <div className="reports-grid">
                 {/* Ingresos por Concepto */}
                 <div className="report-card">
-                    <div className="card-header">
-                        <h3><i className='bx bx-pie-chart-alt-2'></i> Ingresos por Concepto</h3>
-                    </div>
-                    <div className="card-body">
-                        {ingresosPorConcepto.map((item, index) => (
-                            <div key={index} className="income-item">
-                                <div className="income-info">
-                                    <span className="income-label">{item.concepto}</span>
-                                    <span className="income-amount">${item.monto.toLocaleString()}</span>
+                    <h3><i className='bx bx-pie-chart-alt-2'></i> Ingresos por Concepto</h3>
+                    <div className="concept-list">
+                        {incomeByConceptStats.length === 0 ? (
+                            <p className="no-data">No hay datos de ingresos</p>
+                        ) : (
+                            incomeByConceptStats.map((item, index) => (
+                                <div key={index} className="concept-item">
+                                    <span className="concept-name">{getConceptLabel(item.concept)}</span>
+                                    <span className="concept-count">({item.count} pagos)</span>
+                                    <span className="concept-amount">${(item.total || 0).toLocaleString('es-AR')}</span>
                                 </div>
-                                <div className="progress-bar">
-                                    <div
-                                        className="progress-fill"
-                                        style={{ width: `${item.porcentaje}%` }}
-                                    ></div>
-                                </div>
-                                <span className="income-percentage">{item.porcentaje}%</span>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
-                {/* Top Clases */}
+                {/* Actividades Populares */}
                 <div className="report-card">
-                    <div className="card-header">
-                        <h3><i className='bx bx-trophy'></i> Clases Más Populares</h3>
-                    </div>
-                    <div className="card-body">
-                        <div className="top-classes">
-                            {topClases.map((clase, index) => (
-                                <div key={index} className="class-item">
-                                    <div className="class-rank">{index + 1}</div>
-                                    <div className="class-info">
-                                        <span className="class-name">{clase.nombre}</span>
-                                        <span className="class-inscritos">{clase.inscritos} inscritos</span>
+                    <h3><i className='bx bx-trophy'></i> Actividades Más Populares</h3>
+                    <div className="popular-list">
+                        {activitiesStats.popular.length === 0 ? (
+                            <p className="no-data">No hay actividades registradas</p>
+                        ) : (
+                            activitiesStats.popular.slice(0, 5).map((act, index) => (
+                                <div key={index} className="popular-item">
+                                    <span className="rank">#{index + 1}</span>
+                                    <div className="activity-info">
+                                        <span className="activity-name">{act.name}</span>
+                                        <span className="activity-teacher">{act.teacher_name}</span>
                                     </div>
-                                    <div className="class-rating">
-                                        <i className='bx bxs-star'></i>
-                                        <span>{clase.valoracion}</span>
+                                    <div className="activity-stats">
+                                        <span className="enrolled">{act.enrolled_count}/{act.capacity}</span>
+                                        <div className="progress-bar">
+                                            <div
+                                                className="progress"
+                                                style={{ width: `${act.occupancy_percent || 0}%` }}
+                                            ></div>
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
-                {/* Gráfico de Ingresos (simulado) */}
-                <div className="report-card full-width">
-                    <div className="card-header">
-                        <h3><i className='bx bx-line-chart'></i> Tendencia de Ingresos</h3>
+                {/* Clases por Día */}
+                <div className="report-card">
+                    <h3><i className='bx bx-calendar-week'></i> Clases por Día</h3>
+                    <div className="day-chart">
+                        {activitiesStats.byDay.length === 0 ? (
+                            <p className="no-data">No hay datos de clases</p>
+                        ) : (
+                            activitiesStats.byDay.map((day, index) => (
+                                <div key={index} className="day-bar-container">
+                                    <span className="day-label">{getDayLabel(day.day_of_week)}</span>
+                                    <div className="bar-container">
+                                        <div
+                                            className="bar"
+                                            style={{
+                                                width: `${Math.min((day.count / Math.max(...activitiesStats.byDay.map(d => d.count), 1)) * 100, 100)}%`
+                                            }}
+                                        ></div>
+                                    </div>
+                                    <span className="day-count">{day.count}</span>
+                                </div>
+                            ))
+                        )}
                     </div>
-                    <div className="card-body">
-                        <div className="chart-placeholder">
-                            <div className="chart-bars">
-                                <div className="chart-bar" style={{ height: '60%' }}><span>Ene</span></div>
-                                <div className="chart-bar" style={{ height: '75%' }}><span>Feb</span></div>
-                                <div className="chart-bar" style={{ height: '65%' }}><span>Mar</span></div>
-                                <div className="chart-bar" style={{ height: '80%' }}><span>Abr</span></div>
-                                <div className="chart-bar" style={{ height: '70%' }}><span>May</span></div>
-                                <div className="chart-bar" style={{ height: '85%' }}><span>Jun</span></div>
-                                <div className="chart-bar" style={{ height: '90%' }}><span>Jul</span></div>
-                                <div className="chart-bar" style={{ height: '78%' }}><span>Ago</span></div>
-                                <div className="chart-bar" style={{ height: '82%' }}><span>Sep</span></div>
-                                <div className="chart-bar" style={{ height: '88%' }}><span>Oct</span></div>
-                                <div className="chart-bar" style={{ height: '95%' }}><span>Nov</span></div>
-                                <div className="chart-bar active" style={{ height: '100%' }}><span>Dic</span></div>
-                            </div>
+                </div>
+
+                {/* Suscripciones */}
+                <div className="report-card">
+                    <h3><i className='bx bx-user-check'></i> Estado de Suscripciones</h3>
+                    <div className="subscription-stats">
+                        <div className="sub-stat active">
+                            <span className="sub-label">Activas</span>
+                            <span className="sub-value">{stats.subscriptions?.active_count || 0}</span>
+                        </div>
+                        <div className="sub-stat pending">
+                            <span className="sub-label">Pendientes</span>
+                            <span className="sub-value">{stats.subscriptions?.pending_count || 0}</span>
+                        </div>
+                        <div className="sub-stat expired">
+                            <span className="sub-label">Vencidas</span>
+                            <span className="sub-value">{stats.subscriptions?.expired_count || 0}</span>
                         </div>
                     </div>
                 </div>

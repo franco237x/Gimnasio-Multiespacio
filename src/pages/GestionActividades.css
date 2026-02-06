@@ -129,6 +129,79 @@
     margin-right: 4px;
 }
 
+/* Tabs - JSX compatibility */
+.tabs-container {
+    margin-bottom: 24px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab.active {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: white;
+    box-shadow: 0 4px 15px rgba(8, 145, 178, 0.3);
+}
+
+.tab i {
+    font-size: 1.2rem;
+}
+
+/* Activities Table */
+.activities-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.activities-table th {
+    text-align: left;
+    padding: 16px;
+    color: #9ca3af;
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.activities-table td {
+    padding: 16px;
+    color: #e5e7eb;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+.activities-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.activities-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 /* Activities List */
 .activities-list-container {
     background: rgba(255, 255, 255, 0.03);
