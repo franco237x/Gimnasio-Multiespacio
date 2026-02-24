@@ -97,7 +97,7 @@ const Reportes = () => {
             <div className="page-header">
                 <h1><i className='bx bx-bar-chart-alt-2'></i> Reportes y Estadísticas</h1>
                 <div className="header-actions">
-                    <select value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
+                    <select className="periodo-select" value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
                         <option value="week">Última Semana</option>
                         <option value="month">Este Mes</option>
                         <option value="year">Este Año</option>
@@ -146,7 +146,7 @@ const Reportes = () => {
             <div className="reports-grid">
                 {/* Ingresos por Concepto */}
                 <div className="report-card">
-                    <h3><i className='bx bx-pie-chart-alt-2'></i> Ingresos por Concepto</h3>
+                    <h3 className="report-title"><i className='bx bx-pie-chart-alt-2'></i> Ingresos por Concepto</h3>
                     <div className="concept-list">
                         {incomeByConceptStats.length === 0 ? (
                             <p className="no-data">No hay datos de ingresos</p>
@@ -164,7 +164,7 @@ const Reportes = () => {
 
                 {/* Actividades Populares */}
                 <div className="report-card">
-                    <h3><i className='bx bx-trophy'></i> Actividades Más Populares</h3>
+                    <h3 className="report-title"><i className='bx bx-trophy'></i> Actividades Más Populares</h3>
                     <div className="popular-list">
                         {activitiesStats.popular.length === 0 ? (
                             <p className="no-data">No hay actividades registradas</p>
@@ -193,7 +193,7 @@ const Reportes = () => {
 
                 {/* Clases por Día */}
                 <div className="report-card">
-                    <h3><i className='bx bx-calendar-week'></i> Clases por Día</h3>
+                    <h3 className="report-title"><i className='bx bx-calendar-week'></i> Clases por Día</h3>
                     <div className="day-chart">
                         {activitiesStats.byDay.length === 0 ? (
                             <p className="no-data">No hay datos de clases</p>
@@ -218,7 +218,7 @@ const Reportes = () => {
 
                 {/* Suscripciones */}
                 <div className="report-card">
-                    <h3><i className='bx bx-user-check'></i> Estado de Suscripciones</h3>
+                    <h3 className="report-title"><i className='bx bx-user-check'></i> Estado de Suscripciones</h3>
                     <div className="subscription-stats">
                         <div className="sub-stat active">
                             <span className="sub-label">Activas</span>

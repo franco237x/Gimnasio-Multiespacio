@@ -215,7 +215,7 @@ class User {
   // Actualizar información del usuario
   static async update(id, updateData) {
     try {
-      const { name, email, phone, role_id } = updateData;
+      const { name, email, phone, role_id, is_active } = updateData;
 
       let query = 'UPDATE users SET name = ?, phone = ?, updated_at = CURRENT_TIMESTAMP';
       const phoneValue = phone || null;
@@ -230,6 +230,11 @@ class User {
       if (role_id !== undefined) {
         query += ', role_id = ?';
         values.push(role_id);
+      }
+
+      if (is_active !== undefined) {
+        query += ', is_active = ?';
+        values.push(is_active === true || is_active === 1 || is_active === '1' ? 1 : 0);
       }
 
       query += ' WHERE id = ?';

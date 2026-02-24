@@ -37,17 +37,37 @@
 }
 
 .periodo-select {
-    padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.05);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 10px 36px 10px 16px;
+    background: rgba(255, 255, 255, 0.05) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
+    background-size: 16px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     color: #ffffff;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.periodo-select:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.periodo-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .periodo-select option {
     background: #1f2937;
+    color: #ffffff;
+    padding: 12px;
 }
 
 .export-buttons {
@@ -151,15 +171,17 @@
 }
 
 .stat-value {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.2rem;
+    font-weight: 800;
     color: #ffffff;
     margin-bottom: 4px;
+    letter-spacing: -0.5px;
 }
 
 .stat-label {
     color: #9ca3af;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 
 /* Reports Grid */
@@ -174,36 +196,31 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     overflow: hidden;
+    padding: 24px;
+}
+
+.report-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 24px 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.report-title i {
+    color: #f59e0b;
+    font-size: 1.25rem;
 }
 
 .report-card.full-width {
     grid-column: 1 / -1;
 }
 
-.card-header {
-    padding: 20px 24px;
-    background: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
 
-.card-header h3 {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #ffffff;
-    margin: 0;
-    font-size: 1.05rem;
-}
-
-.card-header h3 i {
-    color: #f59e0b;
-}
-
-.card-body {
-    padding: 24px;
-}
-
-/* Income Items */
 .income-item {
     display: flex;
     align-items: center;
@@ -244,10 +261,11 @@
     background: linear-gradient(90deg, #10b981, #34d399);
     border-radius: 4px;
     transition: width 1s ease;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
 }
 
 .income-percentage {
-    width: 45px;
+    width: 50px;
     text-align: right;
     color: #10b981;
     font-weight: 600;
@@ -596,9 +614,11 @@
 .day-chart {
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
-    height: 220px;
-    padding: 10px 0;
+    justify-content: space-around;
+    height: 250px;
+    padding: 20px 10px 10px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
 }
 
 .day-bar-container {
@@ -615,30 +635,36 @@
 }
 
 .bar-container {
-    height: 150px;
+    height: 180px;
     width: 100%;
     display: flex;
     align-items: flex-end;
     justify-content: center;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    padding: 0 4px;
 }
 
 .bar {
-    width: 60%;
-    background: linear-gradient(180deg, #3b82f6, #2563eb);
+    width: 100%;
+    max-width: 40px;
+    background: linear-gradient(180deg, #3b82f6, #1d4ed8);
     border-radius: 6px 6px 0 0;
-    transition: height 1s ease;
+    transition: height 1s ease, filter 0.3s ease;
     min-height: 4px;
+    box-shadow: 0 -4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .day-bar-container:hover .bar {
-    opacity: 0.9;
-    width: 70%;
+    filter: brightness(1.2);
+    box-shadow: 0 -4px 16px rgba(59, 130, 246, 0.5);
 }
 
 .day-count {
     color: white;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-top: 4px;
 }
 
 /* Subscription Stats */

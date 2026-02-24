@@ -366,18 +366,24 @@
 
 /* Sections */
 .config-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
     margin-bottom: 32px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .config-section h2 {
     color: #ffffff;
-    font-size: 1.1rem;
-    margin-bottom: 20px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 24px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 12px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 16px;
 }
 
 .config-section h2 i {

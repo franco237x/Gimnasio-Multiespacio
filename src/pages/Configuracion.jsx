@@ -177,35 +177,51 @@ const Configuracion = () => {
                 <div className="config-section">
                     <h2><i className='bx bx-bell'></i> Notificaciones</h2>
                     <div className="config-grid">
-                        <div className="form-group checkbox-group">
-                            <label className="checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={config.notifications_email === 'true'}
-                                    onChange={(e) => handleChange('notifications_email', e.target.checked ? 'true' : 'false')}
-                                />
-                                <span>Notificaciones por Email</span>
-                            </label>
-                        </div>
-                        <div className="form-group checkbox-group">
-                            <label className="checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={config.notifications_sms === 'true'}
-                                    onChange={(e) => handleChange('notifications_sms', e.target.checked ? 'true' : 'false')}
-                                />
-                                <span>Notificaciones por SMS</span>
-                            </label>
-                        </div>
-                        <div className="form-group checkbox-group">
-                            <label className="checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={config.payment_reminder === 'true'}
-                                    onChange={(e) => handleChange('payment_reminder', e.target.checked ? 'true' : 'false')}
-                                />
-                                <span>Recordatorios de Pago</span>
-                            </label>
+                        <div className="toggle-group">
+                            <div className="toggle-item">
+                                <div className="toggle-info">
+                                    <span className="toggle-label">Notificaciones por Email</span>
+                                    <span className="toggle-desc">Recibir alertas e informes por correo electrónico</span>
+                                </div>
+                                <label className="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.notifications_email === 'true'}
+                                        onChange={(e) => handleChange('notifications_email', e.target.checked ? 'true' : 'false')}
+                                    />
+                                    <span className="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div className="toggle-item">
+                                <div className="toggle-info">
+                                    <span className="toggle-label">Notificaciones por SMS</span>
+                                    <span className="toggle-desc">Enviar mensajes de texto a alumnos</span>
+                                </div>
+                                <label className="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.notifications_sms === 'true'}
+                                        onChange={(e) => handleChange('notifications_sms', e.target.checked ? 'true' : 'false')}
+                                    />
+                                    <span className="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div className="toggle-item">
+                                <div className="toggle-info">
+                                    <span className="toggle-label">Recordatorios de Pago</span>
+                                    <span className="toggle-desc">Avisar automáticamente sobre cuotas por vencer</span>
+                                </div>
+                                <label className="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.payment_reminder === 'true'}
+                                        onChange={(e) => handleChange('payment_reminder', e.target.checked ? 'true' : 'false')}
+                                    />
+                                    <span className="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

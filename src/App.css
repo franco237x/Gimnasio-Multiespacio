@@ -22,7 +22,6 @@ html {
 
 body {
   -webkit-overflow-scrolling: touch;
-  transform: translateZ(0);
   font-family: 'Arial', sans-serif;
   line-height: 1.6;
   overflow-x: hidden;

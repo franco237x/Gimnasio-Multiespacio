@@ -45,6 +45,27 @@ router.put('/spaces/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// DELETE /api/reservations/spaces/:id - Eliminar espacio
+router.delete('/spaces/:id', authenticateToken, async (req, res) => {
+    try {
+        const deleted = await Space.delete(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({ success: false, message: 'Espacio no encontrado' });
+        }
+        res.json({ success: true, message: 'Espacio eliminado correctamente' });
+    } catch (error) {
+        // Manejar error de llave foránea (si el espacio tiene reservas)
+        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+            return res.status(400).json({
+                success: false,
+                message: 'No se puede eliminar el espacio porque tiene reservas asociadas'
+            });
+        }
+        console.error('Error al eliminar espacio:', error);
+        res.status(500).json({ success: false, message: 'Error al eliminar espacio' });
+    }
+});
+
 // GET /api/reservations/spaces/:id/availability - Verificar disponibilidad
 router.get('/spaces/:id/availability', authenticateToken, async (req, res) => {
     try {

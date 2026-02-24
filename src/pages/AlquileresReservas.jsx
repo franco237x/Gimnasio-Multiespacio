@@ -11,6 +11,9 @@ const AlquileresReservas = () => {
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [confirmCancel, setConfirmCancel] = useState({ show: false, id: null });
+    const [showSpaceModal, setShowSpaceModal] = useState(false);
+    const [editingSpace, setEditingSpace] = useState(null);
+    const [confirmDeleteSpace, setConfirmDeleteSpace] = useState({ show: false, id: null, name: '' });
 
     const [formData, setFormData] = useState({
         space_id: '',
@@ -21,6 +24,15 @@ const AlquileresReservas = () => {
         start_time: '08:00',
         end_time: '10:00',
         notes: ''
+    });
+
+    const [spaceFormData, setSpaceFormData] = useState({
+        name: '',
+        type: 'multiusos',
+        capacity: 10,
+        price_per_hour: 0,
+        status: 'available',
+        description: ''
     });
 
     useEffect(() => {
@@ -66,6 +78,36 @@ const AlquileresReservas = () => {
 
     const handleCloseModal = () => {
         setShowModal(false);
+    };
+
+    const handleOpenSpaceModal = (space = null) => {
+        if (space) {
+            setEditingSpace(space);
+            setSpaceFormData({
+                name: space.name,
+                type: space.type,
+                capacity: space.capacity,
+                price_per_hour: space.price_per_hour,
+                status: space.status,
+                description: space.description || ''
+            });
+        } else {
+            setEditingSpace(null);
+            setSpaceFormData({
+                name: '',
+                type: 'multiusos',
+                capacity: 10,
+                price_per_hour: 0,
+                status: 'available',
+                description: ''
+            });
+        }
+        setShowSpaceModal(true);
+    };
+
+    const handleCloseSpaceModal = () => {
+        setShowSpaceModal(false);
+        setEditingSpace(null);
     };
 
     const calculateTotal = () => {
@@ -143,6 +185,35 @@ const AlquileresReservas = () => {
         return labels[type] || type;
     };
 
+    const handleSpaceSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingSpace) {
+                await reservationsAPI.updateSpace(editingSpace.id, spaceFormData);
+                showNotification('✅ Espacio actualizado exitosamente', 'success');
+            } else {
+                await reservationsAPI.createSpace(spaceFormData);
+                showNotification('✅ Espacio creado exitosamente', 'success');
+            }
+            handleCloseSpaceModal();
+            loadData();
+        } catch (error) {
+            showNotification('❌ Error al guardar espacio', 'error');
+        }
+    };
+
+    const handleDeleteSpaceConfirm = async () => {
+        try {
+            await reservationsAPI.deleteSpace(confirmDeleteSpace.id);
+            showNotification('🗑️ Espacio eliminado correctamente', 'success');
+            loadData();
+        } catch (error) {
+            showNotification('❌ ' + error.message, 'error');
+        } finally {
+            setConfirmDeleteSpace({ show: false, id: null, name: '' });
+        }
+    };
+
     return (
         <div className="alquileres-reservas">
             {notification.show && (
@@ -153,9 +224,15 @@ const AlquileresReservas = () => {
 
             <div className="page-header">
                 <h1><i className='bx bx-calendar-check'></i> Alquileres y Reservas</h1>
-                <button className="btn-primary" onClick={handleOpenModal}>
-                    <i className='bx bx-plus'></i> Nueva Reserva
-                </button>
+                {activeTab === 'reservas' ? (
+                    <button className="btn-primary" onClick={handleOpenModal}>
+                        <i className='bx bx-plus'></i> Nueva Reserva
+                    </button>
+                ) : (
+                    <button className="btn-primary" onClick={() => handleOpenSpaceModal()}>
+                        <i className='bx bx-plus'></i> Nuevo Espacio
+                    </button>
+                )}
             </div>
 
             <div className="tabs-container">
@@ -246,6 +323,18 @@ const AlquileresReservas = () => {
                                                 {espacio.status === 'available' ? 'Disponible' :
                                                     espacio.status === 'occupied' ? 'Ocupado' : 'Mantenimiento'}
                                             </span>
+                                            <div className="space-actions">
+                                                <button className="action-btn edit" title="Editar" onClick={() => handleOpenSpaceModal(espacio)}>
+                                                    <i className='bx bx-edit'></i>
+                                                </button>
+                                                <button
+                                                    className="action-btn delete"
+                                                    title="Eliminar"
+                                                    onClick={() => setConfirmDeleteSpace({ show: true, id: espacio.id, name: espacio.name })}
+                                                >
+                                                    <i className='bx bx-trash'></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -363,6 +452,104 @@ const AlquileresReservas = () => {
                 onConfirm={handleCancelConfirm}
                 onCancel={() => setConfirmCancel({ show: false, id: null })}
             />
+
+            <ConfirmDialog
+                isOpen={confirmDeleteSpace.show}
+                title="Eliminar Espacio"
+                message={`¿Estás seguro de eliminar el espacio "${confirmDeleteSpace.name}"? Esta acción no se puede deshacer y fallará si hay reservas asociadas.`}
+                confirmText="Eliminar"
+                variant="danger"
+                onConfirm={handleDeleteSpaceConfirm}
+                onCancel={() => setConfirmDeleteSpace({ show: false, id: null, name: '' })}
+            />
+
+            {/* Space Modal */}
+            {showSpaceModal && (
+                <div className="modal-overlay" onClick={handleCloseSpaceModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>{editingSpace ? 'Editar Espacio' : 'Nuevo Espacio'}</h2>
+                            <button className="close-btn" onClick={handleCloseSpaceModal}>
+                                <i className='bx bx-x'></i>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSpaceSubmit}>
+                            <div className="form-group">
+                                <label>Nombre del Espacio</label>
+                                <input
+                                    type="text"
+                                    value={spaceFormData.name}
+                                    onChange={(e) => setSpaceFormData({ ...spaceFormData, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Tipo</label>
+                                    <select
+                                        value={spaceFormData.type}
+                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, type: e.target.value })}
+                                        required
+                                    >
+                                        <option value="multiusos">Multiusos</option>
+                                        <option value="deportivo">Deportivo</option>
+                                        <option value="clases">Clases</option>
+                                        <option value="eventos">Eventos</option>
+                                        <option value="aire_libre">Aire Libre</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Estado</label>
+                                    <select
+                                        value={spaceFormData.status}
+                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, status: e.target.value })}
+                                        required
+                                    >
+                                        <option value="available">Disponible</option>
+                                        <option value="occupied">Ocupado</option>
+                                        <option value="maintenance">En Mantenimiento</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Capacidad (personas)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={spaceFormData.capacity}
+                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, capacity: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Precio por Hora ($)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={spaceFormData.price_per_hour}
+                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, price_per_hour: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Descripción (Opcional)</label>
+                                <textarea
+                                    value={spaceFormData.description}
+                                    onChange={(e) => setSpaceFormData({ ...spaceFormData, description: e.target.value })}
+                                    rows="2"
+                                />
+                            </div>
+                            <div className="form-actions">
+                                <button type="button" className="btn-secondary" onClick={handleCloseSpaceModal}>Cancelar</button>
+                                <button type="submit" className="btn-primary">{editingSpace ? 'Guardar Cambios' : 'Crear Espacio'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

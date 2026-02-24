@@ -66,12 +66,7 @@ export const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner"></div>
-        <p>Cargando...</p>
-      </div>
-    );
+    return null;
   }
 
   if (user && user.email_verified === false) {
@@ -91,12 +86,7 @@ export const RoleProtectedRoute = ({ children, allowedRoles = [] }) => {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner"></div>
-        <p>Cargando...</p>
-      </div>
-    );
+    return null;
   }
 
   if (user && user.email_verified === false) {
@@ -128,12 +118,7 @@ export const MinRoleRoute = ({ children, minRole }) => {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner"></div>
-        <p>Cargando...</p>
-      </div>
-    );
+    return null;
   }
 
   if (user && user.email_verified === false) {

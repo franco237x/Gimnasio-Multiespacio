@@ -93,6 +93,7 @@ export const reservationsAPI = {
     getSpaces: (available = false) => fetchAPI(`/reservations/spaces${available ? '?available=true' : ''}`),
     createSpace: (spaceData) => fetchAPI('/reservations/spaces', { method: 'POST', body: JSON.stringify(spaceData) }),
     updateSpace: (id, spaceData) => fetchAPI(`/reservations/spaces/${id}`, { method: 'PUT', body: JSON.stringify(spaceData) }),
+    deleteSpace: (id) => fetchAPI(`/reservations/spaces/${id}`, { method: 'DELETE' }),
     checkAvailability: (spaceId, date, startTime, endTime) =>
         fetchAPI(`/reservations/spaces/${spaceId}/availability?date=${date}&startTime=${startTime}&endTime=${endTime}`),
 
