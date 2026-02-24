@@ -39,7 +39,7 @@ const GestionUsuarios = () => {
                     telefono: user.phone || '',
                     rol: user.role_name?.toLowerCase() || 'alumno',
                     rol_id: user.role_id,
-                    estado: user.is_active !== false ? 'activo' : 'inactivo',
+                    estado: (user.is_active === 1 || user.is_active === true) ? 'activo' : 'inactivo',
                     fechaAlta: new Date(user.created_at).toLocaleDateString('es-AR')
                 }));
                 setUsuarios(mappedUsers);

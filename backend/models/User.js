@@ -22,6 +22,7 @@ class User {
     this.verification_token_expires = data.verification_token_expires;
     this.reset_token = data.reset_token;
     this.reset_token_expires = data.reset_token_expires;
+    this.is_active = data.is_active;
     this.role_id = data.role_id;
     this.role_name = data.role_name;
     this.role_hierarchy = data.role_hierarchy;
@@ -217,11 +218,19 @@ class User {
     try {
       const { name, email, phone, role_id, is_active } = updateData;
 
-      let query = 'UPDATE users SET name = ?, phone = ?, updated_at = CURRENT_TIMESTAMP';
-      const phoneValue = phone || null;
-      const values = [name, phoneValue];
+      let query = 'UPDATE users SET updated_at = CURRENT_TIMESTAMP';
+      const values = [];
 
-      // Añadir campos opcionales si vienen en el request
+      if (name !== undefined) {
+        query += ', name = ?';
+        values.push(name);
+      }
+
+      if (phone !== undefined) {
+        query += ', phone = ?';
+        values.push(phone || null);
+      }
+
       if (email !== undefined) {
         query += ', email = ?';
         values.push(email);
@@ -251,7 +260,7 @@ class User {
   static async findAll() {
     try {
       const query = `
-        SELECT u.id, u.name, u.email, u.phone, u.role_id, u.created_at, u.updated_at,
+        SELECT u.id, u.name, u.email, u.phone, u.role_id, u.is_active, u.created_at, u.updated_at,
                r.name as role_name, r.hierarchy as role_hierarchy
         FROM users u
         LEFT JOIN roles r ON u.role_id = r.id

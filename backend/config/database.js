@@ -156,6 +156,7 @@ const initializeTables = async () => {
         reset_token VARCHAR(255),
         reset_token_expires DATETIME,
         role_id INT DEFAULT 4,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
@@ -174,7 +175,8 @@ const initializeTables = async () => {
       'ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255) AFTER email_verified',
       'ADD COLUMN IF NOT EXISTS verification_token_expires DATETIME AFTER verification_token',
       'ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) AFTER verification_token_expires',
-      'ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME AFTER reset_token'
+      'ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME AFTER reset_token',
+      'ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id'
     ];
 
     for (const clause of authColumns) {
