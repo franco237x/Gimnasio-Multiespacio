@@ -11,6 +11,7 @@ const AlquileresReservas = () => {
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [confirmCancel, setConfirmCancel] = useState({ show: false, id: null });
+    const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
     const [showSpaceModal, setShowSpaceModal] = useState(false);
     const [editingSpace, setEditingSpace] = useState(null);
     const [confirmDeleteSpace, setConfirmDeleteSpace] = useState({ show: false, id: null, name: '' });
@@ -164,6 +165,22 @@ const AlquileresReservas = () => {
         }
     };
 
+    const handleDeleteClick = (reservaId) => {
+        setConfirmDelete({ show: true, id: reservaId });
+    };
+
+    const handleDeleteConfirm = async () => {
+        try {
+            await reservationsAPI.delete(confirmDelete.id);
+            showNotification('🗑️ Reserva eliminada permanentemente', 'success');
+            loadData();
+        } catch (error) {
+            showNotification('❌ Error al eliminar reserva', 'error');
+        } finally {
+            setConfirmDelete({ show: false, id: null });
+        }
+    };
+
     const getStatusBadge = (status) => {
         const styles = {
             pending: { bg: 'rgba(234, 179, 8, 0.2)', color: '#eab308', label: 'Pendiente' },
@@ -286,15 +303,18 @@ const AlquileresReservas = () => {
                                                 <td>{getStatusBadge(reserva.status)}</td>
                                                 <td className="actions">
                                                     {reserva.status === 'pending' && (
-                                                        <>
-                                                            <button className="action-btn confirm" title="Confirmar" onClick={() => handleConfirm(reserva.id)}>
-                                                                <i className='bx bx-check'></i>
-                                                            </button>
-                                                            <button className="action-btn cancel" title="Cancelar" onClick={() => handleCancelClick(reserva.id)}>
-                                                                <i className='bx bx-x'></i>
-                                                            </button>
-                                                        </>
+                                                        <button className="action-btn confirm" title="Confirmar" onClick={() => handleConfirm(reserva.id)}>
+                                                            <i className='bx bx-check'></i>
+                                                        </button>
                                                     )}
+                                                    {reserva.status !== 'cancelled' && (
+                                                        <button className="action-btn cancel" title="Cancelar" onClick={() => handleCancelClick(reserva.id)}>
+                                                            <i className='bx bx-x'></i>
+                                                        </button>
+                                                    )}
+                                                    <button className="action-btn delete" title="Eliminar" onClick={() => handleDeleteClick(reserva.id)}>
+                                                        <i className='bx bx-trash'></i>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))
@@ -451,6 +471,16 @@ const AlquileresReservas = () => {
                 variant="warning"
                 onConfirm={handleCancelConfirm}
                 onCancel={() => setConfirmCancel({ show: false, id: null })}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmDelete.show}
+                title="Eliminar Reserva"
+                message="¿Estás seguro de eliminar permanentemente esta reserva? Esta acción no se puede deshacer."
+                confirmText="Eliminar"
+                variant="danger"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDelete({ show: false, id: null })}
             />
 
             <ConfirmDialog
