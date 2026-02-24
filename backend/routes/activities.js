@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Activity = require('../models/Activity');
+const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/activities - Listar todas las actividades
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
     try {
         const { day } = req.query;
 
@@ -22,7 +23,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/activities/teachers - Obtener lista de profesores
-router.get('/teachers', async (req, res) => {
+router.get('/teachers', authenticateToken, async (req, res) => {
     try {
         const teachers = await Activity.getTeachers();
         res.json({ success: true, data: teachers });
@@ -33,7 +34,7 @@ router.get('/teachers', async (req, res) => {
 });
 
 // GET /api/activities/teacher/:id - Obtener actividades de un profesor
-router.get('/teacher/:id', async (req, res) => {
+router.get('/teacher/:id', authenticateToken, async (req, res) => {
     try {
         const activities = await Activity.findByTeacher(req.params.id);
         res.json({ success: true, data: activities });
@@ -44,7 +45,7 @@ router.get('/teacher/:id', async (req, res) => {
 });
 
 // GET /api/activities/:id - Obtener actividad por ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const activity = await Activity.findById(req.params.id);
         if (!activity) {
@@ -58,7 +59,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/activities - Crear actividad
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const { name, teacher_id, space_id, day_of_week, start_time, end_time, capacity } = req.body;
 
@@ -81,7 +82,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/activities/:id - Actualizar actividad
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
     try {
         const updatedActivity = await Activity.update(req.params.id, req.body);
         if (!updatedActivity) {
@@ -95,7 +96,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/activities/:id - Eliminar actividad
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const deleted = await Activity.delete(req.params.id);
         if (!deleted) {
@@ -109,7 +110,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST /api/activities/:id/enroll - Inscribir alumno
-router.post('/:id/enroll', async (req, res) => {
+router.post('/:id/enroll', authenticateToken, async (req, res) => {
     try {
         const { user_id } = req.body;
         const activity = await Activity.enrollStudent(req.params.id, user_id);
@@ -124,7 +125,7 @@ router.post('/:id/enroll', async (req, res) => {
 });
 
 // DELETE /api/activities/:id/enroll/:userId - Cancelar inscripción
-router.delete('/:id/enroll/:userId', async (req, res) => {
+router.delete('/:id/enroll/:userId', authenticateToken, async (req, res) => {
     try {
         const unenrolled = await Activity.unenrollStudent(req.params.id, req.params.userId);
         if (!unenrolled) {
@@ -138,7 +139,7 @@ router.delete('/:id/enroll/:userId', async (req, res) => {
 });
 
 // GET /api/activities/:id/students - Obtener alumnos inscritos
-router.get('/:id/students', async (req, res) => {
+router.get('/:id/students', authenticateToken, async (req, res) => {
     try {
         const students = await Activity.getEnrolledStudents(req.params.id);
         res.json({ success: true, data: students });

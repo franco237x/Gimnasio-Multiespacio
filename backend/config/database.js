@@ -165,20 +165,8 @@ const initializeTables = async () => {
     await executeQuery(createUsersTable);
     console.log('✅ Tabla users creada/verificada correctamente');
 
-    // Si la tabla users ya existe pero no tiene role_id, agregarlo
-    try {
-      const addRoleColumn = `
-        ALTER TABLE users 
-        ADD COLUMN IF NOT EXISTS role_id INT DEFAULT 4,
-        ADD CONSTRAINT fk_user_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL;
-      `;
-      await executeQuery(addRoleColumn);
-    } catch (alterError) {
-      // Ignorar si la columna ya existe o hay error de constraint duplicado
-      if (!alterError.message.includes('Duplicate')) {
-        console.log('ℹ️ Columna role_id ya existe o se agregó correctamente');
-      }
-    }
+    // Nota: role_id y la FK ya están definidos en el CREATE TABLE de arriba.
+    // No necesitamos ALTER TABLE adicional.
 
     // Agregar columnas de verificación y recuperación si faltan
     const authColumns = [

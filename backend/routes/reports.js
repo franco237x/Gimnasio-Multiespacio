@@ -4,9 +4,10 @@ const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
 const Attendance = require('../models/Attendance');
 const { executeQuery } = require('../config/database');
+const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/reports/dashboard - Estadísticas para el dashboard principal
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', authenticateToken, async (req, res) => {
     try {
         // Estadísticas de pagos del mes
         const paymentStats = await Payment.getStats('month');
@@ -57,7 +58,7 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // GET /api/reports/income - Reporte de ingresos
-router.get('/income', async (req, res) => {
+router.get('/income', authenticateToken, async (req, res) => {
     try {
         const { period, startDate, endDate } = req.query;
 
@@ -80,7 +81,7 @@ router.get('/income', async (req, res) => {
 });
 
 // GET /api/reports/activities - Estadísticas de actividades
-router.get('/activities', async (req, res) => {
+router.get('/activities', authenticateToken, async (req, res) => {
     try {
         // Actividades más populares (por inscripciones)
         const popularQuery = `
@@ -127,7 +128,7 @@ router.get('/activities', async (req, res) => {
 });
 
 // GET /api/reports/attendance - Estadísticas de asistencia
-router.get('/attendance', async (req, res) => {
+router.get('/attendance', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 

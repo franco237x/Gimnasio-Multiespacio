@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const savedUser = localStorage.getItem('user');
-    
+
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
       checkAuth(token);
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
       const response = await fetch(`${API_URL}/api/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         const { token, user } = data;
         localStorage.setItem('authToken', token);
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         return {
           success: true,
@@ -222,23 +222,29 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   const isAuthenticated = () => {
     return !!user;
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      error, 
-      login, 
-      register, 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      error,
+      login,
+      register,
       verifyEmail,
       resendVerification,
       requestPasswordReset,
       resetPassword,
-      logout, 
-      isAuthenticated 
+      logout,
+      updateUser,
+      isAuthenticated
     }}>
       {children}
     </AuthContext.Provider>

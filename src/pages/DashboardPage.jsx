@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions, ROLES, ROLE_NAMES } from '../components/auth/RoleProtectedRoute';
@@ -220,7 +220,31 @@ const DashboardPage = () => {
 
 // Componente de inicio del Dashboard
 const DashboardHome = ({ user, roleId }) => {
+  const navigate = useNavigate();
   const { isAdmin, isRecepcionista, isProfesor, isAlumno } = usePermissions();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_URL}/reports/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) setStats(data.data);
+        }
+      } catch (error) {
+        console.error('Error cargando stats del dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
 
   const getWelcomeMessage = () => {
     if (isAdmin()) return '¡Bienvenido, Administrador!';
@@ -232,72 +256,71 @@ const DashboardHome = ({ user, roleId }) => {
   const getQuickStats = () => {
     if (isAdmin()) {
       return [
-        { icon: 'bx-group', value: '156', label: 'Usuarios Activos', color: '#dc2626' },
-        { icon: 'bx-user-voice', value: '12', label: 'Profesores', color: '#7c3aed' },
-        { icon: 'bx-calendar-event', value: '24', label: 'Clases Hoy', color: '#0891b2' },
-        { icon: 'bx-dollar', value: '$45,230', label: 'Ingresos Mes', color: '#16a34a' }
+        { icon: 'bx-group', value: stats?.activeStudents ?? '—', label: 'Alumnos Activos', color: '#dc2626' },
+        { icon: 'bx-calendar-event', value: stats?.totalClasses ?? '—', label: 'Clases Activas', color: '#0891b2' },
+        { icon: 'bx-dollar', value: stats?.income ? `$${Number(stats.income).toLocaleString('es-AR')}` : '—', label: 'Ingresos Mes', color: '#16a34a' },
+        { icon: 'bx-calendar', value: stats?.pendingReservations ?? '—', label: 'Reservas Pendientes', color: '#7c3aed' }
       ];
     }
     if (isRecepcionista()) {
       return [
-        { icon: 'bx-user-check', value: '23', label: 'Check-ins Hoy', color: '#7c3aed' },
-        { icon: 'bx-money', value: '15', label: 'Pagos Hoy', color: '#16a34a' },
-        { icon: 'bx-calendar', value: '8', label: 'Reservas Pendientes', color: '#0891b2' },
-        { icon: 'bx-bell', value: '5', label: 'Cuotas Vencidas', color: '#dc2626' }
+        { icon: 'bx-money', value: stats?.totalPayments ?? '—', label: 'Pagos Mes', color: '#16a34a' },
+        { icon: 'bx-calendar', value: stats?.pendingReservations ?? '—', label: 'Reservas Pendientes', color: '#0891b2' },
+        { icon: 'bx-group', value: stats?.activeStudents ?? '—', label: 'Alumnos Activos', color: '#7c3aed' },
+        { icon: 'bx-dollar', value: stats?.income ? `$${Number(stats.income).toLocaleString('es-AR')}` : '—', label: 'Ingresos Mes', color: '#dc2626' }
       ];
     }
     if (isProfesor()) {
       return [
-        { icon: 'bx-chalkboard', value: '3', label: 'Clases Hoy', color: '#0891b2' },
-        { icon: 'bx-group', value: '45', label: 'Mis Alumnos', color: '#7c3aed' },
-        { icon: 'bx-calendar-check', value: '18', label: 'Clases Semana', color: '#16a34a' },
-        { icon: 'bx-star', value: '4.8', label: 'Valoración', color: '#f59e0b' }
+        { icon: 'bx-chalkboard', value: stats?.totalClasses ?? '—', label: 'Mis Clases', color: '#0891b2' },
+        { icon: 'bx-group', value: stats?.activeStudents ?? '—', label: 'Alumnos Totales', color: '#7c3aed' },
+        { icon: 'bx-calendar', value: stats?.pendingReservations ?? '—', label: 'Reservas', color: '#16a34a' },
+        { icon: 'bx-star', value: '—', label: 'Valoración', color: '#f59e0b' }
       ];
     }
     // Alumno
     return [
-      { icon: 'bx-calendar-check', value: '3', label: 'Reservas Activas', color: '#16a34a' },
-      { icon: 'bx-credit-card', value: 'Al día', label: 'Estado Cuota', color: '#0891b2' },
-      { icon: 'bx-run', value: '12', label: 'Clases Asistidas', color: '#7c3aed' },
-      { icon: 'bx-trophy', value: '2', label: 'Logros', color: '#f59e0b' }
+      { icon: 'bx-calendar-check', value: stats?.pendingReservations ?? '—', label: 'Mis Reservas', color: '#16a34a' },
+      { icon: 'bx-credit-card', value: stats?.subscriptions?.active_count ? 'Al día' : 'Pendiente', label: 'Estado Cuota', color: '#0891b2' },
+      { icon: 'bx-run', value: stats?.totalClasses ?? '—', label: 'Clases Disponibles', color: '#7c3aed' },
+      { icon: 'bx-trophy', value: '—', label: 'Logros', color: '#f59e0b' }
     ];
   };
 
   const getQuickActions = () => {
     if (isAdmin()) {
       return [
-        { icon: 'bx-user-plus', label: 'Nuevo Usuario', path: '/dashboard/usuarios/nuevo', color: '#dc2626' },
-        { icon: 'bx-calendar-plus', label: 'Nueva Actividad', path: '/dashboard/actividades/nueva', color: '#7c3aed' },
+        { icon: 'bx-group', label: 'Gestionar Usuarios', path: '/dashboard/usuarios', color: '#dc2626' },
+        { icon: 'bx-calendar-event', label: 'Actividades', path: '/dashboard/actividades', color: '#7c3aed' },
         { icon: 'bx-bar-chart', label: 'Ver Reportes', path: '/dashboard/reportes', color: '#0891b2' },
         { icon: 'bx-cog', label: 'Configuración', path: '/dashboard/configuracion', color: '#6b7280' }
       ];
     }
     if (isRecepcionista()) {
       return [
-        { icon: 'bx-money', label: 'Registrar Pago', path: '/dashboard/cuotas/nuevo', color: '#16a34a' },
-        { icon: 'bx-calendar-plus', label: 'Nueva Reserva', path: '/dashboard/alquileres/nuevo', color: '#7c3aed' },
-        { icon: 'bx-search', label: 'Buscar Cliente', path: '/dashboard/consultas', color: '#0891b2' },
-        { icon: 'bx-file', label: 'Comprobante', path: '/dashboard/comprobantes', color: '#f59e0b' }
+        { icon: 'bx-money', label: 'Gestionar Pagos', path: '/dashboard/pagos', color: '#16a34a' },
+        { icon: 'bx-building-house', label: 'Reservas', path: '/dashboard/alquileres', color: '#7c3aed' },
+        { icon: 'bx-search', label: 'Consultas', path: '/dashboard/consultas', color: '#0891b2' },
+        { icon: 'bx-user', label: 'Mi Perfil', path: '/dashboard/perfil', color: '#6b7280' }
       ];
     }
     if (isProfesor()) {
       return [
-        { icon: 'bx-list-check', label: 'Pasar Lista', path: '/dashboard/mis-clases/asistencia', color: '#16a34a' },
-        { icon: 'bx-calendar', label: 'Mi Horario', path: '/dashboard/mis-clases', color: '#0891b2' },
-        { icon: 'bx-group', label: 'Ver Alumnos', path: '/dashboard/alumnos', color: '#7c3aed' },
-        { icon: 'bx-plus-circle', label: 'Nueva Clase', path: '/dashboard/actividades/nueva', color: '#dc2626' }
+        { icon: 'bx-chalkboard', label: 'Mis Clases', path: '/dashboard/mis-clases', color: '#0891b2' },
+        { icon: 'bx-group', label: 'Mis Alumnos', path: '/dashboard/alumnos', color: '#7c3aed' },
+        { icon: 'bx-calendar-event', label: 'Actividades', path: '/dashboard/actividades', color: '#16a34a' },
+        { icon: 'bx-building-house', label: 'Reservas', path: '/dashboard/alquileres', color: '#dc2626' }
       ];
     }
     // Alumno
     return [
-      { icon: 'bx-calendar-plus', label: 'Reservar Clase', path: '/dashboard/mis-reservas/nueva', color: '#16a34a' },
-      { icon: 'bx-credit-card', label: 'Ver Cuotas', path: '/dashboard/mis-cuotas', color: '#0891b2' },
-      { icon: 'bx-calendar', label: 'Mis Reservas', path: '/dashboard/mis-reservas', color: '#7c3aed' },
+      { icon: 'bx-calendar-plus', label: 'Mis Reservas', path: '/dashboard/mis-reservas', color: '#16a34a' },
+      { icon: 'bx-credit-card', label: 'Mis Cuotas', path: '/dashboard/mis-cuotas', color: '#0891b2' },
       { icon: 'bx-user', label: 'Mi Perfil', path: '/dashboard/perfil', color: '#6b7280' }
     ];
   };
 
-  const stats = getQuickStats();
+  const quickStats = getQuickStats();
   const actions = getQuickActions();
 
   return (
@@ -315,13 +338,17 @@ const DashboardHome = ({ user, roleId }) => {
 
       {/* Stats Grid */}
       <div className="stats-grid">
-        {stats.map((stat, index) => (
+        {quickStats.map((stat, index) => (
           <div key={index} className="stat-card">
             <div className="stat-icon" style={{ backgroundColor: `${stat.color}20`, color: stat.color }}>
-              <i className={`bx ${stat.icon}`}></i>
+              {loading ? (
+                <i className='bx bx-loader-alt bx-spin'></i>
+              ) : (
+                <i className={`bx ${stat.icon}`}></i>
+              )}
             </div>
             <div className="stat-info">
-              <span className="stat-value">{stat.value}</span>
+              <span className="stat-value">{loading ? '...' : stat.value}</span>
               <span className="stat-label">{stat.label}</span>
             </div>
           </div>
@@ -337,7 +364,7 @@ const DashboardHome = ({ user, roleId }) => {
           <button
             key={index}
             className="action-card"
-            onClick={() => { }}
+            onClick={() => navigate(action.path)}
             style={{ '--action-color': action.color }}
           >
             <div className="action-icon">

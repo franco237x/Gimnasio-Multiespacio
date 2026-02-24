@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usersAPI, reportsAPI } from '../services/apiService';
 import './Consultas.css';
 
 const Consultas = () => {
@@ -6,41 +7,69 @@ const Consultas = () => {
     const [searchType, setSearchType] = useState('nombre');
     const [resultados, setResultados] = useState([]);
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const [loading, setLoading] = useState(false);
+    const [quickStats, setQuickStats] = useState(null);
 
-    const usuarios = [
-        { id: 1, nombre: 'Juan Pérez', dni: '12345678', email: 'juan@email.com', rol: 'alumno', estado: 'activo', cuota: 'al_dia', plan: 'Premium' },
-        { id: 2, nombre: 'María García', dni: '23456789', email: 'maria@email.com', rol: 'alumno', estado: 'activo', cuota: 'pendiente', plan: 'Básico' },
-        { id: 3, nombre: 'Carlos López', dni: '34567890', email: 'carlos@email.com', rol: 'profesor', estado: 'activo', cuota: null, plan: null },
-        { id: 4, nombre: 'Ana Martínez', dni: '45678901', email: 'ana@email.com', rol: 'alumno', estado: 'activo', cuota: 'vencida', plan: 'Premium' },
-        { id: 5, nombre: 'Pedro Sánchez', dni: '56789012', email: 'pedro@email.com', rol: 'alumno', estado: 'inactivo', cuota: 'vencida', plan: 'Básico' },
-    ];
+    useEffect(() => {
+        loadQuickStats();
+    }, []);
+
+    const loadQuickStats = async () => {
+        try {
+            const res = await reportsAPI.getDashboard();
+            if (res.success) {
+                setQuickStats(res.data);
+            }
+        } catch (error) {
+            console.error('Error cargando estadísticas:', error);
+        }
+    };
 
     const showNotification = (message, type) => {
         setNotification({ show: true, message, type });
         setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
     };
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         if (!searchTerm.trim()) {
             showNotification('⚠️ Ingresa un término de búsqueda', 'warning');
             return;
         }
 
-        const results = usuarios.filter(u => {
-            if (searchType === 'nombre') return u.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-            if (searchType === 'dni') return u.dni.includes(searchTerm);
-            if (searchType === 'email') return u.email.toLowerCase().includes(searchTerm.toLowerCase());
-            return false;
-        });
-
-        setResultados(results);
-        if (results.length === 0) {
-            showNotification('🔍 No se encontraron resultados', 'info');
+        setLoading(true);
+        try {
+            const res = await usersAPI.getAll({ search: searchTerm });
+            if (res.success) {
+                // Filtrar por tipo de búsqueda si es necesario
+                let filtered = res.data;
+                if (searchType === 'email') {
+                    filtered = filtered.filter(u =>
+                        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                } else if (searchType === 'dni') {
+                    filtered = filtered.filter(u =>
+                        u.phone?.includes(searchTerm)
+                    );
+                }
+                setResultados(filtered);
+                if (filtered.length === 0) {
+                    showNotification('🔍 No se encontraron resultados', 'info');
+                }
+            }
+        } catch (error) {
+            showNotification('❌ Error al buscar usuarios', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleKeyPress = (e) => {
+    const handleKeyDown = (e) => {
         if (e.key === 'Enter') handleSearch();
+    };
+
+    const getRoleName = (roleId) => {
+        const roles = { 1: 'administrador', 2: 'recepcionista', 3: 'profesor', 4: 'alumno' };
+        return roles[roleId] || 'alumno';
     };
 
     return (
@@ -65,7 +94,7 @@ const Consultas = () => {
                         className="search-type"
                     >
                         <option value="nombre">Nombre</option>
-                        <option value="dni">DNI</option>
+                        <option value="dni">Teléfono/DNI</option>
                         <option value="email">Email</option>
                     </select>
                     <div className="search-input-wrapper">
@@ -75,11 +104,15 @@ const Consultas = () => {
                             placeholder={`Buscar por ${searchType}...`}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyPress={handleKeyPress}
+                            onKeyDown={handleKeyDown}
                         />
                     </div>
-                    <button className="btn-search" onClick={handleSearch}>
-                        <i className='bx bx-search-alt'></i> Buscar
+                    <button className="btn-search" onClick={handleSearch} disabled={loading}>
+                        {loading ? (
+                            <><i className='bx bx-loader-alt bx-spin'></i> Buscando...</>
+                        ) : (
+                            <><i className='bx bx-search-alt'></i> Buscar</>
+                        )}
                     </button>
                 </div>
             </div>
@@ -92,42 +125,24 @@ const Consultas = () => {
                         {resultados.map((usuario) => (
                             <div key={usuario.id} className="resultado-card">
                                 <div className="resultado-avatar">
-                                    {usuario.nombre.charAt(0)}
+                                    {usuario.name?.charAt(0).toUpperCase() || 'U'}
                                 </div>
                                 <div className="resultado-info">
                                     <div className="resultado-header">
-                                        <h4>{usuario.nombre}</h4>
-                                        <span className={`rol-badge ${usuario.rol}`}>{usuario.rol}</span>
+                                        <h4>{usuario.name}</h4>
+                                        <span className={`rol-badge ${getRoleName(usuario.role_id)}`}>
+                                            {usuario.role_name || getRoleName(usuario.role_id)}
+                                        </span>
                                     </div>
                                     <div className="resultado-details">
-                                        <span><i className='bx bx-id-card'></i> DNI: {usuario.dni}</span>
+                                        {usuario.phone && <span><i className='bx bx-phone'></i> {usuario.phone}</span>}
                                         <span><i className='bx bx-envelope'></i> {usuario.email}</span>
-                                        {usuario.plan && <span><i className='bx bx-crown'></i> {usuario.plan}</span>}
                                     </div>
                                 </div>
                                 <div className="resultado-status">
-                                    <span className={`estado-badge ${usuario.estado}`}>
-                                        {usuario.estado === 'activo' ? 'Activo' : 'Inactivo'}
+                                    <span className={`estado-badge ${usuario.email_verified ? 'activo' : 'inactivo'}`}>
+                                        {usuario.email_verified ? 'Verificado' : 'Sin verificar'}
                                     </span>
-                                    {usuario.cuota && (
-                                        <span className={`cuota-badge ${usuario.cuota}`}>
-                                            Cuota: {usuario.cuota === 'al_dia' ? 'Al día' : usuario.cuota === 'pendiente' ? 'Pendiente' : 'Vencida'}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="resultado-actions">
-                                    <button
-                                        className="btn-action"
-                                        onClick={() => showNotification('📋 Ficha completa abierta', 'success')}
-                                    >
-                                        <i className='bx bx-show'></i>
-                                    </button>
-                                    <button
-                                        className="btn-action"
-                                        onClick={() => showNotification('📧 Email enviado', 'success')}
-                                    >
-                                        <i className='bx bx-mail-send'></i>
-                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -140,20 +155,20 @@ const Consultas = () => {
                 <h3><i className='bx bx-bar-chart'></i> Estadísticas Rápidas</h3>
                 <div className="stats-grid">
                     <div className="quick-stat-card">
-                        <div className="stat-number">156</div>
+                        <div className="stat-number">{quickStats?.activeStudents ?? '—'}</div>
                         <div className="stat-label">Alumnos Activos</div>
                     </div>
                     <div className="quick-stat-card">
-                        <div className="stat-number">23</div>
+                        <div className="stat-number">{quickStats?.subscriptions?.pending_count ?? '—'}</div>
                         <div className="stat-label">Cuotas Pendientes</div>
                     </div>
                     <div className="quick-stat-card">
-                        <div className="stat-number">8</div>
+                        <div className="stat-number">{quickStats?.subscriptions?.expired_count ?? '—'}</div>
                         <div className="stat-label">Cuotas Vencidas</div>
                     </div>
                     <div className="quick-stat-card">
-                        <div className="stat-number">12</div>
-                        <div className="stat-label">Nuevos este mes</div>
+                        <div className="stat-number">{quickStats?.totalClasses ?? '—'}</div>
+                        <div className="stat-label">Clases Activas</div>
                     </div>
                 </div>
             </div>

@@ -18,7 +18,7 @@ const fetchAPI = async (endpoint, options = {}) => {
     };
 
     // Añadir token de autenticación si existe
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -127,6 +127,13 @@ export const reportsAPI = {
         fetchAPI(`/reports/attendance?startDate=${startDate}&endDate=${endDate}`),
 };
 
+// ============= AUTH (Perfil) =============
+export const authAPI = {
+    getProfile: () => fetchAPI('/auth/profile'),
+    updateProfile: (data) => fetchAPI('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
+    changePassword: (data) => fetchAPI('/auth/change-password', { method: 'PUT', body: JSON.stringify(data) }),
+};
+
 // Export por defecto con todos los servicios
 export default {
     users: usersAPI,
@@ -135,4 +142,5 @@ export default {
     reservations: reservationsAPI,
     config: configAPI,
     reports: reportsAPI,
+    auth: authAPI,
 };

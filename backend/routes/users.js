@@ -1,16 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-
-// Middleware para verificar autenticación (simplificado)
-const authMiddleware = (req, res, next) => {
-    // En producción, verificar JWT token
-    // Por ahora, permitir acceso para desarrollo
-    next();
-};
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // GET /api/users - Listar todos los usuarios
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
     try {
         const { role, search, status } = req.query;
         let users = await User.findAll();
@@ -38,7 +32,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // GET /api/users/:id - Obtener usuario por ID
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -52,7 +46,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // POST /api/users - Crear usuario
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const { name, email, password, phone, role_id } = req.body;
 
@@ -82,7 +76,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // PUT /api/users/:id - Actualizar usuario
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
     try {
         const { name, email, phone, role_id, is_active } = req.body;
 
@@ -100,7 +94,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // DELETE /api/users/:id - Eliminar usuario
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const deleted = await User.delete(req.params.id);
         if (!deleted) {
@@ -114,7 +108,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 // PATCH /api/users/:id/role - Cambiar rol de usuario
-router.patch('/:id/role', authMiddleware, async (req, res) => {
+router.patch('/:id/role', authenticateToken, async (req, res) => {
     try {
         const { role_id } = req.body;
 
@@ -132,7 +126,7 @@ router.patch('/:id/role', authMiddleware, async (req, res) => {
 });
 
 // GET /api/users/role/:roleName - Obtener usuarios por nombre de rol
-router.get('/role/:roleName', authMiddleware, async (req, res) => {
+router.get('/role/:roleName', authenticateToken, async (req, res) => {
     try {
         const users = await User.findAll();
         const filteredUsers = users.filter(u =>

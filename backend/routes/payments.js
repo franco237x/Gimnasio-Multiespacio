@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
+const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/payments - Listar pagos
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate, concept, status, limit } = req.query;
         const payments = await Payment.findAll({ startDate, endDate, concept, status, limit });
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/payments/stats - Estadísticas de pagos
-router.get('/stats', async (req, res) => {
+router.get('/stats', authenticateToken, async (req, res) => {
     try {
         const { period } = req.query;
         const stats = await Payment.getStats(period || 'month');
@@ -36,7 +37,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // GET /api/payments/monthly - Ingresos mensuales
-router.get('/monthly', async (req, res) => {
+router.get('/monthly', authenticateToken, async (req, res) => {
     try {
         const monthlyIncome = await Payment.getMonthlyIncome();
         res.json({ success: true, data: monthlyIncome });
@@ -47,7 +48,7 @@ router.get('/monthly', async (req, res) => {
 });
 
 // GET /api/payments/user/:id - Pagos de un usuario
-router.get('/user/:id', async (req, res) => {
+router.get('/user/:id', authenticateToken, async (req, res) => {
     try {
         const payments = await Payment.findByUser(req.params.id);
         res.json({ success: true, data: payments });
@@ -58,7 +59,7 @@ router.get('/user/:id', async (req, res) => {
 });
 
 // POST /api/payments - Registrar pago
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const { user_id, subscription_id, amount, concept, payment_method, notes } = req.body;
 
@@ -83,7 +84,7 @@ router.post('/', async (req, res) => {
 // ============= SUSCRIPCIONES/CUOTAS =============
 
 // GET /api/payments/plans - Listar planes de suscripción
-router.get('/plans', async (req, res) => {
+router.get('/plans', authenticateToken, async (req, res) => {
     try {
         const plans = await Subscription.getAllPlans();
         res.json({ success: true, data: plans });
@@ -94,7 +95,7 @@ router.get('/plans', async (req, res) => {
 });
 
 // POST /api/payments/plans - Crear plan
-router.post('/plans', async (req, res) => {
+router.post('/plans', authenticateToken, async (req, res) => {
     try {
         const { name, description, price, duration_days, features } = req.body;
 
@@ -117,7 +118,7 @@ router.post('/plans', async (req, res) => {
 });
 
 // GET /api/payments/subscription/:userId - Suscripción activa de un usuario
-router.get('/subscription/:userId', async (req, res) => {
+router.get('/subscription/:userId', authenticateToken, async (req, res) => {
     try {
         const subscription = await Subscription.findActiveByUser(req.params.userId);
         res.json({ success: true, data: subscription });
@@ -128,7 +129,7 @@ router.get('/subscription/:userId', async (req, res) => {
 });
 
 // POST /api/payments/subscription - Crear suscripción
-router.post('/subscription', async (req, res) => {
+router.post('/subscription', authenticateToken, async (req, res) => {
     try {
         const { user_id, plan_id, start_date } = req.body;
 
@@ -148,7 +149,7 @@ router.post('/subscription', async (req, res) => {
 });
 
 // POST /api/payments/subscription/:userId/renew - Renovar suscripción
-router.post('/subscription/:userId/renew', async (req, res) => {
+router.post('/subscription/:userId/renew', authenticateToken, async (req, res) => {
     try {
         const { plan_id } = req.body;
         const subscription = await Subscription.renew(req.params.userId, plan_id);

@@ -66,7 +66,7 @@ router.post('/register', async (req, res) => {
 
   } catch (error) {
     console.error('Error en registro:', error);
-    
+
     if (error.message === 'Ya existe un usuario con ese email') {
       return res.status(409).json({
         message: 'Ya existe una cuenta con ese email'
@@ -305,6 +305,46 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error actualizando perfil:', error);
+    res.status(500).json({
+      message: 'Error interno del servidor'
+    });
+  }
+});
+
+// PUT /api/auth/change-password - Cambiar contraseña
+router.put('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: 'Contraseña actual y nueva contraseña son requeridas'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: 'La nueva contraseña debe tener al menos 6 caracteres'
+      });
+    }
+
+    // Verificar contraseña actual
+    const isValid = await User.verifyPassword(currentPassword, req.user.password);
+    if (!isValid) {
+      return res.status(401).json({
+        message: 'La contraseña actual es incorrecta'
+      });
+    }
+
+    // Actualizar contraseña
+    await User.updatePassword(req.user.id, newPassword);
+
+    res.json({
+      message: 'Contraseña actualizada exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error cambiando contraseña:', error);
     res.status(500).json({
       message: 'Error interno del servidor'
     });

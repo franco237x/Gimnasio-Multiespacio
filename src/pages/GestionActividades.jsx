@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { activitiesAPI, reservationsAPI } from '../services/apiService';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import './GestionActividades.css';
 
 const GestionActividades = () => {
@@ -11,6 +12,7 @@ const GestionActividades = () => {
     const [profesores, setProfesores] = useState([]);
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null, name: '' });
 
     const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 
@@ -101,14 +103,19 @@ const GestionActividades = () => {
         }
     };
 
-    const handleDelete = async (activityId) => {
-        if (!confirm('¿Está seguro de eliminar esta actividad?')) return;
+    const handleDeleteClick = (activity) => {
+        setConfirmDelete({ show: true, id: activity.id, name: activity.name });
+    };
+
+    const handleDeleteConfirm = async () => {
         try {
-            await activitiesAPI.delete(activityId);
+            await activitiesAPI.delete(confirmDelete.id);
             showNotification('🗑️ Actividad eliminada', 'success');
             loadData();
         } catch (error) {
             showNotification('❌ Error al eliminar actividad', 'error');
+        } finally {
+            setConfirmDelete({ show: false, id: null, name: '' });
         }
     };
 
@@ -222,7 +229,7 @@ const GestionActividades = () => {
                                         <button className="action-btn edit" onClick={() => handleOpenModal(act)}>
                                             <i className='bx bx-edit'></i>
                                         </button>
-                                        <button className="action-btn delete" onClick={() => handleDelete(act.id)}>
+                                        <button className="action-btn delete" onClick={() => handleDeleteClick(act)}>
                                             <i className='bx bx-trash'></i>
                                         </button>
                                     </td>
@@ -331,6 +338,16 @@ const GestionActividades = () => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={confirmDelete.show}
+                title="Eliminar Actividad"
+                message={`¿Estás seguro de eliminar "${confirmDelete.name}"? Esta acción no se puede deshacer.`}
+                confirmText="Eliminar"
+                variant="danger"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDelete({ show: false, id: null, name: '' })}
+            />
         </div>
     );
 };

@@ -1,18 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../services/apiService';
 import './MiPerfil.css';
 
 const MiPerfil = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState('datos');
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const [saving, setSaving] = useState(false);
+
     const [formData, setFormData] = useState({
-        nombre: user?.name || 'Usuario Demo',
-        email: user?.email || 'demo@fortaleza.com',
-        telefono: '+54 11 5555-1234',
-        dni: '12345678',
-        fechaNacimiento: '1995-05-15',
-        direccion: 'Av. Corrientes 1234, CABA'
+        nombre: '',
+        email: '',
+        telefono: ''
     });
 
     const [passwordData, setPasswordData] = useState({
@@ -21,24 +21,83 @@ const MiPerfil = () => {
         confirmar: ''
     });
 
+    // Cargar datos del usuario autenticado
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                nombre: user.name || '',
+                email: user.email || '',
+                telefono: user.phone || ''
+            });
+        }
+    }, [user]);
+
     const showNotification = (message, type) => {
         setNotification({ show: true, message, type });
         setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
     };
 
-    const handleSaveProfile = (e) => {
+    const handleSaveProfile = async (e) => {
         e.preventDefault();
-        showNotification('✅ Perfil actualizado correctamente', 'success');
+        if (!formData.nombre.trim()) {
+            showNotification('❌ El nombre es requerido', 'error');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const response = await authAPI.updateProfile({
+                name: formData.nombre,
+                phone: formData.telefono
+            });
+
+            if (response.user && updateUser) {
+                updateUser(response.user);
+            }
+            showNotification('✅ Perfil actualizado correctamente', 'success');
+        } catch (error) {
+            showNotification('❌ ' + (error.message || 'Error al guardar'), 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const handleChangePassword = (e) => {
+    const handleChangePassword = async (e) => {
         e.preventDefault();
+
+        if (!passwordData.actual || !passwordData.nueva || !passwordData.confirmar) {
+            showNotification('❌ Todos los campos son requeridos', 'error');
+            return;
+        }
+
+        if (passwordData.nueva.length < 6) {
+            showNotification('❌ La nueva contraseña debe tener al menos 6 caracteres', 'error');
+            return;
+        }
+
         if (passwordData.nueva !== passwordData.confirmar) {
             showNotification('❌ Las contraseñas no coinciden', 'error');
             return;
         }
-        showNotification('✅ Contraseña cambiada correctamente', 'success');
-        setPasswordData({ actual: '', nueva: '', confirmar: '' });
+
+        try {
+            setSaving(true);
+            await authAPI.changePassword({
+                currentPassword: passwordData.actual,
+                newPassword: passwordData.nueva
+            });
+            showNotification('✅ Contraseña cambiada correctamente', 'success');
+            setPasswordData({ actual: '', nueva: '', confirmar: '' });
+        } catch (error) {
+            showNotification('❌ ' + (error.message || 'Error al cambiar contraseña'), 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const getRoleName = () => {
+        const roles = { 1: 'Administrador', 2: 'Recepcionista', 3: 'Profesor', 4: 'Alumno' };
+        return roles[user?.role_id] || 'Usuario';
     };
 
     return (
@@ -58,18 +117,15 @@ const MiPerfil = () => {
             <div className="profile-card">
                 <div className="profile-header">
                     <div className="profile-avatar">
-                        {formData.nombre.charAt(0).toUpperCase()}
+                        {formData.nombre?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                     <div className="profile-info">
-                        <h3>{formData.nombre}</h3>
+                        <h3>{formData.nombre || 'Usuario'}</h3>
                         <p>{formData.email}</p>
                         <span className="member-badge">
-                            <i className='bx bx-star'></i> Miembro Premium
+                            <i className='bx bx-shield-quarter'></i> {getRoleName()}
                         </span>
                     </div>
-                    <button className="btn-change-photo" onClick={() => showNotification('📷 Función próximamente disponible', 'success')}>
-                        <i className='bx bx-camera'></i> Cambiar Foto
-                    </button>
                 </div>
             </div>
 
@@ -87,12 +143,6 @@ const MiPerfil = () => {
                 >
                     <i className='bx bx-lock-alt'></i> Seguridad
                 </button>
-                <button
-                    className={`tab-btn ${activeTab === 'notificaciones' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('notificaciones')}
-                >
-                    <i className='bx bx-bell'></i> Notificaciones
-                </button>
             </div>
 
             {/* Datos Personales */}
@@ -106,55 +156,37 @@ const MiPerfil = () => {
                                     type="text"
                                     value={formData.nombre}
                                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                    required
                                 />
                             </div>
-                            <div className="form-group">
-                                <label>DNI</label>
-                                <input
-                                    type="text"
-                                    value={formData.dni}
-                                    onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="form-row">
                             <div className="form-group">
                                 <label>Email</label>
                                 <input
                                     type="email"
                                     value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    disabled
+                                    className="input-disabled"
                                 />
+                                <small className="field-hint">El email no se puede cambiar</small>
                             </div>
+                        </div>
+                        <div className="form-row">
                             <div className="form-group">
                                 <label>Teléfono</label>
                                 <input
                                     type="text"
                                     value={formData.telefono}
                                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                                    placeholder="Ej: +54 11 1234-5678"
                                 />
                             </div>
                         </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Fecha de Nacimiento</label>
-                                <input
-                                    type="date"
-                                    value={formData.fechaNacimiento}
-                                    onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Dirección</label>
-                                <input
-                                    type="text"
-                                    value={formData.direccion}
-                                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <button type="submit" className="btn-save">
-                            <i className='bx bx-save'></i> Guardar Cambios
+                        <button type="submit" className="btn-save" disabled={saving}>
+                            {saving ? (
+                                <><i className='bx bx-loader-alt bx-spin'></i> Guardando...</>
+                            ) : (
+                                <><i className='bx bx-save'></i> Guardar Cambios</>
+                            )}
                         </button>
                     </form>
                 </div>
@@ -171,6 +203,7 @@ const MiPerfil = () => {
                                 value={passwordData.actual}
                                 onChange={(e) => setPasswordData({ ...passwordData, actual: e.target.value })}
                                 placeholder="Ingresa tu contraseña actual"
+                                required
                             />
                         </div>
                         <div className="form-row">
@@ -180,7 +213,9 @@ const MiPerfil = () => {
                                     type="password"
                                     value={passwordData.nueva}
                                     onChange={(e) => setPasswordData({ ...passwordData, nueva: e.target.value })}
-                                    placeholder="Nueva contraseña"
+                                    placeholder="Mínimo 6 caracteres"
+                                    required
+                                    minLength={6}
                                 />
                             </div>
                             <div className="form-group">
@@ -189,65 +224,19 @@ const MiPerfil = () => {
                                     type="password"
                                     value={passwordData.confirmar}
                                     onChange={(e) => setPasswordData({ ...passwordData, confirmar: e.target.value })}
-                                    placeholder="Confirmar nueva contraseña"
+                                    placeholder="Repetir nueva contraseña"
+                                    required
                                 />
                             </div>
                         </div>
-                        <button type="submit" className="btn-save">
-                            <i className='bx bx-lock'></i> Cambiar Contraseña
+                        <button type="submit" className="btn-save" disabled={saving}>
+                            {saving ? (
+                                <><i className='bx bx-loader-alt bx-spin'></i> Cambiando...</>
+                            ) : (
+                                <><i className='bx bx-lock'></i> Cambiar Contraseña</>
+                            )}
                         </button>
                     </form>
-                </div>
-            )}
-
-            {/* Notificaciones */}
-            {activeTab === 'notificaciones' && (
-                <div className="tab-content">
-                    <div className="notification-settings">
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <span className="setting-title">Recordatorios de Clases</span>
-                                <span className="setting-desc">Recibir notificaciones antes de tus clases</span>
-                            </div>
-                            <label className="toggle-switch">
-                                <input type="checkbox" defaultChecked />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <span className="setting-title">Vencimiento de Cuota</span>
-                                <span className="setting-desc">Alertas cuando tu cuota esté por vencer</span>
-                            </div>
-                            <label className="toggle-switch">
-                                <input type="checkbox" defaultChecked />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <span className="setting-title">Promociones y Ofertas</span>
-                                <span className="setting-desc">Información sobre descuentos y novedades</span>
-                            </div>
-                            <label className="toggle-switch">
-                                <input type="checkbox" />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <span className="setting-title">Nuevas Clases</span>
-                                <span className="setting-desc">Notificaciones cuando haya clases nuevas</span>
-                            </div>
-                            <label className="toggle-switch">
-                                <input type="checkbox" defaultChecked />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <button className="btn-save" onClick={() => showNotification('✅ Preferencias guardadas', 'success')}>
-                        <i className='bx bx-save'></i> Guardar Preferencias
-                    </button>
                 </div>
             )}
         </div>

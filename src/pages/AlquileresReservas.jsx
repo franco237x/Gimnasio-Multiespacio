@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { reservationsAPI } from '../services/apiService';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import './AlquileresReservas.css';
 
 const AlquileresReservas = () => {
@@ -9,6 +10,7 @@ const AlquileresReservas = () => {
     const [reservas, setReservas] = useState([]);
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [confirmCancel, setConfirmCancel] = useState({ show: false, id: null });
 
     const [formData, setFormData] = useState({
         space_id: '',
@@ -104,14 +106,19 @@ const AlquileresReservas = () => {
         }
     };
 
-    const handleCancel = async (reservaId) => {
-        if (!confirm('¿Está seguro de cancelar esta reserva?')) return;
+    const handleCancelClick = (reservaId) => {
+        setConfirmCancel({ show: true, id: reservaId });
+    };
+
+    const handleCancelConfirm = async () => {
         try {
-            await reservationsAPI.cancel(reservaId);
+            await reservationsAPI.cancel(confirmCancel.id);
             showNotification('🗑️ Reserva cancelada', 'success');
             loadData();
         } catch (error) {
             showNotification('❌ Error al cancelar', 'error');
+        } finally {
+            setConfirmCancel({ show: false, id: null });
         }
     };
 
@@ -206,7 +213,7 @@ const AlquileresReservas = () => {
                                                             <button className="action-btn confirm" title="Confirmar" onClick={() => handleConfirm(reserva.id)}>
                                                                 <i className='bx bx-check'></i>
                                                             </button>
-                                                            <button className="action-btn cancel" title="Cancelar" onClick={() => handleCancel(reserva.id)}>
+                                                            <button className="action-btn cancel" title="Cancelar" onClick={() => handleCancelClick(reserva.id)}>
                                                                 <i className='bx bx-x'></i>
                                                             </button>
                                                         </>
@@ -346,6 +353,16 @@ const AlquileresReservas = () => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={confirmCancel.show}
+                title="Cancelar Reserva"
+                message="¿Estás seguro de cancelar esta reserva?"
+                confirmText="Sí, Cancelar"
+                variant="warning"
+                onConfirm={handleCancelConfirm}
+                onCancel={() => setConfirmCancel({ show: false, id: null })}
+            />
         </div>
     );
 };

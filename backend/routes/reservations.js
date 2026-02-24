@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Reservation = require('../models/Reservation');
 const Space = require('../models/Space');
+const { authenticateToken } = require('../middleware/auth');
 
 // ============= ESPACIOS =============
 
 // GET /api/reservations/spaces - Listar espacios
-router.get('/spaces', async (req, res) => {
+router.get('/spaces', authenticateToken, async (req, res) => {
     try {
         const { available } = req.query;
         let spaces;
@@ -23,7 +24,7 @@ router.get('/spaces', async (req, res) => {
 });
 
 // POST /api/reservations/spaces - Crear espacio
-router.post('/spaces', async (req, res) => {
+router.post('/spaces', authenticateToken, async (req, res) => {
     try {
         const newSpace = await Space.create(req.body);
         res.status(201).json({ success: true, data: newSpace });
@@ -34,7 +35,7 @@ router.post('/spaces', async (req, res) => {
 });
 
 // PUT /api/reservations/spaces/:id - Actualizar espacio
-router.put('/spaces/:id', async (req, res) => {
+router.put('/spaces/:id', authenticateToken, async (req, res) => {
     try {
         const updatedSpace = await Space.update(req.params.id, req.body);
         res.json({ success: true, data: updatedSpace });
@@ -45,7 +46,7 @@ router.put('/spaces/:id', async (req, res) => {
 });
 
 // GET /api/reservations/spaces/:id/availability - Verificar disponibilidad
-router.get('/spaces/:id/availability', async (req, res) => {
+router.get('/spaces/:id/availability', authenticateToken, async (req, res) => {
     try {
         const { date, startTime, endTime } = req.query;
         const isAvailable = await Space.checkAvailability(req.params.id, date, startTime, endTime);
@@ -59,7 +60,7 @@ router.get('/spaces/:id/availability', async (req, res) => {
 // ============= RESERVAS =============
 
 // GET /api/reservations - Listar reservas
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
     try {
         const { status, startDate, endDate, spaceId } = req.query;
         const reservations = await Reservation.findAll({ status, startDate, endDate, spaceId });
@@ -71,7 +72,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/reservations/pending - Reservas pendientes
-router.get('/pending', async (req, res) => {
+router.get('/pending', authenticateToken, async (req, res) => {
     try {
         const reservations = await Reservation.getPending();
         res.json({ success: true, data: reservations });
@@ -82,7 +83,7 @@ router.get('/pending', async (req, res) => {
 });
 
 // GET /api/reservations/upcoming - Próximas reservas
-router.get('/upcoming', async (req, res) => {
+router.get('/upcoming', authenticateToken, async (req, res) => {
     try {
         const { days } = req.query;
         const reservations = await Reservation.getUpcoming(parseInt(days) || 7);
@@ -94,7 +95,7 @@ router.get('/upcoming', async (req, res) => {
 });
 
 // GET /api/reservations/date/:date - Reservas por fecha
-router.get('/date/:date', async (req, res) => {
+router.get('/date/:date', authenticateToken, async (req, res) => {
     try {
         const reservations = await Reservation.findByDate(req.params.date);
         res.json({ success: true, data: reservations });
@@ -105,7 +106,7 @@ router.get('/date/:date', async (req, res) => {
 });
 
 // GET /api/reservations/:id - Obtener reserva por ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const reservation = await Reservation.findById(req.params.id);
         if (!reservation) {
@@ -119,7 +120,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/reservations - Crear reserva
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const { space_id, client_name, reservation_date, start_time, end_time, total_amount } = req.body;
 
@@ -148,7 +149,7 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/reservations/:id/confirm - Confirmar reserva
-router.patch('/:id/confirm', async (req, res) => {
+router.patch('/:id/confirm', authenticateToken, async (req, res) => {
     try {
         const reservation = await Reservation.confirm(req.params.id);
         res.json({ success: true, data: reservation, message: 'Reserva confirmada' });
@@ -159,7 +160,7 @@ router.patch('/:id/confirm', async (req, res) => {
 });
 
 // PATCH /api/reservations/:id/cancel - Cancelar reserva
-router.patch('/:id/cancel', async (req, res) => {
+router.patch('/:id/cancel', authenticateToken, async (req, res) => {
     try {
         const reservation = await Reservation.cancel(req.params.id);
         res.json({ success: true, data: reservation, message: 'Reserva cancelada' });
@@ -170,7 +171,7 @@ router.patch('/:id/cancel', async (req, res) => {
 });
 
 // DELETE /api/reservations/:id - Eliminar reserva
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const deleted = await Reservation.delete(req.params.id);
         if (!deleted) {

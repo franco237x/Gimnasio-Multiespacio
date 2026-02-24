@@ -33,7 +33,7 @@ class User {
   static async create(userData) {
     try {
       const { name, email, password, phone, role_id = ROLES.ALUMNO } = userData;
-      
+
       // Hashear la contraseña
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -42,12 +42,12 @@ class User {
         INSERT INTO users (name, email, password, phone, role_id) 
         VALUES (?, ?, ?, ?, ?)
       `;
-      
+
       // Convertir undefined a null para phone
       const phoneValue = phone || null;
-      
+
       const result = await executeQuery(query, [name, email, hashedPassword, phoneValue, role_id]);
-      
+
       // Retornar el usuario creado (sin la contraseña)
       return await User.findById(result.insertId);
     } catch (error) {
@@ -68,11 +68,11 @@ class User {
         WHERE u.id = ?
       `;
       const results = await executeQuery(query, [id]);
-      
+
       if (results.length === 0) {
         return null;
       }
-      
+
       const userData = results[0];
       // No incluir la contraseña en el resultado
       delete userData.password;
@@ -92,11 +92,11 @@ class User {
         WHERE u.email = ?
       `;
       const results = await executeQuery(query, [email]);
-      
+
       if (results.length === 0) {
         return null;
       }
-      
+
       return new User(results[0]);
     } catch (error) {
       throw error;
@@ -215,18 +215,27 @@ class User {
   // Actualizar información del usuario
   static async update(id, updateData) {
     try {
-      const { name, phone } = updateData;
-      
-      const query = `
-        UPDATE users 
-        SET name = ?, phone = ?, updated_at = CURRENT_TIMESTAMP 
-        WHERE id = ?
-      `;
-      
-      // Convertir undefined a null para phone
+      const { name, email, phone, role_id } = updateData;
+
+      let query = 'UPDATE users SET name = ?, phone = ?, updated_at = CURRENT_TIMESTAMP';
       const phoneValue = phone || null;
-      
-      await executeQuery(query, [name, phoneValue, id]);
+      const values = [name, phoneValue];
+
+      // Añadir campos opcionales si vienen en el request
+      if (email !== undefined) {
+        query += ', email = ?';
+        values.push(email);
+      }
+
+      if (role_id !== undefined) {
+        query += ', role_id = ?';
+        values.push(role_id);
+      }
+
+      query += ' WHERE id = ?';
+      values.push(id);
+
+      await executeQuery(query, values);
       return await User.findById(id);
     } catch (error) {
       throw error;
@@ -244,7 +253,7 @@ class User {
         ORDER BY u.created_at DESC
       `;
       const results = await executeQuery(query);
-      
+
       return results.map(userData => new User(userData));
     } catch (error) {
       throw error;
@@ -256,7 +265,7 @@ class User {
     try {
       const query = 'DELETE FROM users WHERE id = ?';
       const result = await executeQuery(query, [id]);
-      
+
       return result.affectedRows > 0;
     } catch (error) {
       throw error;

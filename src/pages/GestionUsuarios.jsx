@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usersAPI } from '../services/apiService';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import './GestionUsuarios.css';
 
 const GestionUsuarios = () => {
@@ -10,6 +11,7 @@ const GestionUsuarios = () => {
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
     const [usuarios, setUsuarios] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [confirmDelete, setConfirmDelete] = useState({ show: false, userId: null, userName: '' });
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -116,15 +118,19 @@ const GestionUsuarios = () => {
         }
     };
 
-    const handleDelete = async (userId) => {
-        if (!confirm('¿Está seguro de eliminar este usuario?')) return;
+    const handleDeleteClick = (user) => {
+        setConfirmDelete({ show: true, userId: user.id, userName: user.nombre });
+    };
 
+    const handleDeleteConfirm = async () => {
         try {
-            await usersAPI.delete(userId);
+            await usersAPI.delete(confirmDelete.userId);
             showNotification('🗑️ Usuario eliminado correctamente', 'success');
             loadUsuarios();
         } catch (error) {
             showNotification('❌ Error al eliminar usuario', 'error');
+        } finally {
+            setConfirmDelete({ show: false, userId: null, userName: '' });
         }
     };
 
@@ -252,7 +258,7 @@ const GestionUsuarios = () => {
                                             <button
                                                 className="action-btn delete"
                                                 title="Eliminar"
-                                                onClick={() => handleDelete(user.id)}
+                                                onClick={() => handleDeleteClick(user)}
                                             >
                                                 <i className='bx bx-trash'></i>
                                             </button>
@@ -337,6 +343,16 @@ const GestionUsuarios = () => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={confirmDelete.show}
+                title="Eliminar Usuario"
+                message={`¿Estás seguro de eliminar a "${confirmDelete.userName}"? Esta acción no se puede deshacer.`}
+                confirmText="Eliminar"
+                variant="danger"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDelete({ show: false, userId: null, userName: '' })}
+            />
         </div>
     );
 };

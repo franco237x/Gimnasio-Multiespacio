@@ -30,25 +30,27 @@ export const ROLE_ROUTES = {
   [ROLES.ADMINISTRADOR]: [
     '/dashboard',
     '/dashboard/usuarios',
-    '/dashboard/profesores',
     '/dashboard/actividades',
     '/dashboard/alquileres',
-    '/dashboard/cuotas',
+    '/dashboard/pagos',
     '/dashboard/reportes',
-    '/dashboard/configuracion'
+    '/dashboard/configuracion',
+    '/dashboard/perfil'
   ],
   [ROLES.RECEPCIONISTA]: [
     '/dashboard',
     '/dashboard/alquileres',
-    '/dashboard/cuotas',
-    '/dashboard/alta-cuotas',
-    '/dashboard/consultas'
+    '/dashboard/pagos',
+    '/dashboard/consultas',
+    '/dashboard/perfil'
   ],
   [ROLES.PROFESOR]: [
     '/dashboard',
     '/dashboard/actividades',
     '/dashboard/mis-clases',
-    '/dashboard/alumnos'
+    '/dashboard/alumnos',
+    '/dashboard/alquileres',
+    '/dashboard/perfil'
   ],
   [ROLES.ALUMNO]: [
     '/dashboard',
@@ -156,14 +158,14 @@ export const MinRoleRoute = ({ children, minRole }) => {
 // Hook para verificar permisos
 export const usePermissions = () => {
   const { user } = useAuth();
-  
+
   const userRoleId = user?.role?.id || ROLES.ALUMNO;
   const userHierarchy = ROLE_HIERARCHY[userRoleId] || 0;
 
   const hasRole = (roleId) => userRoleId === roleId;
-  
+
   const hasAnyRole = (roleIds) => roleIds.includes(userRoleId);
-  
+
   const hasMinRole = (minRoleId) => {
     const requiredHierarchy = ROLE_HIERARCHY[minRoleId] || 0;
     return userHierarchy >= requiredHierarchy;
