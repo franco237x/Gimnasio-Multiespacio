@@ -327,4 +327,35 @@
         width: 100%;
         text-align: left;
     }
+
+    .notification {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .cuota-actual-card {
+        padding: 20px;
+    }
+
+    .cuota-estado {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .page-header h2 {
+        font-size: 1.4rem;
+    }
+
+    .historial-section {
+        padding: 16px;
+    }
+
+    .progreso-container {
+        text-align: left;
+    }
 }

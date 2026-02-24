@@ -34,17 +34,34 @@ function App() {
     // Función para manejar el resize y reinicializar AOS si es necesario
     const handleResize = () => {
       AOS.refresh()
+      // Cerrar menú si se agranda la pantalla a desktop
+      if (window.innerWidth > 768) {
+        setIsMenuOpen(false)
+      }
     }
 
     // Scroll handler
-    const handleScroll = () => setScrollY(window.scrollY)
-    
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+      // Cerrar menú móvil al hacer scroll
+      if (window.scrollY > 50) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    // Cerrar menú con Escape
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsMenuOpen(false)
+    }
+
     window.addEventListener('scroll', handleScroll)
     window.addEventListener('resize', handleResize)
-    
+    window.addEventListener('keydown', handleKeyDown)
+
     return () => {
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
 
@@ -78,7 +95,7 @@ function App() {
     <div className="app">
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      
+
       {/* Navigation */}
       <nav className="navbar">
         <div className="nav-container">
@@ -105,15 +122,33 @@ function App() {
               <button className="nav-login-btn" onClick={handleLoginClick}>Iniciar Sesión</button>
             )}
           </div>
-          <div className={`nav-toggle ${isMenuOpen ? 'active' : ''}`} onClick={toggleMenu}>
-            <i className='bx bx-menu'></i>
-          </div>
+
+          {/* Botón hamburguesa con 3 spans para animación CSS */}
+          <button
+            className={`nav-toggle ${isMenuOpen ? 'active' : ''}`}
+            onClick={toggleMenu}
+            aria-label="Abrir menú"
+            aria-expanded={isMenuOpen}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         </div>
       </nav>
 
+      {/* Overlay para cerrar menú móvil al tocar fuera */}
+      {isMenuOpen && (
+        <div
+          className="nav-overlay"
+          onClick={closeMenu}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Hero Section */}
       <section id="inicio" className="hero">
-        <div 
+        <div
           className="hero-background"
           style={{
             transform: `translateY(${scrollY * 0.5}px)`
@@ -126,9 +161,9 @@ function App() {
             <span className="hero-subtitle">MULTIESPACIO</span>
           </h1> */}
 
-<div className="nav-logo-fortaleza">
-  <img src="/public/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png"/>
-</div>
+          <div className="nav-logo-fortaleza">
+            <img src="/public/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png" />
+          </div>
 
           <p className="hero-description">
             Tu espacio de transformación y bienestar
@@ -149,13 +184,13 @@ function App() {
           <div className="about-content">
             <div className="about-text" data-aos="fade-right">
               <p>
-                Somos un gimnasio comprometido con tu bienestar integral. 
-                Ofrecemos un ambiente profesional y motivador donde podrás 
+                Somos un gimnasio comprometido con tu bienestar integral.
+                Ofrecemos un ambiente profesional y motivador donde podrás
                 alcanzar tus objetivos de fitness y salud.
               </p>
               <p>
-                Con años de experiencia en el sector, nos especializamos en 
-                brindar entrenamientos personalizados y un acompañamiento 
+                Con años de experiencia en el sector, nos especializamos en
+                brindar entrenamientos personalizados y un acompañamiento
                 profesional en cada paso de tu transformación.
               </p>
             </div>
@@ -188,7 +223,7 @@ function App() {
             <div className="location-info" data-aos="fade-right">
               <h3>Ubicación Central</h3>
               <p>
-                Estamos estratégicamente ubicados en el corazón de la ciudad, 
+                Estamos estratégicamente ubicados en el corazón de la ciudad,
                 con fácil acceso en transporte público y amplio estacionamiento.
               </p>
               <div className="location-details">
@@ -208,21 +243,21 @@ function App() {
             </div>
             <div className="location-map" data-aos="fade-left">
               <iframe
-    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d704.9256799651057!2d-55.90002176572633!3d-27.365488563350787!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9457be311db67cf7%3A0x557af3e84aa4ced2!2sSan%20Mart%C3%ADn%202381%2C%20N3300%20Posadas%2C%20Misiones!5e0!3m2!1ses-419!2sar!4v1753231122447!5m2!1ses-419!2sar"
-    width="100%"
-    height="450"
-    style={{ border: 0, borderRadius: '8px' }}
-    allowFullScreen=""
-    loading="lazy"
-    referrerPolicy="no-referrer-when-downgrade"
-  ></iframe>
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d704.9256799651057!2d-55.90002176572633!3d-27.365488563350787!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9457be311db67cf7%3A0x557af3e84aa4ced2!2sSan%20Mart%C3%ADn%202381%2C%20N3300%20Posadas%2C%20Misiones!5e0!3m2!1ses-419!2sar!4v1753231122447!5m2!1ses-419!2sar"
+                width="100%"
+                height="450"
+                style={{ border: 0, borderRadius: '8px' }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
             </div>
           </div>
         </div>
       </section>
 
       {/* Services Section */}
-            {/* Services Section */}
+      {/* Services Section */}
       <section id="servicios" className="section">
         <div className="container">
           <div className="section-header" data-aos="fade-up">

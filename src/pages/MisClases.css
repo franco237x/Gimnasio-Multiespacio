@@ -326,6 +326,10 @@
     .semana-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 768px) {
@@ -344,5 +348,40 @@
 
     .semana-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .notification {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .semana-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .clase-card {
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .clase-hora {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .header-content h2 {
+        font-size: 1.4rem;
+    }
+
+    .view-toggle {
+        width: 100%;
+        justify-content: center;
     }
 }

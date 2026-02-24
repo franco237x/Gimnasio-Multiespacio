@@ -299,6 +299,40 @@
         align-items: flex-start;
         gap: 12px;
     }
+
+    .notification {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content h2 {
+        font-size: 1.4rem;
+    }
+
+    .card-body {
+        padding: 16px;
+    }
+
+    .card-header {
+        padding: 14px 16px;
+    }
+
+    .btn-save {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions button {
+        width: 100%;
+    }
 }
 
 /* REACT JSX COMPATIBILITY STYLES */

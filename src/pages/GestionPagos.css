@@ -500,13 +500,27 @@
 }
 
 /* Responsive */
+@media (max-width: 992px) {
+  .tabs-container {
+    width: 100%;
+  }
+
+  .tab-btn,
+  .tab {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 768px) {
   .tabs-container {
     width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .tab-btn {
+  .tab-btn,
+  .tab {
     padding: 10px 16px;
     font-size: 0.85rem;
     white-space: nowrap;
@@ -515,6 +529,13 @@
   .data-table {
     display: block;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .payments-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .cuotas-cards {
@@ -532,6 +553,51 @@
 
   .modal-actions button {
     width: 100%;
+  }
+
+  .notification {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    text-align: center;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagos-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .pagos-header h2 i {
+    font-size: 1.5rem;
+  }
+
+  .tab-btn i,
+  .tab i {
+    display: none;
+  }
+
+  .alumnos-table-container,
+  .historial-section,
+  .tab-content {
+    padding: 16px;
+  }
+
+  .modal-content {
+    margin: 10px;
+    width: calc(100% - 20px);
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    font-size: 0.9rem;
+    padding: 10px 16px;
   }
 }
 

@@ -12,6 +12,7 @@ const DashboardPage = () => {
   const { toasts, addToast, removeToast } = useToast();
   const { isAdmin, isRecepcionista, isProfesor, isAlumno, userRoleId } = usePermissions();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -26,7 +27,16 @@ const DashboardPage = () => {
   };
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    // En móvil (≤768px) usar el estado de mobile
+    if (window.innerWidth <= 768) {
+      setMobileSidebarOpen(!mobileSidebarOpen);
+    } else {
+      setSidebarOpen(!sidebarOpen);
+    }
+  };
+
+  const closeMobileSidebar = () => {
+    setMobileSidebarOpen(false);
   };
 
   // Menú según el rol del usuario
@@ -76,7 +86,7 @@ const DashboardPage = () => {
   };
 
   const menuItems = getMenuItems();
-  
+
   const isActiveRoute = (path, exact = false) => {
     if (exact) {
       return location.pathname === path;
@@ -108,16 +118,16 @@ const DashboardPage = () => {
   return (
     <div className="dashboard-layout">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      
-      {/* Sidebar */}
-      <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+
+      {/* Sidebar: en desktop controla 'open'/'closed'; en móvil usa 'mobile-open' */}
+      <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : 'closed'} ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img 
-              src="/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png" 
-              alt="Fortaleza Logo" 
+            <img
+              src="/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png"
+              alt="Fortaleza Logo"
             />
-            {sidebarOpen && <span>FORTALEZA</span>}
+            {(sidebarOpen || mobileSidebarOpen) && <span>FORTALEZA</span>}
           </div>
           <button className="sidebar-toggle" onClick={toggleSidebar}>
             <i className={`bx ${sidebarOpen ? 'bx-chevron-left' : 'bx-chevron-right'}`}></i>
@@ -129,26 +139,46 @@ const DashboardPage = () => {
             <button
               key={index}
               className={`nav-item ${isActiveRoute(item.path, item.exact) ? 'active' : ''}`}
-              onClick={() => navigate(item.path)}
-              title={!sidebarOpen ? item.label : ''}
+              onClick={() => {
+                navigate(item.path);
+                closeMobileSidebar();
+              }}
+              title={(!sidebarOpen && !mobileSidebarOpen) ? item.label : ''}
             >
               <i className={`bx ${item.icon}`}></i>
-              {sidebarOpen && <span>{item.label}</span>}
+              {(sidebarOpen || mobileSidebarOpen) && <span>{item.label}</span>}
             </button>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-item" onClick={goHome} title={!sidebarOpen ? 'Volver al Inicio' : ''}>
+          <button
+            className="nav-item"
+            onClick={() => { goHome(); closeMobileSidebar(); }}
+            title={(!sidebarOpen && !mobileSidebarOpen) ? 'Volver al Inicio' : ''}
+          >
             <i className='bx bx-arrow-back'></i>
-            {sidebarOpen && <span>Volver al Inicio</span>}
+            {(sidebarOpen || mobileSidebarOpen) && <span>Volver al Inicio</span>}
           </button>
-          <button className="nav-item logout" onClick={handleLogout} title={!sidebarOpen ? 'Cerrar Sesión' : ''}>
+          <button
+            className="nav-item logout"
+            onClick={() => { handleLogout(); closeMobileSidebar(); }}
+            title={(!sidebarOpen && !mobileSidebarOpen) ? 'Cerrar Sesión' : ''}
+          >
             <i className='bx bx-log-out'></i>
-            {sidebarOpen && <span>Cerrar Sesión</span>}
+            {(sidebarOpen || mobileSidebarOpen) && <span>Cerrar Sesión</span>}
           </button>
         </div>
       </aside>
+
+      {/* Overlay para móvil */}
+      {mobileSidebarOpen && (
+        <div
+          className="sidebar-overlay active"
+          onClick={closeMobileSidebar}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Main Content */}
       <main className={`dashboard-main ${sidebarOpen ? '' : 'expanded'}`}>
@@ -304,10 +334,10 @@ const DashboardHome = ({ user, roleId }) => {
       </div>
       <div className="quick-actions">
         {actions.map((action, index) => (
-          <button 
-            key={index} 
+          <button
+            key={index}
             className="action-card"
-            onClick={() => {}}
+            onClick={() => { }}
             style={{ '--action-color': action.color }}
           >
             <div className="action-icon">

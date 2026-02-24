@@ -162,3 +162,39 @@
   color: #bbf7d0;
   border: 1px solid rgba(34, 197, 94, 0.35);
 }
+
+/* Responsive */
+@media (max-width: 560px) {
+  .auth-wrapper {
+    padding: 1rem;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+
+  .auth-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+
+  .auth-title {
+    font-size: 1.5rem;
+  }
+
+  .auth-input {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .auth-button {
+    padding: 0.8rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-card {
+    padding: 1.25rem;
+  }
+
+  .auth-title {
+    font-size: 1.3rem;
+  }
+}

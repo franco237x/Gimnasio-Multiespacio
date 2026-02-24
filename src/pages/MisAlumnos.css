@@ -286,4 +286,37 @@
     .alumnos-grid {
         grid-template-columns: 1fr;
     }
+
+    .notification {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content h2 {
+        font-size: 1.4rem;
+    }
+
+    .stats-row {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+        padding: 14px 10px;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+    }
+
+    .alumno-card {
+        padding: 16px;
+    }
 }

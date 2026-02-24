@@ -399,8 +399,18 @@
         width: 100%;
     }
 
+    .export-buttons {
+        flex-wrap: wrap;
+    }
+
     .stats-overview {
         grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
 
     .income-item {
@@ -410,6 +420,46 @@
     .income-info {
         width: 100%;
         margin-bottom: 8px;
+    }
+
+    .subscription-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .day-chart {
+        overflow-x: auto;
+        height: auto;
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-value {
+        font-size: 1.6rem;
+    }
+
+    .notification {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        text-align: center;
+    }
+
+    .header-content h2 {
+        font-size: 1.4rem;
+    }
+
+    .card-body {
+        padding: 16px;
     }
 }
 
