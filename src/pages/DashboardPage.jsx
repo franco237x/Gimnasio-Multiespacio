@@ -258,7 +258,7 @@ const DashboardHome = ({ user, roleId }) => {
       return [
         { icon: 'bx-group', value: stats?.activeStudents ?? '—', label: 'Alumnos Activos', color: '#dc2626' },
         { icon: 'bx-calendar-event', value: stats?.totalClasses ?? '—', label: 'Clases Activas', color: '#0891b2' },
-        { icon: 'bx-dollar', value: stats?.income ? `$${Number(stats.income).toLocaleString('es-AR')}` : '—', label: 'Ingresos Mes', color: '#16a34a' },
+        { icon: 'bx-dollar', value: stats?.income !== undefined && stats?.income !== null ? `$${Number(stats.income).toLocaleString('es-AR')}` : '—', label: 'Ingresos Mes', color: '#16a34a' },
         { icon: 'bx-calendar', value: stats?.pendingReservations ?? '—', label: 'Reservas Pendientes', color: '#7c3aed' }
       ];
     }
@@ -267,7 +267,7 @@ const DashboardHome = ({ user, roleId }) => {
         { icon: 'bx-money', value: stats?.totalPayments ?? '—', label: 'Pagos Mes', color: '#16a34a' },
         { icon: 'bx-calendar', value: stats?.pendingReservations ?? '—', label: 'Reservas Pendientes', color: '#0891b2' },
         { icon: 'bx-group', value: stats?.activeStudents ?? '—', label: 'Alumnos Activos', color: '#7c3aed' },
-        { icon: 'bx-dollar', value: stats?.income ? `$${Number(stats.income).toLocaleString('es-AR')}` : '—', label: 'Ingresos Mes', color: '#dc2626' }
+        { icon: 'bx-dollar', value: stats?.income !== undefined && stats?.income !== null ? `$${Number(stats.income).toLocaleString('es-AR')}` : '—', label: 'Ingresos Mes', color: '#dc2626' }
       ];
     }
     if (isProfesor()) {
