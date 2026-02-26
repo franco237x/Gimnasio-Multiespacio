@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './Toast.css';
 
 export const Toast = ({ message, type = 'success', duration = 3000, onClose }) => {
@@ -47,9 +48,9 @@ export const Toast = ({ message, type = 'success', duration = 3000, onClose }) =
   );
 };
 
-// Toast Container para manejar múltiples toasts
+// Toast Container — rendered via Portal to avoid modal backdrop-filter blur
 export const ToastContainer = ({ toasts, removeToast }) => {
-  return (
+  return createPortal(
     <div className="toast-container">
       {toasts.map((toast) => (
         <Toast
@@ -60,7 +61,8 @@ export const ToastContainer = ({ toasts, removeToast }) => {
           onClose={() => removeToast(toast.id)}
         />
       ))}
-    </div>
+    </div>,
+    document.body
   );
 };
 

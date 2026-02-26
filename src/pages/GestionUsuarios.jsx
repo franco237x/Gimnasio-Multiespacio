@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { usersAPI } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Modal from '../components/ui/Modal';
+import { ToastContainer, useToast } from '../components/ui/Toast';
 import './GestionUsuarios.css';
 
 const GestionUsuarios = () => {
@@ -10,7 +12,7 @@ const GestionUsuarios = () => {
     const [filterRole, setFilterRole] = useState('todos');
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const { toasts, addToast, removeToast } = useToast();
     const [usuarios, setUsuarios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,8 +58,7 @@ const GestionUsuarios = () => {
     };
 
     const showNotification = (message, type) => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+        addToast(message, type);
     };
 
     const getRoleId = (roleName) => {
@@ -184,11 +185,7 @@ const GestionUsuarios = () => {
 
     return (
         <div className="gestion-usuarios">
-            {notification.show && (
-                <div className={`notification notification-${notification.type}`}>
-                    {notification.message}
-                </div>
-            )}
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
 
             <div className="page-header">
                 <h1><i className='bx bxs-user-detail'></i> Gestión de Usuarios</h1>
@@ -291,76 +288,71 @@ const GestionUsuarios = () => {
             )}
 
             {/* Modal para crear/editar usuario */}
-            {showModal && (
-                <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
-                            <button className="close-btn" onClick={handleCloseModal}>
-                                <i className='bx bx-x'></i>
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Nombre Completo</label>
-                                <input
-                                    type="text"
-                                    value={formData.nombre}
-                                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Email</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Teléfono</label>
-                                <input
-                                    type="text"
-                                    value={formData.telefono}
-                                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Rol</label>
-                                <select
-                                    value={formData.rol}
-                                    onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
-                                >
-                                    <option value="alumno">Alumno</option>
-                                    <option value="profesor">Profesor</option>
-                                    <option value="recepcionista">Recepcionista</option>
-                                    <option value="administrador">Administrador</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Contraseña {editingUser && <span style={{ fontSize: '0.8rem', color: '#666' }}>(Opcional. Dejar en blanco para no modificar)</span>}</label>
-                                <input
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    required={!editingUser}
-                                    minLength="6"
-                                />
-                            </div>
-                            <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                                    {isSubmitting ? 'Guardando...' : (editingUser ? 'Guardar Cambios' : 'Crear Usuario')}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={showModal}
+                onClose={handleCloseModal}
+                title={editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
+                size="md"
+            >
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Nombre Completo</label>
+                        <input
+                            type="text"
+                            value={formData.nombre}
+                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                            required
+                        />
                     </div>
-                </div>
-            )}
+                    <div className="form-group">
+                        <label>Email</label>
+                        <input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Teléfono</label>
+                        <input
+                            type="text"
+                            value={formData.telefono}
+                            onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Rol</label>
+                        <select
+                            value={formData.rol}
+                            onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                        >
+                            <option value="alumno">Alumno</option>
+                            <option value="profesor">Profesor</option>
+                            <option value="recepcionista">Recepcionista</option>
+                            <option value="administrador">Administrador</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label>Contraseña {editingUser && <span style={{ fontSize: '0.8rem', color: '#666' }}>(Opcional. Dejar en blanco para no modificar)</span>}</label>
+                        <input
+                            type="password"
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            required={!editingUser}
+                            minLength="6"
+                        />
+                    </div>
+                    <div className="form-actions">
+                        <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>
+                            Cancelar
+                        </button>
+                        <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? 'Guardando...' : (editingUser ? 'Guardar Cambios' : 'Crear Usuario')}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
 
             <ConfirmDialog
                 isOpen={confirmDelete.show}

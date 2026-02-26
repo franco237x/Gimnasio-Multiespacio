@@ -46,7 +46,7 @@ const RegisterPage = () => {
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
     if (/\d/.test(password)) score++;
     if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
-    
+
     const strengthLevels = [
       { text: '', color: '' },
       { text: 'Muy débil', color: '#ef4444' },
@@ -55,7 +55,7 @@ const RegisterPage = () => {
       { text: 'Fuerte', color: '#22c55e' },
       { text: 'Muy fuerte', color: '#16a34a' }
     ];
-    
+
     setPasswordStrength({ score, ...strengthLevels[score] });
   };
 
@@ -110,7 +110,7 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -125,11 +125,13 @@ const RegisterPage = () => {
     });
 
     if (result.success) {
-      setSuccessMessage('Cuenta creada. Revisa tu correo para validar tu cuenta.');
+      // Redirect to verify-email with email pre-filled
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email.trim().toLowerCase())}`);
+      return;
     } else {
       setErrors({ submit: result.error });
     }
-    
+
     setIsLoading(false);
   };
 
@@ -146,9 +148,9 @@ const RegisterPage = () => {
       <div className="register-container">
         <div className="register-left">
           <div className="brand-section">
-            <img 
-              src="/public/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png" 
-              alt="Fortaleza Logo" 
+            <img
+              src="/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png"
+              alt="Fortaleza Logo"
               className="brand-logo"
             />
             <h1>FORTALEZA</h1>
@@ -174,13 +176,13 @@ const RegisterPage = () => {
             <div className="floating-icon"><i className='bx bx-bolt'></i></div>
           </div>
         </div>
-        
+
         <div className="register-right">
           <div className="register-form-container">
             <button className="back-button" onClick={goHome}>
               <i className='bx bx-arrow-back'></i> Volver al inicio
             </button>
-            
+
             <div className="register-header">
               <h2>Crear Cuenta</h2>
               <p>Completa tus datos para comenzar tu transformación</p>
@@ -292,8 +294,8 @@ const RegisterPage = () => {
                 {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className={`register-button ${isLoading ? 'loading' : ''}`}
                 disabled={isLoading}
               >
@@ -310,7 +312,7 @@ const RegisterPage = () => {
             </form>
 
             <div className="login-section">
-              <p>¿Ya tienes una cuenta? 
+              <p>¿Ya tienes una cuenta?
                 <button onClick={goToLogin} className="login-link">
                   Inicia sesión aquí
                 </button>

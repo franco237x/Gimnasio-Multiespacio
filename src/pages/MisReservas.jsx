@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import Modal from '../components/ui/Modal';
+import { ToastContainer, useToast } from '../components/ui/Toast';
 import './MisReservas.css';
 
 const MisReservas = () => {
     const [showModal, setShowModal] = useState(false);
-    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const { toasts, addToast, removeToast } = useToast();
 
     const [reservas] = useState([
         { id: 1, clase: 'Yoga', profesor: 'Laura Fernández', fecha: '2024-12-12', hora: '08:00', estado: 'confirmada' },
@@ -21,8 +23,7 @@ const MisReservas = () => {
     ];
 
     const showNotification = (message, type) => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+        addToast(message, type);
     };
 
     const handleReservar = (clase) => {
@@ -36,11 +37,7 @@ const MisReservas = () => {
 
     return (
         <div className="mis-reservas">
-            {notification.show && (
-                <div className={`notification notification-${notification.type}`}>
-                    {notification.message}
-                </div>
-            )}
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
 
             <div className="page-header">
                 <div className="header-content">
@@ -104,50 +101,43 @@ const MisReservas = () => {
             </div>
 
             {/* Modal Nueva Reserva */}
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3><i className='bx bx-calendar-plus'></i> Reservar Clase</h3>
-                            <button className="modal-close" onClick={() => setShowModal(false)}>
-                                <i className='bx bx-x'></i>
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <p className="modal-subtitle">Selecciona una clase para reservar:</p>
-                            <div className="clases-lista">
-                                {clasesDisponibles.map((clase) => (
-                                    <div
-                                        key={clase.id}
-                                        className={`clase-item ${clase.cuposDisponibles === 0 ? 'sin-cupos' : ''}`}
-                                    >
-                                        <div className="clase-info">
-                                            <h4>{clase.nombre}</h4>
-                                            <p><i className='bx bx-user'></i> {clase.profesor}</p>
-                                            <p><i className='bx bx-calendar'></i> {clase.dia} {clase.hora}</p>
-                                        </div>
-                                        <div className="clase-cupos">
-                                            {clase.cuposDisponibles > 0 ? (
-                                                <>
-                                                    <span className="cupos-count">{clase.cuposDisponibles} cupos</span>
-                                                    <button
-                                                        className="btn-reservar"
-                                                        onClick={() => handleReservar(clase)}
-                                                    >
-                                                        Reservar
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <span className="sin-cupos-badge">Sin cupos</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+            <Modal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title="Reservar Clase"
+                size="md"
+            >
+                <p className="modal-subtitle">Selecciona una clase para reservar:</p>
+                <div className="clases-lista">
+                    {clasesDisponibles.map((clase) => (
+                        <div
+                            key={clase.id}
+                            className={`clase-item ${clase.cuposDisponibles === 0 ? 'sin-cupos' : ''}`}
+                        >
+                            <div className="clase-info">
+                                <h4>{clase.nombre}</h4>
+                                <p><i className='bx bx-user'></i> {clase.profesor}</p>
+                                <p><i className='bx bx-calendar'></i> {clase.dia} {clase.hora}</p>
+                            </div>
+                            <div className="clase-cupos">
+                                {clase.cuposDisponibles > 0 ? (
+                                    <>
+                                        <span className="cupos-count">{clase.cuposDisponibles} cupos</span>
+                                        <button
+                                            className="btn-reservar"
+                                            onClick={() => handleReservar(clase)}
+                                        >
+                                            Reservar
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span className="sin-cupos-badge">Sin cupos</span>
+                                )}
                             </div>
                         </div>
-                    </div>
+                    ))}
                 </div>
-            )}
+            </Modal>
         </div>
     );
 };

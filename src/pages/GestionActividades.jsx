@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { activitiesAPI, reservationsAPI } from '../services/apiService';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Modal from '../components/ui/Modal';
+import { ToastContainer, useToast } from '../components/ui/Toast';
 import './GestionActividades.css';
 
 const GestionActividades = () => {
     const [activeTab, setActiveTab] = useState('horario');
     const [showModal, setShowModal] = useState(false);
     const [selectedActivity, setSelectedActivity] = useState(null);
-    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const { toasts, addToast, removeToast } = useToast();
     const [actividades, setActividades] = useState([]);
     const [profesores, setProfesores] = useState([]);
     const [espacios, setEspacios] = useState([]);
@@ -51,8 +53,7 @@ const GestionActividades = () => {
     };
 
     const showNotification = (message, type) => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+        addToast(message, type);
     };
 
     const handleOpenModal = (activity = null) => {
@@ -155,11 +156,7 @@ const GestionActividades = () => {
 
     return (
         <div className="gestion-actividades">
-            {notification.show && (
-                <div className={`notification notification-${notification.type}`}>
-                    {notification.message}
-                </div>
-            )}
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
 
             <div className="page-header">
                 <h1><i className='bx bx-calendar'></i> Gestión de Actividades</h1>
@@ -262,112 +259,107 @@ const GestionActividades = () => {
             )}
 
             {/* Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{selectedActivity ? 'Editar Actividad' : 'Nueva Actividad'}</h2>
-                            <button className="close-btn" onClick={handleCloseModal}>
-                                <i className='bx bx-x'></i>
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Nombre de la Actividad</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Profesor</label>
-                                    <select
-                                        value={formData.teacher_id}
-                                        onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        {profesores.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Sala</label>
-                                    <select
-                                        value={formData.space_id}
-                                        onChange={(e) => setFormData({ ...formData, space_id: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        {espacios.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group" style={{ flex: 2 }}>
-                                    <label>Días de la semana</label>
-                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
-                                        {diasSemana.map(d => (
-                                            <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.day_of_week.includes(d)}
-                                                    onChange={(e) => {
-                                                        const newDays = e.target.checked
-                                                            ? [...formData.day_of_week, d]
-                                                            : formData.day_of_week.filter(day => day !== d);
-                                                        setFormData({ ...formData, day_of_week: newDays });
-                                                    }}
-                                                />
-                                                {d.charAt(0).toUpperCase() + d.slice(1)}
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label>Capacidad</label>
-                                    <input
-                                        type="number"
-                                        value={formData.capacity}
-                                        onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                                        min="1"
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Hora Inicio</label>
-                                    <input
-                                        type="time"
-                                        value={formData.start_time}
-                                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Hora Fin</label>
-                                    <input
-                                        type="time"
-                                        value={formData.end_time}
-                                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>Cancelar</button>
-                                <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                                    {isSubmitting ? 'Guardando...' : (selectedActivity ? 'Guardar Cambios' : 'Crear Actividad')}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={showModal}
+                onClose={handleCloseModal}
+                title={selectedActivity ? 'Editar Actividad' : 'Nueva Actividad'}
+                size="lg"
+            >
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Nombre de la Actividad</label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                        />
                     </div>
-                </div>
-            )}
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Profesor</label>
+                            <select
+                                value={formData.teacher_id}
+                                onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Seleccionar...</option>
+                                {profesores.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Sala</label>
+                            <select
+                                value={formData.space_id}
+                                onChange={(e) => setFormData({ ...formData, space_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Seleccionar...</option>
+                                {espacios.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="form-row">
+                        <div className="form-group" style={{ flex: 2 }}>
+                            <label>Días de la semana</label>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
+                                {diasSemana.map(d => (
+                                    <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.day_of_week.includes(d)}
+                                            onChange={(e) => {
+                                                const newDays = e.target.checked
+                                                    ? [...formData.day_of_week, d]
+                                                    : formData.day_of_week.filter(day => day !== d);
+                                                setFormData({ ...formData, day_of_week: newDays });
+                                            }}
+                                        />
+                                        {d.charAt(0).toUpperCase() + d.slice(1)}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                            <label>Capacidad</label>
+                            <input
+                                type="number"
+                                value={formData.capacity}
+                                onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+                                min="1"
+                            />
+                        </div>
+                    </div>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Hora Inicio</label>
+                            <input
+                                type="time"
+                                value={formData.start_time}
+                                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Hora Fin</label>
+                            <input
+                                type="time"
+                                value={formData.end_time}
+                                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <div className="form-actions">
+                        <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>Cancelar</button>
+                        <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? 'Guardando...' : (selectedActivity ? 'Guardar Cambios' : 'Crear Actividad')}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
 
             <ConfirmDialog
                 isOpen={confirmDelete.show}

@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { reservationsAPI } from '../services/apiService';
+import { reservationsAPI, configAPI } from '../services/apiService';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Modal from '../components/ui/Modal';
+import { ToastContainer, useToast } from '../components/ui/Toast';
 import './AlquileresReservas.css';
 
 const AlquileresReservas = () => {
     const [activeTab, setActiveTab] = useState('reservas');
     const [showModal, setShowModal] = useState(false);
-    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const { toasts, addToast, removeToast } = useToast();
     const [reservas, setReservas] = useState([]);
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [gymHours, setGymHours] = useState({ opening_time: '06:00', closing_time: '23:00' });
     const [confirmCancel, setConfirmCancel] = useState({ show: false, id: null });
     const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
     const [showSpaceModal, setShowSpaceModal] = useState(false);
@@ -43,13 +46,20 @@ const AlquileresReservas = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [resRes, spacesRes] = await Promise.all([
+            const [resRes, spacesRes, configRes] = await Promise.all([
                 reservationsAPI.getUpcoming(30),
-                reservationsAPI.getSpaces()
+                reservationsAPI.getSpaces(),
+                configAPI.getAll()
             ]);
 
             if (resRes.success) setReservas(resRes.data);
             if (spacesRes.success) setEspacios(spacesRes.data);
+            if (configRes.success && configRes.data) {
+                setGymHours({
+                    opening_time: configRes.data.opening_time || '06:00',
+                    closing_time: configRes.data.closing_time || '23:00'
+                });
+            }
         } catch (error) {
             showNotification('❌ Error al cargar datos', 'error');
         } finally {
@@ -58,8 +68,7 @@ const AlquileresReservas = () => {
     };
 
     const showNotification = (message, type) => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+        addToast(message, type);
     };
 
     const handleOpenModal = () => {
@@ -115,15 +124,32 @@ const AlquileresReservas = () => {
         const space = espacios.find(s => s.id === parseInt(formData.space_id));
         if (!space || !formData.start_time || !formData.end_time) return 0;
 
-        const start = parseInt(formData.start_time.split(':')[0]);
-        const end = parseInt(formData.end_time.split(':')[0]);
-        const hours = end - start;
+        const [startH, startM] = formData.start_time.split(':').map(Number);
+        const [endH, endM] = formData.end_time.split(':').map(Number);
+        const totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
 
-        return hours * (space.price_per_hour || 0);
+        if (totalMinutes <= 0) return 0;
+
+        const hours = totalMinutes / 60;
+        return Math.round(hours * (space.price_per_hour || 0));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validate business hours from gym settings
+        if (formData.start_time < gymHours.opening_time || formData.start_time > gymHours.closing_time ||
+            formData.end_time < gymHours.opening_time || formData.end_time > gymHours.closing_time) {
+            showNotification(`❌ El horario debe estar entre las ${gymHours.opening_time} y las ${gymHours.closing_time}`, 'error');
+            return;
+        }
+
+        // Validate end > start
+        if (formData.end_time <= formData.start_time) {
+            showNotification('❌ La hora de fin debe ser posterior a la hora de inicio', 'error');
+            return;
+        }
+
         try {
             const total = calculateTotal();
             await reservationsAPI.create({
@@ -233,11 +259,7 @@ const AlquileresReservas = () => {
 
     return (
         <div className="alquileres-reservas">
-            {notification.show && (
-                <div className={`notification notification-${notification.type}`}>
-                    {notification.message}
-                </div>
-            )}
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
 
             <div className="page-header">
                 <h1><i className='bx bx-calendar-check'></i> Alquileres y Reservas</h1>
@@ -364,104 +386,103 @@ const AlquileresReservas = () => {
                 </div>
             )}
 
-            {/* Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>Nueva Reserva</h2>
-                            <button className="close-btn" onClick={handleCloseModal}>
-                                <i className='bx bx-x'></i>
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Espacio</label>
-                                <select
-                                    value={formData.space_id}
-                                    onChange={(e) => setFormData({ ...formData, space_id: e.target.value })}
-                                    required
-                                >
-                                    {espacios.filter(e => e.status === 'available').map(e => (
-                                        <option key={e.id} value={e.id}>{e.name} - ${e.price_per_hour}/hora</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Nombre del Cliente</label>
-                                <input
-                                    type="text"
-                                    value={formData.client_name}
-                                    onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Teléfono</label>
-                                    <input
-                                        type="text"
-                                        value={formData.client_phone}
-                                        onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Email</label>
-                                    <input
-                                        type="email"
-                                        value={formData.client_email}
-                                        onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                <label>Fecha</label>
-                                <input
-                                    type="date"
-                                    value={formData.reservation_date}
-                                    onChange={(e) => setFormData({ ...formData, reservation_date: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Hora Inicio</label>
-                                    <input
-                                        type="time"
-                                        value={formData.start_time}
-                                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Hora Fin</label>
-                                    <input
-                                        type="time"
-                                        value={formData.end_time}
-                                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                <label>Notas</label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                    rows="2"
-                                />
-                            </div>
-                            <div className="reservation-total">
-                                <strong>Total Estimado: ${calculateTotal().toLocaleString('es-AR')}</strong>
-                            </div>
-                            <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
-                                <button type="submit" className="btn-primary">Crear Reserva</button>
-                            </div>
-                        </form>
+            {/* Modal Reserva */}
+            <Modal
+                isOpen={showModal}
+                onClose={handleCloseModal}
+                title="Nueva Reserva"
+                size="md"
+            >
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Espacio</label>
+                        <select
+                            value={formData.space_id}
+                            onChange={(e) => setFormData({ ...formData, space_id: e.target.value })}
+                            required
+                        >
+                            {espacios.filter(e => e.status === 'available').map(e => (
+                                <option key={e.id} value={e.id}>{e.name} - ${e.price_per_hour}/hora</option>
+                            ))}
+                        </select>
                     </div>
-                </div>
-            )}
+                    <div className="form-group">
+                        <label>Nombre del Cliente</label>
+                        <input
+                            type="text"
+                            value={formData.client_name}
+                            onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Teléfono</label>
+                            <input
+                                type="text"
+                                value={formData.client_phone}
+                                onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                value={formData.client_email}
+                                onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label>Fecha</label>
+                        <input
+                            type="date"
+                            value={formData.reservation_date}
+                            onChange={(e) => setFormData({ ...formData, reservation_date: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Hora Inicio (Abre: {gymHours.opening_time})</label>
+                            <input
+                                type="time"
+                                min={gymHours.opening_time}
+                                max={gymHours.closing_time}
+                                value={formData.start_time}
+                                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Hora Fin (Cierra: {gymHours.closing_time})</label>
+                            <input
+                                type="time"
+                                min={gymHours.opening_time}
+                                max={gymHours.closing_time}
+                                value={formData.end_time}
+                                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label>Notas</label>
+                        <textarea
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            rows="2"
+                        />
+                    </div>
+                    <div className="reservation-total">
+                        <strong>Total Estimado: ${calculateTotal().toLocaleString('es-AR')}</strong>
+                    </div>
+                    <div className="form-actions">
+                        <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
+                        <button type="submit" className="btn-primary">Crear Reserva</button>
+                    </div>
+                </form>
+            </Modal>
 
             <ConfirmDialog
                 isOpen={confirmCancel.show}
@@ -494,92 +515,87 @@ const AlquileresReservas = () => {
             />
 
             {/* Space Modal */}
-            {showSpaceModal && (
-                <div className="modal-overlay" onClick={handleCloseSpaceModal}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{editingSpace ? 'Editar Espacio' : 'Nuevo Espacio'}</h2>
-                            <button className="close-btn" onClick={handleCloseSpaceModal}>
-                                <i className='bx bx-x'></i>
-                            </button>
-                        </div>
-                        <form onSubmit={handleSpaceSubmit}>
-                            <div className="form-group">
-                                <label>Nombre del Espacio</label>
-                                <input
-                                    type="text"
-                                    value={spaceFormData.name}
-                                    onChange={(e) => setSpaceFormData({ ...spaceFormData, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Tipo</label>
-                                    <select
-                                        value={spaceFormData.type}
-                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, type: e.target.value })}
-                                        required
-                                    >
-                                        <option value="multiusos">Multiusos</option>
-                                        <option value="deportivo">Deportivo</option>
-                                        <option value="clases">Clases</option>
-                                        <option value="eventos">Eventos</option>
-                                        <option value="aire_libre">Aire Libre</option>
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Estado</label>
-                                    <select
-                                        value={spaceFormData.status}
-                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, status: e.target.value })}
-                                        required
-                                    >
-                                        <option value="available">Disponible</option>
-                                        <option value="occupied">Ocupado</option>
-                                        <option value="maintenance">En Mantenimiento</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Capacidad (personas)</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={spaceFormData.capacity}
-                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, capacity: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Precio por Hora ($)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={spaceFormData.price_per_hour}
-                                        onChange={(e) => setSpaceFormData({ ...spaceFormData, price_per_hour: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                <label>Descripción (Opcional)</label>
-                                <textarea
-                                    value={spaceFormData.description}
-                                    onChange={(e) => setSpaceFormData({ ...spaceFormData, description: e.target.value })}
-                                    rows="2"
-                                />
-                            </div>
-                            <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseSpaceModal}>Cancelar</button>
-                                <button type="submit" className="btn-primary">{editingSpace ? 'Guardar Cambios' : 'Crear Espacio'}</button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={showSpaceModal}
+                onClose={handleCloseSpaceModal}
+                title={editingSpace ? 'Editar Espacio' : 'Nuevo Espacio'}
+                size="md"
+            >
+                <form onSubmit={handleSpaceSubmit}>
+                    <div className="form-group">
+                        <label>Nombre del Espacio</label>
+                        <input
+                            type="text"
+                            value={spaceFormData.name}
+                            onChange={(e) => setSpaceFormData({ ...spaceFormData, name: e.target.value })}
+                            required
+                        />
                     </div>
-                </div>
-            )}
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Tipo</label>
+                            <select
+                                value={spaceFormData.type}
+                                onChange={(e) => setSpaceFormData({ ...spaceFormData, type: e.target.value })}
+                                required
+                            >
+                                <option value="multiusos">Multiusos</option>
+                                <option value="deportivo">Deportivo</option>
+                                <option value="clases">Clases</option>
+                                <option value="eventos">Eventos</option>
+                                <option value="aire_libre">Aire Libre</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Estado</label>
+                            <select
+                                value={spaceFormData.status}
+                                onChange={(e) => setSpaceFormData({ ...spaceFormData, status: e.target.value })}
+                                required
+                            >
+                                <option value="available">Disponible</option>
+                                <option value="occupied">Ocupado</option>
+                                <option value="maintenance">En Mantenimiento</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Capacidad (personas)</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={spaceFormData.capacity}
+                                onChange={(e) => setSpaceFormData({ ...spaceFormData, capacity: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Precio por Hora ($)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={spaceFormData.price_per_hour}
+                                onChange={(e) => setSpaceFormData({ ...spaceFormData, price_per_hour: e.target.value })}
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label>Descripción (Opcional)</label>
+                        <textarea
+                            value={spaceFormData.description}
+                            onChange={(e) => setSpaceFormData({ ...spaceFormData, description: e.target.value })}
+                            rows="2"
+                        />
+                    </div>
+                    <div className="form-actions">
+                        <button type="button" className="btn-secondary" onClick={handleCloseSpaceModal}>Cancelar</button>
+                        <button type="submit" className="btn-primary">{editingSpace ? 'Guardar Cambios' : 'Crear Espacio'}</button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

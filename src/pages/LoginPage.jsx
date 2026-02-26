@@ -14,6 +14,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
   const handleInputChange = (e) => {
@@ -36,21 +37,21 @@ const LoginPage = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     // Validar email
     if (!formData.email.trim()) {
       errors.email = 'El correo electrónico es requerido';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Ingresa un correo electrónico válido';
     }
-    
+
     // Validar contraseña
     if (!formData.password) {
       errors.password = 'La contraseña es requerida';
     } else if (formData.password.length < 6) {
       errors.password = 'La contraseña debe tener al menos 6 caracteres';
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -61,25 +62,27 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validar formulario antes de enviar
     if (!validateForm()) {
       return;
     }
-    
+
     setIsLoading(true);
     setError('');
-    
+    setNeedsVerification(false);
+
     const result = await login(formData);
-    
+
     if (result.success) {
       navigate('/dashboard');
     } else if (result.requiresVerification) {
-      setError('Debes validar tu correo. Revisa tu bandeja o solicita un nuevo enlace.');
+      setNeedsVerification(true);
+      setError('Debes validar tu correo antes de iniciar sesión.');
     } else {
       setError(authError || 'Credenciales inválidas. Verifica tu correo y contraseña.');
     }
-    
+
     setIsLoading(false);
   };
 
@@ -100,9 +103,9 @@ const LoginPage = () => {
       <div className="login-container">
         <div className="login-left">
           <div className="brand-section">
-            <img 
-              src="/public/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png" 
-              alt="Fortaleza Logo" 
+            <img
+              src="/20250722_1102_Logo Fortaleza Mejorado_remix_01k0s6th6efftr2w6q7nrv4nvc-Photoroom.png"
+              alt="Fortaleza Logo"
               className="brand-logo"
             />
             <h1>FORTALEZA</h1>
@@ -114,13 +117,13 @@ const LoginPage = () => {
             <div className="floating-icon"><i className='bx bx-bolt'></i></div>
           </div>
         </div>
-        
+
         <div className="login-right">
           <div className="login-form-container">
             <button className="back-button" onClick={goHome}>
               <i className='bx bx-arrow-back'></i> Volver al inicio
             </button>
-            
+
             <div className="login-header">
               <h2>Iniciar Sesión</h2>
               <p>Bienvenido de vuelta, continuemos con tu transformación</p>
@@ -130,6 +133,15 @@ const LoginPage = () => {
               {error && (
                 <div className="error-message">
                   {error}
+                  {needsVerification && (
+                    <button
+                      type="button"
+                      className="verify-inline-link"
+                      onClick={() => navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)}
+                    >
+                      <i className='bx bx-envelope'></i> Ir a verificar mi correo
+                    </button>
+                  )}
                 </div>
               )}
               <div className="input-group">
@@ -183,8 +195,8 @@ const LoginPage = () => {
                 </button>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className={`login-button ${isLoading ? 'loading' : ''}`}
                 disabled={isLoading}
               >
@@ -200,7 +212,7 @@ const LoginPage = () => {
             </form>
 
             <div className="signup-section">
-              <p>¿No tienes una cuenta? 
+              <p>¿No tienes una cuenta?
                 <button onClick={goToRegister} className="signup-link">
                   Regístrate aquí
                 </button>

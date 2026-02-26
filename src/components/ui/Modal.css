@@ -1,0 +1,213 @@
+/* ═══════════════════════════════════════════════════════
+   MODAL — Portal-based reusable modal
+   ═══════════════════════════════════════════════════════ */
+
+.modal-portal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 24px;
+    animation: modalOverlayIn 0.2s ease;
+}
+
+@keyframes modalOverlayIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Content card */
+.modal-portal-content {
+    background: #1a1a1a;
+    border-radius: 20px;
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    animation: modalContentIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Sizes */
+.modal-portal-sm {
+    max-width: 400px;
+}
+
+.modal-portal-md {
+    max-width: 520px;
+}
+
+.modal-portal-lg {
+    max-width: 680px;
+}
+
+@keyframes modalContentIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Header */
+.modal-portal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.modal-portal-header h2 {
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.2px;
+}
+
+.modal-portal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    transition: all 0.2s ease;
+}
+
+.modal-portal-close:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* Body */
+.modal-portal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ── Form styles inside modal ── */
+.modal-portal-body .form-group {
+    margin-bottom: 18px;
+}
+
+.modal-portal-body .form-group label {
+    display: block;
+    color: #9ca3af;
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 7px;
+}
+
+.modal-portal-body .form-group input,
+.modal-portal-body .form-group select,
+.modal-portal-body .form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.modal-portal-body .form-group input:focus,
+.modal-portal-body .form-group select:focus,
+.modal-portal-body .form-group textarea:focus {
+    outline: none;
+    border-color: #10b981;
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.modal-portal-body .form-group select option {
+    background: #1f2937;
+    color: #fff;
+}
+
+.modal-portal-body .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+    .modal-portal-overlay {
+        padding: 12px;
+        align-items: flex-end;
+    }
+
+    .modal-portal-content {
+        max-height: 92vh;
+        border-radius: 16px 16px 0 0;
+        animation: modalSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-portal-header {
+        padding: 16px 18px;
+    }
+
+    .modal-portal-header h2 {
+        font-size: 1.15rem;
+    }
+
+    .modal-portal-body {
+        padding: 18px;
+    }
+
+    .modal-portal-body .form-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .modal-portal-body .form-actions button {
+        width: 100%;
+    }
+}

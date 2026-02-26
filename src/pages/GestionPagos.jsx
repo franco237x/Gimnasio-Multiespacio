@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { paymentsAPI, usersAPI } from '../services/apiService';
+import Modal from '../components/ui/Modal';
+import { ToastContainer, useToast } from '../components/ui/Toast';
 import './GestionPagos.css';
 
 const GestionPagos = () => {
     const [activeTab, setActiveTab] = useState('pago');
     const [showModal, setShowModal] = useState(false);
     const [modalType, setModalType] = useState('pago');
-    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const { toasts, addToast, removeToast } = useToast();
     const [alumnos, setAlumnos] = useState([]);
     const [planes, setPlanes] = useState([]);
     const [historialPagos, setHistorialPagos] = useState([]);
@@ -54,8 +56,7 @@ const GestionPagos = () => {
     };
 
     const showNotification = (message, type) => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+        addToast(message, type);
     };
 
     const handleOpenModal = (type) => {
@@ -158,11 +159,7 @@ const GestionPagos = () => {
 
     return (
         <div className="gestion-pagos">
-            {notification.show && (
-                <div className={`notification notification-${notification.type}`}>
-                    {notification.message}
-                </div>
-            )}
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
 
             <div className="page-header">
                 <h1><i className='bx bx-money'></i> Gestión de Pagos</h1>
@@ -292,138 +289,133 @@ const GestionPagos = () => {
             )}
 
             {/* Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{modalType === 'pago' ? 'Registrar Pago' : 'Nuevo Plan/Cuota'}</h2>
-                            <button className="close-btn" onClick={handleCloseModal}>
-                                <i className='bx bx-x'></i>
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            {modalType === 'pago' ? (
-                                <>
-                                    <div className="form-group">
-                                        <label>Alumno</label>
-                                        <select
-                                            value={formData.user_id}
-                                            onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
-                                            required
-                                        >
-                                            <option value="">Seleccionar alumno...</option>
-                                            {alumnos.map(a => (
-                                                <option key={a.id} value={a.id}>{a.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Plan (opcional)</label>
-                                        <select
-                                            value={formData.plan_id}
-                                            onChange={(e) => handlePlanSelect(e.target.value)}
-                                        >
-                                            <option value="">Sin plan específico</option>
-                                            {planes.map(p => (
-                                                <option key={p.id} value={p.id}>{p.name} - ${p.price}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Monto</label>
-                                            <input
-                                                type="number"
-                                                value={formData.amount}
-                                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Concepto</label>
-                                            <select
-                                                value={formData.concept}
-                                                onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
-                                            >
-                                                <option value="mensualidad">Mensualidad</option>
-                                                <option value="inscripcion">Inscripción</option>
-                                                <option value="clase_especial">Clase Especial</option>
-                                                <option value="alquiler">Alquiler</option>
-                                                <option value="otro">Otro</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Método de Pago</label>
-                                        <select
-                                            value={formData.payment_method}
-                                            onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                                        >
-                                            <option value="efectivo">Efectivo</option>
-                                            <option value="tarjeta">Tarjeta</option>
-                                            <option value="transferencia">Transferencia</option>
-                                            <option value="mercadopago">MercadoPago</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Notas</label>
-                                        <textarea
-                                            value={formData.notes}
-                                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                            rows="2"
-                                        />
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="form-group">
-                                        <label>Nombre del Plan</label>
-                                        <input
-                                            type="text"
-                                            value={planFormData.name}
-                                            onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Descripción</label>
-                                        <textarea
-                                            value={planFormData.description}
-                                            onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
-                                            rows="2"
-                                        />
-                                    </div>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Precio</label>
-                                            <input
-                                                type="number"
-                                                value={planFormData.price}
-                                                onChange={(e) => setPlanFormData({ ...planFormData, price: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Duración (días)</label>
-                                            <input
-                                                type="number"
-                                                value={planFormData.duration_days}
-                                                onChange={(e) => setPlanFormData({ ...planFormData, duration_days: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                            <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
-                                <button type="submit" className="btn-primary">
-                                    {modalType === 'pago' ? 'Registrar Pago' : 'Crear Plan'}
-                                </button>
+            <Modal
+                isOpen={showModal}
+                onClose={handleCloseModal}
+                title={modalType === 'pago' ? 'Registrar Pago' : 'Nuevo Plan/Cuota'}
+                size="md"
+            >
+                <form onSubmit={handleSubmit}>
+                    {modalType === 'pago' ? (
+                        <>
+                            <div className="form-group">
+                                <label>Alumno</label>
+                                <select
+                                    value={formData.user_id}
+                                    onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Seleccionar alumno...</option>
+                                    {alumnos.map(a => (
+                                        <option key={a.id} value={a.id}>{a.name}</option>
+                                    ))}
+                                </select>
                             </div>
-                        </form>
+                            <div className="form-group">
+                                <label>Plan (opcional)</label>
+                                <select
+                                    value={formData.plan_id}
+                                    onChange={(e) => handlePlanSelect(e.target.value)}
+                                >
+                                    <option value="">Sin plan específico</option>
+                                    {planes.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name} - ${p.price}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Monto</label>
+                                    <input
+                                        type="number"
+                                        value={formData.amount}
+                                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Concepto</label>
+                                    <select
+                                        value={formData.concept}
+                                        onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
+                                    >
+                                        <option value="mensualidad">Mensualidad</option>
+                                        <option value="inscripcion">Inscripción</option>
+                                        <option value="clase_especial">Clase Especial</option>
+                                        <option value="alquiler">Alquiler</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Método de Pago</label>
+                                <select
+                                    value={formData.payment_method}
+                                    onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                                >
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="tarjeta">Tarjeta</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="mercadopago">MercadoPago</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Notas</label>
+                                <textarea
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    rows="2"
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="form-group">
+                                <label>Nombre del Plan</label>
+                                <input
+                                    type="text"
+                                    value={planFormData.name}
+                                    onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Descripción</label>
+                                <textarea
+                                    value={planFormData.description}
+                                    onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
+                                    rows="2"
+                                />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Precio</label>
+                                    <input
+                                        type="number"
+                                        value={planFormData.price}
+                                        onChange={(e) => setPlanFormData({ ...planFormData, price: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Duración (días)</label>
+                                    <input
+                                        type="number"
+                                        value={planFormData.duration_days}
+                                        onChange={(e) => setPlanFormData({ ...planFormData, duration_days: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
+                    <div className="form-actions">
+                        <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
+                        <button type="submit" className="btn-primary">
+                            {modalType === 'pago' ? 'Registrar Pago' : 'Crear Plan'}
+                        </button>
                     </div>
-                </div>
-            )}
+                </form>
+            </Modal>
         </div>
     );
 };

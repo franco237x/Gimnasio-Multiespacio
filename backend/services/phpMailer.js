@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const PHP_MAILER_URL = process.env.PHP_MAILER_URL; // e.g. https://tu-dominio.com/send-token.php
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Envía token al endpoint PHP para correo de verificación o recuperación.
 // type: 'verification' | 'reset'
@@ -15,6 +16,7 @@ async function sendTokenEmail({ email, token, expiresAt, type }) {
       email,
       token,
       type,
+      frontendUrl: FRONTEND_URL,
       expiresAt: expiresAt instanceof Date ? expiresAt.toISOString() : expiresAt
     };
 
