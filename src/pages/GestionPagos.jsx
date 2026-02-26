@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { paymentsAPI, usersAPI } from '../services/apiService';
+import { useState, useEffect, useRef } from 'react';
+import { paymentsAPI, usersAPI, cashRegistersAPI } from '../services/apiService';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
 import './GestionPagos.css';
@@ -12,6 +12,10 @@ const GestionPagos = () => {
     const [alumnos, setAlumnos] = useState([]);
     const [planes, setPlanes] = useState([]);
     const [historialPagos, setHistorialPagos] = useState([]);
+    const [cajaActiva, setCajaActiva] = useState(null);
+    const [cajaSummary, setCajaSummary] = useState([]);
+    const [selectedPago, setSelectedPago] = useState(null);
+    const validatePlanRef = useRef(null);
     const [loading, setLoading] = useState(true);
 
     const [formData, setFormData] = useState({
@@ -31,6 +35,12 @@ const GestionPagos = () => {
         duration_days: 30
     });
 
+    const [cajaFormData, setCajaFormData] = useState({
+        opening_balance: 0,
+        counted_balance: 0,
+        notes: ''
+    });
+
     useEffect(() => {
         loadData();
     }, []);
@@ -38,10 +48,11 @@ const GestionPagos = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [usersRes, plansRes, paymentsRes] = await Promise.all([
+            const [usersRes, plansRes, paymentsRes, cajaRes] = await Promise.all([
                 usersAPI.getAll({ role: 'alumno' }),
                 paymentsAPI.getPlans(),
-                paymentsAPI.getAll({ limit: 50 })
+                paymentsAPI.getAll({ limit: 50 }),
+                cashRegistersAPI.getCurrent().catch(() => ({ success: true, data: null }))
             ]);
 
             if (usersRes.success) {
@@ -49,6 +60,13 @@ const GestionPagos = () => {
             }
             if (plansRes.success) setPlanes(plansRes.data);
             if (paymentsRes.success) setHistorialPagos(paymentsRes.data);
+            if (cajaRes && cajaRes.success && cajaRes.data?.register) {
+                setCajaActiva(cajaRes.data.register);
+                setCajaSummary(cajaRes.data.summary || []);
+            } else {
+                setCajaActiva(null);
+                setCajaSummary([]);
+            }
         } catch (error) {
             showNotification('❌ Error al cargar datos', 'error');
         } finally {
@@ -72,13 +90,17 @@ const GestionPagos = () => {
                 status: 'completed',
                 notes: ''
             });
-        } else {
+        } else if (type === 'cuota') {
             setPlanFormData({
                 name: '',
                 description: '',
                 price: '',
                 duration_days: 30
             });
+        } else if (type === 'abrir_caja' || type === 'cerrar_caja') {
+            setCajaFormData({ opening_balance: 0, counted_balance: 0, notes: '' });
+        } else if (type === 'ticket') {
+            // Se maneja aparte
         }
         setShowModal(true);
     };
@@ -122,7 +144,7 @@ const GestionPagos = () => {
                 }
 
                 showNotification('✅ Pago registrado exitosamente', 'success');
-            } else {
+            } else if (modalType === 'cuota') {
                 // Crear plan
                 await paymentsAPI.createPlan({
                     name: planFormData.name,
@@ -131,6 +153,12 @@ const GestionPagos = () => {
                     duration_days: parseInt(planFormData.duration_days)
                 });
                 showNotification('✅ Cuota creada exitosamente', 'success');
+            } else if (modalType === 'abrir_caja') {
+                await cashRegistersAPI.open(parseFloat(cajaFormData.opening_balance));
+                showNotification('✅ Caja Abierta', 'success');
+            } else if (modalType === 'cerrar_caja') {
+                await cashRegistersAPI.close(cajaActiva.id, parseFloat(cajaFormData.counted_balance), cajaFormData.notes);
+                showNotification('✅ Caja Cerrada Exitosamente', 'success');
             }
 
             handleCloseModal();
@@ -161,6 +189,22 @@ const GestionPagos = () => {
         return labels[method] || method;
     };
 
+    const handlePrintTicket = (pago) => {
+        setSelectedPago(pago);
+        setModalType('ticket');
+        setShowModal(true);
+    };
+
+    const printTicketWindow = () => {
+        const printableElements = document.getElementById('ticket-print-area').innerHTML;
+        const originalContents = document.body.innerHTML;
+
+        document.body.innerHTML = printableElements;
+        window.print();
+        document.body.innerHTML = originalContents;
+        window.location.reload(); // Recargar para restaurar eventos React
+    };
+
     return (
         <div className="gestion-pagos">
             <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -182,6 +226,12 @@ const GestionPagos = () => {
                         onClick={() => setActiveTab('cuota')}
                     >
                         <i className='bx bx-receipt'></i> Planes/Cuotas
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'caja' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('caja')}
+                    >
+                        <i className='bx bx-store-alt'></i> Caja
                     </button>
                     <button
                         className={`tab ${activeTab === 'historial' ? 'active' : ''}`}
@@ -256,6 +306,46 @@ const GestionPagos = () => {
                         </div>
                     )}
 
+                    {activeTab === 'caja' && (
+                        <div className="caja-section">
+                            <h3>Apertura y Cierre de Caja</h3>
+                            {cajaActiva ? (
+                                <div className="caja-activa-card">
+                                    <div className="status-indicator_open"><i className='bx bx-lock-open-alt'></i> CAJA ABIERTA</div>
+                                    <p>Abierta por: <strong>{cajaActiva.opened_by_name}</strong></p>
+                                    <p>Fecha/Hora de Apertura: <strong>{new Date(cajaActiva.opening_time).toLocaleString('es-AR')}</strong></p>
+                                    <p>Saldo Inicial: <strong>${parseFloat(cajaActiva.opening_balance).toLocaleString('es-AR')}</strong></p>
+
+                                    <h4 style={{ marginTop: '1.5rem' }}>Resumen de Ingresos Contabilizados</h4>
+                                    <ul>
+                                        {cajaSummary.length === 0 && <li>Sin movimientos aún.</li>}
+                                        {cajaSummary.map((s, idx) => (
+                                            <li key={idx}>
+                                                {getMetodoPagoLabel(s.payment_method)}: <strong>${parseFloat(s.total).toLocaleString('es-AR')}</strong> ({s.tx_count} transacciones)
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    <div className="quick-actions" style={{ marginTop: '1.5rem' }}>
+                                        <button className="btn-danger" onClick={() => handleOpenModal('cerrar_caja')}>
+                                            <i className='bx bx-lock-alt'></i> Realizar Cierre de Caja
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="caja-activa-card cerrado">
+                                    <div className="status-indicator_closed"><i className='bx bx-lock-alt'></i> CAJA CERRADA</div>
+                                    <p>No hay ninguna caja abierta en este momento.</p>
+                                    <div className="quick-actions" style={{ marginTop: '1.5rem' }}>
+                                        <button className="btn-primary" onClick={() => handleOpenModal('abrir_caja')}>
+                                            <i className='bx bx-lock-open-alt'></i> Abrir Caja Nueva
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeTab === 'historial' && (
                         <div className="historial-section">
                             <h3>Historial de Pagos</h3>
@@ -280,8 +370,13 @@ const GestionPagos = () => {
                                             <td className="amount">${pago.amount?.toLocaleString('es-AR')}</td>
                                             <td>
                                                 <span className={`status-badge status-${pago.status}`}>
-                                                    {pago.status === 'completed' ? 'Completado' : pago.status}
+                                                    {pago.status === 'completed' ? 'Completado' : pago.status === 'refunded' ? 'Anulado' : 'Pendiente'}
                                                 </span>
+                                            </td>
+                                            <td>
+                                                <button className="btn-icon" title="Imprimir Ticket" onClick={() => handlePrintTicket(pago)}>
+                                                    <i className='bx bx-printer'></i>
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -296,8 +391,8 @@ const GestionPagos = () => {
             <Modal
                 isOpen={showModal}
                 onClose={handleCloseModal}
-                title={modalType === 'pago' ? 'Registrar Pago' : 'Nuevo Plan/Cuota'}
-                size="md"
+                title={modalType === 'pago' ? 'Registrar Pago' : modalType === 'cuota' ? 'Nuevo Plan/Cuota' : modalType === 'abrir_caja' ? 'Abrir Caja' : modalType === 'cerrar_caja' ? 'Cerrar Caja' : 'Ticket de Pago'}
+                size={modalType === 'ticket' ? "sm" : "md"}
             >
                 <form onSubmit={handleSubmit}>
                     {modalType === 'pago' ? (
@@ -384,7 +479,7 @@ const GestionPagos = () => {
                                 />
                             </div>
                         </>
-                    ) : (
+                    ) : modalType === 'cuota' ? (
                         <>
                             <div className="form-group">
                                 <label>Nombre del Plan</label>
@@ -423,13 +518,80 @@ const GestionPagos = () => {
                                 </div>
                             </div>
                         </>
+                    ) : modalType === 'abrir_caja' ? (
+                        <>
+                            <div className="form-group">
+                                <label>Saldo Inicial (Efectivo en Caja)</label>
+                                <input
+                                    type="number"
+                                    value={cajaFormData.opening_balance}
+                                    onChange={(e) => setCajaFormData({ ...cajaFormData, opening_balance: e.target.value })}
+                                    required
+                                />
+                            </div>
+                        </>
+                    ) : modalType === 'cerrar_caja' ? (
+                        <>
+                            <div className="form-group">
+                                <label>Saldo Arrojado (Contado en Efectivo)</label>
+                                <input
+                                    type="number"
+                                    value={cajaFormData.counted_balance}
+                                    onChange={(e) => setCajaFormData({ ...cajaFormData, counted_balance: e.target.value })}
+                                    required
+                                    autoFocus
+                                />
+                                <small>Cuenta los billetes y monedas físicos en la caja e ingresa el total.</small>
+                            </div>
+                            <div className="form-group">
+                                <label>Observaciones o Novedades (opcional)</label>
+                                <textarea
+                                    value={cajaFormData.notes}
+                                    onChange={(e) => setCajaFormData({ ...cajaFormData, notes: e.target.value })}
+                                    rows="3"
+                                />
+                            </div>
+                        </>
+                    ) : modalType === 'ticket' && selectedPago ? (
+                        <div className="ticket-container" id="ticket-print-area">
+                            <div className="ticket-header">
+                                <h2>GIMNASIO MULTIESPACIO</h2>
+                                <p>CUIT: 30-00000000-0</p>
+                                <p>Comprobante de Pago</p>
+                                <hr />
+                            </div>
+                            <div className="ticket-body">
+                                <p><strong>Fecha:</strong> {new Date(selectedPago.payment_date).toLocaleString('es-AR')}</p>
+                                <p><strong>Trámite:</strong> #{selectedPago.id}</p>
+                                <p><strong>Alumno:</strong> {selectedPago.user_name}</p>
+                                <p><strong>Concepto:</strong> {getConceptoLabel(selectedPago.concept)}</p>
+                                <p><strong>Medio de Pago:</strong> {getMetodoPagoLabel(selectedPago.payment_method)}</p>
+                                <p><strong>Estado:</strong> {selectedPago.status}</p>
+                            </div>
+                            <div className="ticket-footer">
+                                <hr />
+                                <h3>TOTAL: ${selectedPago.amount?.toLocaleString('es-AR')}</h3>
+                                <p>¡Gracias por elegirnos!</p>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {modalType !== 'ticket' && (
+                        <div className="form-actions">
+                            <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
+                            <button type="submit" className="btn-primary">
+                                {modalType === 'pago' ? 'Registrar Pago' : modalType === 'cuota' ? 'Crear Plan' : modalType === 'abrir_caja' ? 'Abrir Caja Blanca' : 'Ejecutar Cierre'}
+                            </button>
+                        </div>
                     )}
-                    <div className="form-actions">
-                        <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
-                        <button type="submit" className="btn-primary">
-                            {modalType === 'pago' ? 'Registrar Pago' : 'Crear Plan'}
-                        </button>
-                    </div>
+                    {modalType === 'ticket' && (
+                        <div className="form-actions">
+                            <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cerrar</button>
+                            <button type="button" className="btn-primary" onClick={printTicketWindow}>
+                                <i className='bx bx-printer'></i> Imprimir Comprobante
+                            </button>
+                        </div>
+                    )}
                 </form>
             </Modal>
         </div>

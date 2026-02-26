@@ -70,9 +70,20 @@ router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEP
             });
         }
 
+        const CashRegister = require('../models/CashRegister');
+        const activeRegister = await CashRegister.getCurrentOpen();
+
+        if (!activeRegister && payment_method === 'efectivo') {
+            return res.status(400).json({
+                success: false,
+                message: 'Debes abrir una caja en la sección de Gestión de Pagos para cobrar en efectivo.'
+            });
+        }
+
         const newPayment = await Payment.create({
             user_id, subscription_id, amount, concept, payment_method, notes,
-            status: status || 'completed'
+            status: status || 'completed',
+            cash_register_id: activeRegister ? activeRegister.id : null
         });
 
         res.status(201).json({ success: true, data: newPayment });

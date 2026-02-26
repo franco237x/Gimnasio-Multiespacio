@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { reportsAPI, paymentsAPI } from '../services/apiService';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import './Reportes.css';
 
 const Reportes = () => {
@@ -50,7 +53,127 @@ const Reportes = () => {
 
     const handleExport = (format) => {
         showNotification(`📥 Exportando reporte en formato ${format.toUpperCase()}...`, 'success');
-        // En el futuro, implementar exportación real
+        const fechaActual = new Date().toLocaleDateString('es-AR');
+        const reporteTitulo = `Reporte del Gimnasio - ${periodo === 'month' ? 'Este Mes' : periodo === 'week' ? 'Última Semana' : 'Este Año'}`;
+
+        if (format === 'pdf') {
+            const doc = new jsPDF();
+
+            // Título
+            doc.setFontSize(18);
+            doc.text(reporteTitulo, 14, 22);
+            doc.setFontSize(11);
+            doc.text(`Generado el: ${fechaActual}`, 14, 30);
+
+            // Resumen General
+            const resumenData = [
+                ['Ingresos Totales', `$${(stats.income || 0).toLocaleString('es-AR')}`],
+                ['Alumnos Activos', String(stats.activeStudents || 0)],
+                ['Clases Activas', String(stats.totalClasses || 0)],
+                ['Reservas Pendientes', String(stats.pendingReservations || 0)],
+            ];
+
+            autoTable(doc, {
+                startY: 40,
+                head: [['Métrica de Resumen', 'Valor']],
+                body: resumenData,
+                theme: 'striped',
+                headStyles: { fillColor: [16, 185, 129] }
+            });
+
+            // Ingresos por Concepto
+            let nextY = doc.lastAutoTable.finalY + 15;
+            doc.setFontSize(14);
+            doc.text('Ingresos por Concepto', 14, nextY);
+
+            const bodyConceptos = incomeByConceptStats.map(item => [
+                getConceptLabel(item.concept),
+                item.count,
+                `$${(item.total || 0).toLocaleString('es-AR')}`
+            ]);
+
+            autoTable(doc, {
+                startY: nextY + 5,
+                head: [['Concepto', 'Cantidad Pagos', 'Total Ingresos']],
+                body: bodyConceptos.length > 0 ? bodyConceptos : [['', 'No hay datos', '']],
+                theme: 'striped',
+                headStyles: { fillColor: [59, 130, 246] }
+            });
+
+            // Actividades
+            nextY = doc.lastAutoTable.finalY + 15;
+            if (nextY > 250) {
+                doc.addPage();
+                nextY = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.text('Actividades Más Populares', 14, nextY);
+
+            const bodyActividades = activitiesStats.popular.slice(0, 10).map((act, idx) => [
+                `#${idx + 1}`,
+                act.name,
+                act.teacher_name,
+                `${act.enrolled_count}/${act.capacity}`,
+                `${act.occupancy_percent || 0}%`
+            ]);
+
+            autoTable(doc, {
+                startY: nextY + 5,
+                head: [['Ranking', 'Actividad', 'Profesor', 'Inscriptos', 'Ocupación']],
+                body: bodyActividades.length > 0 ? bodyActividades : [['', 'No hay datos', '', '', '']],
+                theme: 'striped',
+                headStyles: { fillColor: [139, 92, 246] }
+            });
+
+            // Guardar PDF
+            doc.save(`Reporte_Gimnasio_${fechaActual.replace(/\//g, '-')}.pdf`);
+
+        } else if (format === 'excel') {
+            const wb = XLSX.utils.book_new();
+
+            // Hoja 1: Resumen General
+            const resumenObj = [
+                { Métrica: 'Reporte Correspondiente a', Valor: periodo === 'month' ? 'Este Mes' : periodo === 'week' ? 'Última Semana' : 'Este Año' },
+                { Métrica: 'Ingresos Totales', Valor: `$${(stats.income || 0).toLocaleString('es-AR')}` },
+                { Métrica: 'Alumnos Activos', Valor: stats.activeStudents || 0 },
+                { Métrica: 'Clases Activas', Valor: stats.totalClasses || 0 },
+                { Métrica: 'Reservas Pendientes', Valor: stats.pendingReservations || 0 }
+            ];
+
+            // Hoja 2: Ingresos por Concepto
+            const conceptosData = incomeByConceptStats.map(item => ({
+                Concepto: getConceptLabel(item.concept),
+                Cantidad_Pagos: item.count,
+                Total_Ingresos: (item.total || 0).toLocaleString('es-AR')
+            }));
+            if (conceptosData.length === 0) conceptosData.push({ Concepto: 'No hay datos', Cantidad_Pagos: '', Total_Ingresos: '' });
+
+            // Hoja 3: Actividades Populares
+            const popularesData = activitiesStats.popular.map((act, index) => ({
+                Ranking: `#${index + 1}`,
+                Actividad: act.name,
+                Profesor: act.teacher_name,
+                Inscriptos: `${act.enrolled_count}/${act.capacity}`,
+                Ocupacion_Porcentaje: `${act.occupancy_percent || 0}%`
+            }));
+            if (popularesData.length === 0) popularesData.push({ Ranking: '', Actividad: 'No hay datos', Profesor: '', Inscriptos: '', Ocupacion_Porcentaje: '' });
+
+            const wsResumen = XLSX.utils.json_to_sheet(resumenObj);
+            const wsConceptos = XLSX.utils.json_to_sheet(conceptosData);
+            const wsPopulares = XLSX.utils.json_to_sheet(popularesData);
+
+            // Hacer la primera columna un poco más gruesa
+            wsResumen['!cols'] = [{ wch: 30 }, { wch: 20 }];
+            wsConceptos['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }];
+            wsPopulares['!cols'] = [{ wch: 10 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 20 }];
+
+            XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen General");
+            XLSX.utils.book_append_sheet(wb, wsConceptos, "Ingresos");
+            XLSX.utils.book_append_sheet(wb, wsPopulares, "Actividades Populares");
+
+            XLSX.writeFile(wb, `Reporte_Gimnasio_${fechaActual.replace(/\//g, '-')}.xlsx`);
+        }
     };
 
     const getConceptLabel = (concept) => {

@@ -92,11 +92,11 @@ class Payment {
 
     // Crear pago
     static async create(paymentData) {
-        const { user_id, subscription_id, amount, concept, payment_method, status, notes } = paymentData;
+        const { user_id, subscription_id, amount, concept, payment_method, status, notes, cash_register_id } = paymentData;
 
         const query = `
-      INSERT INTO payments (user_id, subscription_id, amount, concept, payment_method, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO payments (user_id, subscription_id, amount, concept, payment_method, status, notes, cash_register_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
         const result = await executeQuery(query, [
@@ -106,7 +106,8 @@ class Payment {
             concept || 'mensualidad',
             payment_method || 'efectivo',
             status || 'completed',
-            notes || null
+            notes || null,
+            cash_register_id || null
         ]);
 
         return await Payment.findById(result.insertId);

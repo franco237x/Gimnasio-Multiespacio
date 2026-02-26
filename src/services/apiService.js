@@ -85,6 +85,15 @@ export const paymentsAPI = {
     getSubscription: (userId) => fetchAPI(`/payments/subscription/${userId}`),
     createSubscription: (data) => fetchAPI('/payments/subscription', { method: 'POST', body: JSON.stringify(data) }),
     renewSubscription: (userId, planId) => fetchAPI(`/payments/subscription/${userId}/renew`, { method: 'POST', body: JSON.stringify({ plan_id: planId }) }),
+    cancel: (id, reason) => fetchAPI(`/payments/${id}/cancel`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+};
+
+// ============= CAJA (ARQUEO Y TICKETS) =============
+export const cashRegistersAPI = {
+    getCurrent: () => fetchAPI('/cash-registers/current'),
+    getAll: () => fetchAPI('/cash-registers'),
+    open: (opening_balance) => fetchAPI('/cash-registers/open', { method: 'POST', body: JSON.stringify({ opening_balance }) }),
+    close: (id, counted_balance, notes) => fetchAPI('/cash-registers/close', { method: 'POST', body: JSON.stringify({ id, counted_balance, notes }) }),
 };
 
 // ============= ESPACIOS Y RESERVAS =============
@@ -145,4 +154,5 @@ export default {
     config: configAPI,
     reports: reportsAPI,
     auth: authAPI,
+    cashRegisters: cashRegistersAPI,
 };

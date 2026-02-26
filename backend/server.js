@@ -41,6 +41,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/reservations', require('./routes/reservations'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/cash-registers', require('./routes/cash_registers'));
 
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {
