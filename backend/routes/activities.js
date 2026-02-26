@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Activity = require('../models/Activity');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole, ROLES } = require('../middleware/auth');
 
 // GET /api/activities - Listar todas las actividades
 router.get('/', authenticateToken, async (req, res) => {
@@ -59,7 +59,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/activities - Crear actividad
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { name, teacher_id, space_id, day_of_week, start_time, end_time, capacity } = req.body;
 
@@ -67,6 +67,18 @@ router.post('/', authenticateToken, async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Todos los campos son requeridos'
+            });
+        }
+
+        if (start_time >= end_time) {
+            return res.status(400).json({ success: false, message: 'La hora de inicio debe ser menor a la hora de fin' });
+        }
+
+        const collision = await Activity.checkScheduleCollision(space_id, start_time, end_time, day_of_week);
+        if (collision) {
+            return res.status(400).json({
+                success: false,
+                message: `El espacio ya está ocupado en ese horario por la actividad "${collision.name}" (${collision.start_time.slice(0, 5)} - ${collision.end_time.slice(0, 5)})`
             });
         }
 
@@ -82,8 +94,26 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/activities/:id - Actualizar actividad
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
+        const { name, teacher_id, space_id, day_of_week, start_time, end_time, capacity } = req.body;
+
+        if (!name || !teacher_id || !space_id || !day_of_week || !start_time || !end_time) {
+            return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+        }
+
+        if (start_time >= end_time) {
+            return res.status(400).json({ success: false, message: 'La hora de inicio debe ser menor a la hora de fin' });
+        }
+
+        const collision = await Activity.checkScheduleCollision(space_id, start_time, end_time, day_of_week, req.params.id);
+        if (collision) {
+            return res.status(400).json({
+                success: false,
+                message: `El espacio ya está ocupado en ese horario por la actividad "${collision.name}" (${collision.start_time.slice(0, 5)} - ${collision.end_time.slice(0, 5)})`
+            });
+        }
+
         const updatedActivity = await Activity.update(req.params.id, req.body);
         if (!updatedActivity) {
             return res.status(404).json({ success: false, message: 'Actividad no encontrada' });
@@ -96,7 +126,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/activities/:id - Eliminar actividad
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const deleted = await Activity.delete(req.params.id);
         if (!deleted) {

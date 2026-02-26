@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken, requireRole, ROLES } = require('../middleware/auth');
 
 // GET /api/users - Listar todos los usuarios
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const { role, search, status } = req.query;
         let users = await User.findAll();
@@ -32,7 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET /api/users/:id - Obtener usuario por ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -46,7 +46,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/users - Crear usuario
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const { name, email, password, phone, role_id } = req.body;
 
@@ -56,6 +56,15 @@ router.post('/', authenticateToken, async (req, res) => {
                 success: false,
                 message: 'Nombre, email y contraseña son requeridos'
             });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ success: false, message: 'Formato de email inválido' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres' });
         }
 
         // Verificar si el email ya existe
@@ -76,16 +85,36 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/users/:id - Actualizar usuario
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
-        const { name, email, phone, role_id, is_active } = req.body;
+        const { name, email, phone, role_id, is_active, password } = req.body;
+        const targetId = parseInt(req.params.id);
 
-        const user = await User.findById(req.params.id);
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (email && !emailRegex.test(email)) {
+            return res.status(400).json({ success: false, message: 'Formato de email inválido' });
+        }
+
+        if (password && password.length < 6) {
+            return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+
+        const user = await User.findById(targetId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
         }
 
-        const updatedUser = await User.update(req.params.id, { name, email, phone, role_id, is_active });
+        // Prevención de auto-modificación riesgosa
+        if (req.user.id === targetId) {
+            if (role_id !== undefined && role_id !== user.role_id) {
+                return res.status(400).json({ success: false, message: 'No puedes cambiar tu propio rol' });
+            }
+            if (is_active !== undefined && is_active !== user.is_active) {
+                return res.status(400).json({ success: false, message: 'No puedes desactivar tu propia cuenta' });
+            }
+        }
+
+        const updatedUser = await User.update(targetId, { name, email, phone, role_id, is_active, password });
         res.json({ success: true, data: updatedUser });
     } catch (error) {
         console.error('Error al actualizar usuario:', error);
@@ -94,8 +123,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/users/:id - Eliminar usuario
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
+        if (req.user.id === parseInt(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'No puedes eliminar tu propia cuenta' });
+        }
+
         const deleted = await User.delete(req.params.id);
         if (!deleted) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
@@ -108,7 +141,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // PATCH /api/users/:id/role - Cambiar rol de usuario
-router.patch('/:id/role', authenticateToken, async (req, res) => {
+router.patch('/:id/role', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const { role_id } = req.body;
 
@@ -126,7 +159,7 @@ router.patch('/:id/role', authenticateToken, async (req, res) => {
 });
 
 // GET /api/users/role/:roleName - Obtener usuarios por nombre de rol
-router.get('/role/:roleName', authenticateToken, async (req, res) => {
+router.get('/role/:roleName', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const users = await User.findAll();
         const filteredUsers = users.filter(u =>

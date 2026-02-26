@@ -27,7 +27,7 @@ class Activity {
       FROM activities a
       LEFT JOIN users u ON a.teacher_id = u.id
       LEFT JOIN spaces s ON a.space_id = s.id
-      ORDER BY FIELD(a.day_of_week, 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'), a.start_time
+      ORDER BY a.start_time
     `;
         const results = await executeQuery(query);
         return results.map(row => new Activity(row));
@@ -42,7 +42,7 @@ class Activity {
       FROM activities a
       LEFT JOIN users u ON a.teacher_id = u.id
       LEFT JOIN spaces s ON a.space_id = s.id
-      WHERE a.day_of_week = ?
+      WHERE FIND_IN_SET(?, a.day_of_week) > 0
       ORDER BY a.start_time
     `;
         const results = await executeQuery(query, [dayOfWeek.toLowerCase()]);
@@ -59,7 +59,7 @@ class Activity {
       LEFT JOIN users u ON a.teacher_id = u.id
       LEFT JOIN spaces s ON a.space_id = s.id
       WHERE a.teacher_id = ?
-      ORDER BY FIELD(a.day_of_week, 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'), a.start_time
+      ORDER BY a.start_time
     `;
         const results = await executeQuery(query, [teacherId]);
         return results.map(row => new Activity(row));
@@ -99,7 +99,13 @@ class Activity {
 
     // Actualizar actividad
     static async update(id, updateData) {
-        const { name, teacher_id, space_id, day_of_week, start_time, end_time, capacity, status } = updateData;
+        const { name, teacher_id, space_id, day_of_week, start_time, end_time, capacity } = updateData;
+
+        // Recuperamos los inscritos actuales para evitar que la actividad pase a "activa" si sigue llena
+        const currentActivity = await Activity.findById(id);
+        if (!currentActivity) return null;
+
+        const newStatus = currentActivity.enrolled_count >= capacity ? 'full' : 'active';
 
         const query = `
       UPDATE activities 
@@ -110,7 +116,7 @@ class Activity {
 
         await executeQuery(query, [
             name, teacher_id, space_id, day_of_week.toLowerCase(),
-            start_time, end_time, capacity, status || 'active', id
+            start_time, end_time, capacity, newStatus, id
         ]);
 
         return await Activity.findById(id);
@@ -118,6 +124,9 @@ class Activity {
 
     // Eliminar actividad
     static async delete(id) {
+        // Ejecutamos una cascada manual por seguridad para evitar el error 500 (Foreign Key Constraint)
+        await executeQuery('DELETE FROM activity_enrollments WHERE activity_id = ?', [id]);
+
         const query = 'DELETE FROM activities WHERE id = ?';
         const result = await executeQuery(query, [id]);
         return result.affectedRows > 0;
@@ -186,6 +195,36 @@ class Activity {
       ORDER BY u.name
     `;
         return await executeQuery(query);
+    }
+
+    // Verificar superposición de horarios
+    static async checkScheduleCollision(spaceId, startTime, endTime, daysOfWeek, excludeActivityId = null) {
+        const days = Array.isArray(daysOfWeek) ? daysOfWeek : daysOfWeek.split(',');
+
+        // Construimos una condición FIND_IN_SET para cada día solicitado:
+        // (FIND_IN_SET('lunes', day_of_week) > 0 OR FIND_IN_SET('miercoles', day_of_week) > 0)
+        const dayConditions = days.map(d => `FIND_IN_SET('${d.trim().toLowerCase()}', day_of_week) > 0`).join(' OR ');
+
+        let query = `
+            SELECT id, name, start_time, end_time, day_of_week 
+            FROM activities 
+            WHERE space_id = ? 
+            AND (${dayConditions})
+            AND (
+                (start_time < ? AND end_time > ?) OR  -- Nueva actividad envuelve a existente o se solapa al inicio
+                (start_time >= ? AND start_time < ?)    -- Nueva actividad empiza durante una existente
+            )
+        `;
+
+        const params = [spaceId, endTime, startTime, startTime, endTime];
+
+        if (excludeActivityId) {
+            query += ` AND id != ?`;
+            params.push(excludeActivityId);
+        }
+
+        const results = await executeQuery(query, params);
+        return results.length > 0 ? results[0] : null;
     }
 }
 

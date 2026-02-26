@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { usersAPI } from '../services/apiService';
+import { useAuth } from '../context/AuthContext';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import './GestionUsuarios.css';
 
 const GestionUsuarios = () => {
+    const { user: currentUser } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('todos');
     const [showModal, setShowModal] = useState(false);
@@ -11,6 +13,7 @@ const GestionUsuarios = () => {
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
     const [usuarios, setUsuarios] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ show: false, userId: null, userName: '' });
 
     const [formData, setFormData] = useState({
@@ -88,13 +91,23 @@ const GestionUsuarios = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (formData.password && formData.password.length < 6) {
+            showNotification('❌ La contraseña debe tener al menos 6 caracteres', 'error');
+            return;
+        }
+
         try {
+            setIsSubmitting(true);
             const userData = {
                 name: formData.nombre,
                 email: formData.email,
                 phone: formData.telefono,
                 role_id: getRoleId(formData.rol)
             };
+
+            if (formData.password) {
+                userData.password = formData.password;
+            }
 
             if (editingUser) {
                 // Actualizar usuario
@@ -104,9 +117,9 @@ const GestionUsuarios = () => {
                 // Crear usuario
                 if (!formData.password) {
                     showNotification('❌ La contraseña es requerida', 'error');
+                    setIsSubmitting(false);
                     return;
                 }
-                userData.password = formData.password;
                 await usersAPI.create(userData);
                 showNotification('✅ Usuario creado exitosamente', 'success');
             }
@@ -115,6 +128,8 @@ const GestionUsuarios = () => {
             loadUsuarios(); // Recargar lista
         } catch (error) {
             showNotification('❌ Error al guardar usuario: ' + error.message, 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -126,7 +141,7 @@ const GestionUsuarios = () => {
         try {
             await usersAPI.delete(confirmDelete.userId);
             showNotification('🗑️ Usuario eliminado correctamente', 'success');
-            loadUsuarios();
+            setUsuarios(prev => prev.filter(u => u.id !== confirmDelete.userId));
         } catch (error) {
             showNotification('❌ Error al eliminar usuario', 'error');
         } finally {
@@ -142,7 +157,7 @@ const GestionUsuarios = () => {
                 is_active: user.estado !== 'activo'
             });
             showNotification('✅ Estado del usuario actualizado', 'success');
-            loadUsuarios();
+            setUsuarios(prev => prev.map(u => u.id === user.id ? { ...u, estado: user.estado === 'activo' ? 'inactivo' : 'activo' } : u));
         } catch (error) {
             showNotification('❌ Error al actualizar estado', 'error');
         }
@@ -250,15 +265,19 @@ const GestionUsuarios = () => {
                                             </button>
                                             <button
                                                 className={`action-btn ${user.estado === 'activo' ? 'deactivate' : 'activate'}`}
-                                                title={user.estado === 'activo' ? 'Desactivar' : 'Activar'}
+                                                title={user.id === currentUser?.id ? "No puedes desactivar tu cuenta actual" : (user.estado === 'activo' ? 'Desactivar' : 'Activar')}
                                                 onClick={() => handleToggleStatus(user)}
+                                                disabled={user.id === currentUser?.id}
+                                                style={user.id === currentUser?.id ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                             >
                                                 <i className={`bx ${user.estado === 'activo' ? 'bx-pause' : 'bx-play'}`}></i>
                                             </button>
                                             <button
                                                 className="action-btn delete"
-                                                title="Eliminar"
+                                                title={user.id === currentUser?.id ? "No puedes eliminar tu cuenta actual" : "Eliminar"}
                                                 onClick={() => handleDeleteClick(user)}
+                                                disabled={user.id === currentUser?.id}
+                                                style={user.id === currentUser?.id ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                             >
                                                 <i className='bx bx-trash'></i>
                                             </button>
@@ -320,23 +339,22 @@ const GestionUsuarios = () => {
                                     <option value="administrador">Administrador</option>
                                 </select>
                             </div>
-                            {!editingUser && (
-                                <div className="form-group">
-                                    <label>Contraseña</label>
-                                    <input
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        required={!editingUser}
-                                    />
-                                </div>
-                            )}
+                            <div className="form-group">
+                                <label>Contraseña {editingUser && <span style={{ fontSize: '0.8rem', color: '#666' }}>(Opcional. Dejar en blanco para no modificar)</span>}</label>
+                                <input
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    required={!editingUser}
+                                    minLength="6"
+                                />
+                            </div>
                             <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>
+                                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>
                                     Cancelar
                                 </button>
-                                <button type="submit" className="btn-primary">
-                                    {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
+                                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Guardando...' : (editingUser ? 'Guardar Cambios' : 'Crear Usuario')}
                                 </button>
                             </div>
                         </form>

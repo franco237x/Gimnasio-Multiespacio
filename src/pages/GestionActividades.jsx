@@ -12,6 +12,7 @@ const GestionActividades = () => {
     const [profesores, setProfesores] = useState([]);
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null, name: '' });
 
     const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
@@ -20,7 +21,7 @@ const GestionActividades = () => {
         name: '',
         teacher_id: '',
         space_id: '',
-        day_of_week: 'lunes',
+        day_of_week: ['lunes'],
         start_time: '08:00',
         end_time: '09:00',
         capacity: 20
@@ -61,7 +62,7 @@ const GestionActividades = () => {
                 name: activity.name,
                 teacher_id: activity.teacher_id,
                 space_id: activity.space_id,
-                day_of_week: activity.day_of_week,
+                day_of_week: activity.day_of_week ? activity.day_of_week.split(',') : [],
                 start_time: activity.start_time,
                 end_time: activity.end_time,
                 capacity: activity.capacity
@@ -72,7 +73,7 @@ const GestionActividades = () => {
                 name: '',
                 teacher_id: profesores[0]?.id || '',
                 space_id: espacios[0]?.id || '',
-                day_of_week: 'lunes',
+                day_of_week: ['lunes'],
                 start_time: '08:00',
                 end_time: '09:00',
                 capacity: 20
@@ -88,18 +89,38 @@ const GestionActividades = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (formData.start_time >= formData.end_time) {
+            showNotification('❌ La hora de inicio debe ser anterior a la hora de fin', 'error');
+            return;
+        }
+
+        if (formData.day_of_week.length === 0) {
+            showNotification('❌ Debes seleccionar al menos un día', 'error');
+            return;
+        }
+
         try {
+            setIsSubmitting(true);
+            const submissionData = {
+                ...formData,
+                day_of_week: formData.day_of_week.join(',')
+            };
+
             if (selectedActivity) {
-                await activitiesAPI.update(selectedActivity.id, formData);
+                await activitiesAPI.update(selectedActivity.id, submissionData);
                 showNotification('✅ Actividad actualizada exitosamente', 'success');
             } else {
-                await activitiesAPI.create(formData);
+                await activitiesAPI.create(submissionData);
                 showNotification('✅ Actividad creada exitosamente', 'success');
             }
             handleCloseModal();
-            loadData();
+            const actRes = await activitiesAPI.getAll();
+            if (actRes.success) setActividades(actRes.data);
         } catch (error) {
             showNotification('❌ Error al guardar actividad', 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -111,7 +132,7 @@ const GestionActividades = () => {
         try {
             await activitiesAPI.delete(confirmDelete.id);
             showNotification('🗑️ Actividad eliminada', 'success');
-            loadData();
+            setActividades(prev => prev.filter(a => a.id !== confirmDelete.id));
         } catch (error) {
             showNotification('❌ Error al eliminar actividad', 'error');
         } finally {
@@ -120,7 +141,7 @@ const GestionActividades = () => {
     };
 
     const getActividadesByDia = (dia) => {
-        return actividades.filter(a => a.day_of_week === dia);
+        return actividades.filter(a => a.day_of_week && a.day_of_week.split(',').includes(dia));
     };
 
     const getColorByNombre = (nombre) => {
@@ -220,7 +241,7 @@ const GestionActividades = () => {
                             {actividades.map(act => (
                                 <tr key={act.id}>
                                     <td><strong>{act.name}</strong></td>
-                                    <td>{act.day_of_week}</td>
+                                    <td style={{ textTransform: 'capitalize' }}>{act.day_of_week ? act.day_of_week.replace(/,/g, ', ') : ''}</td>
                                     <td>{act.start_time?.slice(0, 5)} - {act.end_time?.slice(0, 5)}</td>
                                     <td>{act.teacher_name}</td>
                                     <td>{act.space_name}</td>
@@ -289,18 +310,27 @@ const GestionActividades = () => {
                                 </div>
                             </div>
                             <div className="form-row">
-                                <div className="form-group">
-                                    <label>Día</label>
-                                    <select
-                                        value={formData.day_of_week}
-                                        onChange={(e) => setFormData({ ...formData, day_of_week: e.target.value })}
-                                    >
+                                <div className="form-group" style={{ flex: 2 }}>
+                                    <label>Días de la semana</label>
+                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
                                         {diasSemana.map(d => (
-                                            <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
+                                            <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.day_of_week.includes(d)}
+                                                    onChange={(e) => {
+                                                        const newDays = e.target.checked
+                                                            ? [...formData.day_of_week, d]
+                                                            : formData.day_of_week.filter(day => day !== d);
+                                                        setFormData({ ...formData, day_of_week: newDays });
+                                                    }}
+                                                />
+                                                {d.charAt(0).toUpperCase() + d.slice(1)}
+                                            </label>
                                         ))}
-                                    </select>
+                                    </div>
                                 </div>
-                                <div className="form-group">
+                                <div className="form-group" style={{ flex: 1 }}>
                                     <label>Capacidad</label>
                                     <input
                                         type="number"
@@ -329,9 +359,9 @@ const GestionActividades = () => {
                                 </div>
                             </div>
                             <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
-                                <button type="submit" className="btn-primary">
-                                    {selectedActivity ? 'Guardar Cambios' : 'Crear Actividad'}
+                                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Guardando...' : (selectedActivity ? 'Guardar Cambios' : 'Crear Actividad')}
                                 </button>
                             </div>
                         </form>

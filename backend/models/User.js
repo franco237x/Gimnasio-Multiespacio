@@ -216,7 +216,7 @@ class User {
   // Actualizar información del usuario
   static async update(id, updateData) {
     try {
-      const { name, email, phone, role_id, is_active } = updateData;
+      const { name, email, phone, role_id, is_active, password } = updateData;
 
       let query = 'UPDATE users SET updated_at = CURRENT_TIMESTAMP';
       const values = [];
@@ -244,6 +244,13 @@ class User {
       if (is_active !== undefined) {
         query += ', is_active = ?';
         values.push(is_active === true || is_active === 1 || is_active === '1' ? 1 : 0);
+      }
+
+      if (password) {
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        query += ', password = ?';
+        values.push(hashedPassword);
       }
 
       query += ' WHERE id = ?';
