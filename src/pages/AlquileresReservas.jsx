@@ -15,6 +15,7 @@ const AlquileresReservas = () => {
     const [gymHours, setGymHours] = useState({ opening_time: '06:00', closing_time: '23:00' });
     const [confirmCancel, setConfirmCancel] = useState({ show: false, id: null });
     const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
+    const [selectedReservation, setSelectedReservation] = useState(null);
     const [showSpaceModal, setShowSpaceModal] = useState(false);
     const [editingSpace, setEditingSpace] = useState(null);
     const [confirmDeleteSpace, setConfirmDeleteSpace] = useState({ show: false, id: null, name: '' });
@@ -27,6 +28,8 @@ const AlquileresReservas = () => {
         reservation_date: '',
         start_time: '08:00',
         end_time: '10:00',
+        payment_status: 'pending',
+        payment_amount: 0,
         notes: ''
     });
 
@@ -71,23 +74,43 @@ const AlquileresReservas = () => {
         addToast(message, type);
     };
 
-    const handleOpenModal = () => {
-        const today = new Date().toISOString().split('T')[0];
-        setFormData({
-            space_id: espacios[0]?.id || '',
-            client_name: '',
-            client_phone: '',
-            client_email: '',
-            reservation_date: today,
-            start_time: '08:00',
-            end_time: '10:00',
-            notes: ''
-        });
+    const handleOpenModal = (reserva = null) => {
+        if (reserva) {
+            setSelectedReservation(reserva);
+            setFormData({
+                space_id: reserva.space_id,
+                client_name: reserva.client_name,
+                client_phone: reserva.client_phone || '',
+                client_email: reserva.client_email || '',
+                reservation_date: reserva.reservation_date.split('T')[0],
+                start_time: reserva.start_time.slice(0, 5),
+                end_time: reserva.end_time.slice(0, 5),
+                payment_status: reserva.payment_status || 'pending',
+                payment_amount: reserva.payment_amount || 0,
+                notes: reserva.notes || ''
+            });
+        } else {
+            setSelectedReservation(null);
+            const today = new Date().toISOString().split('T')[0];
+            setFormData({
+                space_id: espacios[0]?.id || '',
+                client_name: '',
+                client_phone: '',
+                client_email: '',
+                reservation_date: today,
+                start_time: '08:00',
+                end_time: '10:00',
+                payment_status: 'pending',
+                payment_amount: 0,
+                notes: ''
+            });
+        }
         setShowModal(true);
     };
 
     const handleCloseModal = () => {
         setShowModal(false);
+        setSelectedReservation(null);
     };
 
     const handleOpenSpaceModal = (space = null) => {
@@ -152,12 +175,19 @@ const AlquileresReservas = () => {
 
         try {
             const total = calculateTotal();
-            await reservationsAPI.create({
+            const payload = {
                 ...formData,
                 space_id: parseInt(formData.space_id),
                 total_amount: total
-            });
-            showNotification('✅ Reserva creada exitosamente', 'success');
+            };
+
+            if (selectedReservation) {
+                await reservationsAPI.update(selectedReservation.id, payload);
+                showNotification('✅ Reserva actualizada exitosamente', 'success');
+            } else {
+                await reservationsAPI.create(payload);
+                showNotification('✅ Reserva creada exitosamente', 'success');
+            }
             handleCloseModal();
             loadData();
         } catch (error) {
@@ -217,6 +247,16 @@ const AlquileresReservas = () => {
         return <span className="badge" style={{ background: style.bg, color: style.color }}>{style.label}</span>;
     };
 
+    const getPaymentBadge = (status) => {
+        const styles = {
+            pending: { bg: 'rgba(234, 179, 8, 0.2)', color: '#eab308', label: 'Sin Pagar' },
+            partial: { bg: 'rgba(56, 188, 248, 0.2)', color: '#38bdf8', label: 'Seña' },
+            paid: { bg: 'rgba(22, 163, 74, 0.2)', color: '#16a34a', label: 'Pagado' }
+        };
+        const style = styles[status] || styles.pending;
+        return <span className="badge" style={{ background: style.bg, color: style.color, marginLeft: '8px' }}>{style.label}</span>;
+    };
+
     const getSpaceTypeBadge = (type) => {
         const labels = {
             deportivo: 'Deportivo',
@@ -264,7 +304,7 @@ const AlquileresReservas = () => {
             <div className="page-header">
                 <h1><i className='bx bx-calendar-check'></i> Alquileres y Reservas</h1>
                 {activeTab === 'reservas' ? (
-                    <button className="btn-primary" onClick={handleOpenModal}>
+                    <button className="btn-primary" onClick={() => handleOpenModal()}>
                         <i className='bx bx-plus'></i> Nueva Reserva
                     </button>
                 ) : (
@@ -301,7 +341,7 @@ const AlquileresReservas = () => {
                                         <th>Horario</th>
                                         <th>Espacio</th>
                                         <th>Cliente</th>
-                                        <th>Monto</th>
+                                        <th>Monto / Pago</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -321,9 +361,15 @@ const AlquileresReservas = () => {
                                                     <div>{reserva.client_name}</div>
                                                     {reserva.client_phone && <small>{reserva.client_phone}</small>}
                                                 </td>
-                                                <td className="amount">${reserva.total_amount?.toLocaleString('es-AR')}</td>
+                                                <td>
+                                                    <div className="amount">${reserva.total_amount?.toLocaleString('es-AR')}</div>
+                                                    {getPaymentBadge(reserva.payment_status)}
+                                                </td>
                                                 <td>{getStatusBadge(reserva.status)}</td>
                                                 <td className="actions">
+                                                    <button className="action-btn edit" title="Editar" onClick={() => handleOpenModal(reserva)}>
+                                                        <i className='bx bx-edit'></i>
+                                                    </button>
                                                     {reserva.status === 'pending' && (
                                                         <button className="action-btn confirm" title="Confirmar" onClick={() => handleConfirm(reserva.id)}>
                                                             <i className='bx bx-check'></i>
@@ -390,7 +436,7 @@ const AlquileresReservas = () => {
             <Modal
                 isOpen={showModal}
                 onClose={handleCloseModal}
-                title="Nueva Reserva"
+                title={selectedReservation ? "Editar Reserva" : "Nueva Reserva"}
                 size="md"
             >
                 <form onSubmit={handleSubmit}>
@@ -474,12 +520,38 @@ const AlquileresReservas = () => {
                             rows="2"
                         />
                     </div>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Estado del Pago</label>
+                            <select
+                                value={formData.payment_status}
+                                onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
+                                required
+                            >
+                                <option value="pending">Pendiente (Sin Pagar)</option>
+                                <option value="partial">Seña (Pago Parcial)</option>
+                                <option value="paid">Pagado Totalmente</option>
+                            </select>
+                        </div>
+                        {formData.payment_status === 'partial' && (
+                            <div className="form-group">
+                                <label>Monto de Seña Abonado ($)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={formData.payment_amount}
+                                    onChange={(e) => setFormData({ ...formData, payment_amount: e.target.value })}
+                                    required
+                                />
+                            </div>
+                        )}
+                    </div>
                     <div className="reservation-total">
                         <strong>Total Estimado: ${calculateTotal().toLocaleString('es-AR')}</strong>
                     </div>
                     <div className="form-actions">
                         <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
-                        <button type="submit" className="btn-primary">Crear Reserva</button>
+                        <button type="submit" className="btn-primary">{selectedReservation ? 'Guardar Cambios' : 'Crear Reserva'}</button>
                     </div>
                 </form>
             </Modal>

@@ -20,6 +20,7 @@ const GestionPagos = () => {
         amount: '',
         concept: 'mensualidad',
         payment_method: 'efectivo',
+        status: 'completed',
         notes: ''
     });
 
@@ -68,6 +69,7 @@ const GestionPagos = () => {
                 amount: '',
                 concept: 'mensualidad',
                 payment_method: 'efectivo',
+                status: 'completed',
                 notes: ''
             });
         } else {
@@ -106,6 +108,7 @@ const GestionPagos = () => {
                     amount: parseFloat(formData.amount),
                     concept: formData.concept,
                     payment_method: formData.payment_method,
+                    status: formData.status,
                     notes: formData.notes
                 });
 
@@ -113,7 +116,8 @@ const GestionPagos = () => {
                 if (formData.plan_id) {
                     await paymentsAPI.createSubscription({
                         user_id: parseInt(formData.user_id),
-                        plan_id: parseInt(formData.plan_id)
+                        plan_id: parseInt(formData.plan_id),
+                        status: formData.status === 'completed' ? 'active' : 'pending'
                     });
                 }
 
@@ -347,17 +351,29 @@ const GestionPagos = () => {
                                     </select>
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label>Método de Pago</label>
-                                <select
-                                    value={formData.payment_method}
-                                    onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                                >
-                                    <option value="efectivo">Efectivo</option>
-                                    <option value="tarjeta">Tarjeta</option>
-                                    <option value="transferencia">Transferencia</option>
-                                    <option value="mercadopago">MercadoPago</option>
-                                </select>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Método de Pago</label>
+                                    <select
+                                        value={formData.payment_method}
+                                        onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                                    >
+                                        <option value="efectivo">Efectivo</option>
+                                        <option value="tarjeta">Tarjeta</option>
+                                        <option value="transferencia">Transferencia</option>
+                                        <option value="mercadopago">MercadoPago</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Estado de Transacción</label>
+                                    <select
+                                        value={formData.status}
+                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                    >
+                                        <option value="completed">Aprobado / Pagado</option>
+                                        <option value="pending">Pendiente de Verificación (Transferencia/Débito)</option>
+                                    </select>
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label>Notas</label>

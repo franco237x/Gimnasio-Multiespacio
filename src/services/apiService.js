@@ -107,6 +107,7 @@ export const reservationsAPI = {
     getPending: () => fetchAPI('/reservations/pending'),
     getUpcoming: (days = 7) => fetchAPI(`/reservations/upcoming?days=${days}`),
     create: (reservationData) => fetchAPI('/reservations', { method: 'POST', body: JSON.stringify(reservationData) }),
+    update: (id, reservationData) => fetchAPI(`/reservations/${id}`, { method: 'PUT', body: JSON.stringify(reservationData) }),
     confirm: (id) => fetchAPI(`/reservations/${id}/confirm`, { method: 'PATCH' }),
     cancel: (id) => fetchAPI(`/reservations/${id}/cancel`, { method: 'PATCH' }),
     delete: (id) => fetchAPI(`/reservations/${id}`, { method: 'DELETE' }),

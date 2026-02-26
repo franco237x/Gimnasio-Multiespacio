@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Reservation = require('../models/Reservation');
 const Space = require('../models/Space');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole, ROLES } = require('../middleware/auth');
 
 // ============= ESPACIOS =============
 
@@ -24,7 +24,7 @@ router.get('/spaces', authenticateToken, async (req, res) => {
 });
 
 // POST /api/reservations/spaces - Crear espacio
-router.post('/spaces', authenticateToken, async (req, res) => {
+router.post('/spaces', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const newSpace = await Space.create(req.body);
         res.status(201).json({ success: true, data: newSpace });
@@ -35,7 +35,7 @@ router.post('/spaces', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/reservations/spaces/:id - Actualizar espacio
-router.put('/spaces/:id', authenticateToken, async (req, res) => {
+router.put('/spaces/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const updatedSpace = await Space.update(req.params.id, req.body);
         res.json({ success: true, data: updatedSpace });
@@ -46,7 +46,7 @@ router.put('/spaces/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/reservations/spaces/:id - Eliminar espacio
-router.delete('/spaces/:id', authenticateToken, async (req, res) => {
+router.delete('/spaces/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const deleted = await Space.delete(req.params.id);
         if (!deleted) {
@@ -80,8 +80,8 @@ router.get('/spaces/:id/availability', authenticateToken, async (req, res) => {
 
 // ============= RESERVAS =============
 
-// GET /api/reservations - Listar reservas
-router.get('/', authenticateToken, async (req, res) => {
+// GET /api/reservations - Listar reservas (Requiere ADMIN/RECEPCIONISTA para evitar fuga local de datos)
+router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { status, startDate, endDate, spaceId } = req.query;
         const reservations = await Reservation.findAll({ status, startDate, endDate, spaceId });
@@ -93,7 +93,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reservations/pending - Reservas pendientes
-router.get('/pending', authenticateToken, async (req, res) => {
+router.get('/pending', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const reservations = await Reservation.getPending();
         res.json({ success: true, data: reservations });
@@ -104,7 +104,7 @@ router.get('/pending', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reservations/upcoming - Próximas reservas
-router.get('/upcoming', authenticateToken, async (req, res) => {
+router.get('/upcoming', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { days } = req.query;
         const reservations = await Reservation.getUpcoming(parseInt(days) || 7);
@@ -116,7 +116,7 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reservations/date/:date - Reservas por fecha
-router.get('/date/:date', authenticateToken, async (req, res) => {
+router.get('/date/:date', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const reservations = await Reservation.findByDate(req.params.date);
         res.json({ success: true, data: reservations });
@@ -127,7 +127,7 @@ router.get('/date/:date', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reservations/:id - Obtener reserva por ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const reservation = await Reservation.findById(req.params.id);
         if (!reservation) {
@@ -141,7 +141,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/reservations - Crear reserva
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { space_id, client_name, reservation_date, start_time, end_time, total_amount } = req.body;
 
@@ -161,7 +161,10 @@ router.post('/', authenticateToken, async (req, res) => {
             });
         }
 
-        const newReservation = await Reservation.create(req.body);
+        const newReservation = await Reservation.create({
+            ...req.body,
+            created_by: req.user.id
+        });
         res.status(201).json({ success: true, data: newReservation });
     } catch (error) {
         console.error('Error al crear reserva:', error);
@@ -169,8 +172,38 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
+// PUT /api/reservations/:id - Actualizar (Editar) reserva
+router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
+    try {
+        const { space_id, client_name, reservation_date, start_time, end_time } = req.body;
+
+        if (!space_id || !client_name || !reservation_date || !start_time || !end_time) {
+            return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
+        }
+
+        if (start_time >= end_time) {
+            return res.status(400).json({ success: false, message: 'La hora de inicio debe ser menor a la hora de fin' });
+        }
+
+        // Verificar disponibilidad EXCLUYENDO esta reserva
+        const isAvailable = await Space.checkAvailability(space_id, reservation_date, start_time, end_time, req.params.id);
+        if (!isAvailable) {
+            return res.status(400).json({ success: false, message: 'El espacio está ocupado en ese horario por otra reserva o clase' });
+        }
+
+        const updatedReservation = await Reservation.update(req.params.id, req.body);
+        if (!updatedReservation) {
+            return res.status(404).json({ success: false, message: 'Reserva no encontrada' });
+        }
+        res.json({ success: true, data: updatedReservation });
+    } catch (error) {
+        console.error('Error al actualizar reserva:', error);
+        res.status(500).json({ success: false, message: 'Error al actualizar reserva' });
+    }
+});
+
 // PATCH /api/reservations/:id/confirm - Confirmar reserva
-router.patch('/:id/confirm', authenticateToken, async (req, res) => {
+router.patch('/:id/confirm', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const reservation = await Reservation.confirm(req.params.id);
         res.json({ success: true, data: reservation, message: 'Reserva confirmada' });
@@ -181,7 +214,7 @@ router.patch('/:id/confirm', authenticateToken, async (req, res) => {
 });
 
 // PATCH /api/reservations/:id/cancel - Cancelar reserva
-router.patch('/:id/cancel', authenticateToken, async (req, res) => {
+router.patch('/:id/cancel', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const reservation = await Reservation.cancel(req.params.id);
         res.json({ success: true, data: reservation, message: 'Reserva cancelada' });
@@ -192,7 +225,7 @@ router.patch('/:id/cancel', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/reservations/:id - Eliminar reserva
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const deleted = await Reservation.delete(req.params.id);
         if (!deleted) {
