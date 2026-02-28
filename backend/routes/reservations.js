@@ -24,7 +24,7 @@ router.get('/spaces', authenticateToken, async (req, res) => {
 });
 
 // POST /api/reservations/spaces - Crear espacio
-router.post('/spaces', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.post('/spaces', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const newSpace = await Space.create(req.body);
         res.status(201).json({ success: true, data: newSpace });
@@ -35,7 +35,7 @@ router.post('/spaces', authenticateToken, requireRole(ROLES.ADMINISTRADOR), asyn
 });
 
 // PUT /api/reservations/spaces/:id - Actualizar espacio
-router.put('/spaces/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.put('/spaces/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const updatedSpace = await Space.update(req.params.id, req.body);
         res.json({ success: true, data: updatedSpace });
@@ -46,7 +46,7 @@ router.put('/spaces/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), a
 });
 
 // DELETE /api/reservations/spaces/:id - Eliminar espacio
-router.delete('/spaces/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.delete('/spaces/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const deleted = await Space.delete(req.params.id);
         if (!deleted) {
@@ -161,10 +161,47 @@ router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEP
             });
         }
 
+        // Manejo de pagos y caja
+        const { payment_status, payment_amount, payment_method } = req.body;
+        const totalAmount = req.body.total_amount || 0;
+        let amountToPay = 0;
+
+        if (payment_status === 'paid') amountToPay = totalAmount;
+        if (payment_status === 'partial') amountToPay = payment_amount;
+
+        let activeRegister = null;
+        if (amountToPay > 0) {
+            const CashRegister = require('../models/CashRegister');
+            activeRegister = await CashRegister.getCurrentOpen();
+
+            // Si intenta pagar en efectivo y no hay caja abierta, bloqueamos la creación de la reserva.
+            if (!activeRegister && (payment_method === 'efectivo' || !payment_method)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Debes abrir una caja en Gestión de Pagos para cobrar en efectivo.'
+                });
+            }
+        }
+
         const newReservation = await Reservation.create({
             ...req.body,
             created_by: req.user.id
         });
+
+        // Registrar el pago si corresponde
+        if (amountToPay > 0) {
+            const Payment = require('../models/Payment');
+            await Payment.create({
+                user_id: 1, // Usuario Genérico / Mostrador si no se tiene ID del cliente
+                amount: amountToPay,
+                concept: 'alquiler',
+                payment_method: payment_method || 'efectivo',
+                notes: `Reserva #${newReservation.id} - ${client_name}`,
+                status: 'completed',
+                cash_register_id: activeRegister ? activeRegister.id : null
+            });
+        }
+
         res.status(201).json({ success: true, data: newReservation });
     } catch (error) {
         console.error('Error al crear reserva:', error);

@@ -30,6 +30,7 @@ const AlquileresReservas = () => {
         end_time: '10:00',
         payment_status: 'pending',
         payment_amount: 0,
+        payment_method: 'efectivo',
         notes: ''
     });
 
@@ -87,6 +88,7 @@ const AlquileresReservas = () => {
                 end_time: reserva.end_time.slice(0, 5),
                 payment_status: reserva.payment_status || 'pending',
                 payment_amount: reserva.payment_amount || 0,
+                payment_method: reserva.payment_method || 'efectivo',
                 notes: reserva.notes || ''
             });
         } else {
@@ -102,6 +104,7 @@ const AlquileresReservas = () => {
                 end_time: '10:00',
                 payment_status: 'pending',
                 payment_amount: 0,
+                payment_method: 'efectivo',
                 notes: ''
             });
         }
@@ -178,7 +181,8 @@ const AlquileresReservas = () => {
             const payload = {
                 ...formData,
                 space_id: parseInt(formData.space_id),
-                total_amount: total
+                total_amount: total,
+                payment_method: formData.payment_method
             };
 
             if (selectedReservation) {
@@ -533,17 +537,34 @@ const AlquileresReservas = () => {
                                 <option value="paid">Pagado Totalmente</option>
                             </select>
                         </div>
-                        {formData.payment_status === 'partial' && (
-                            <div className="form-group">
-                                <label>Monto de Seña Abonado ($)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={formData.payment_amount}
-                                    onChange={(e) => setFormData({ ...formData, payment_amount: e.target.value })}
-                                    required
-                                />
-                            </div>
+                        {formData.payment_status !== 'pending' && (
+                            <>
+                                {formData.payment_status === 'partial' && (
+                                    <div className="form-group">
+                                        <label>Monto de Seña Abonado ($)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={formData.payment_amount}
+                                            onChange={(e) => setFormData({ ...formData, payment_amount: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                )}
+                                <div className="form-group">
+                                    <label>Método de Pago</label>
+                                    <select
+                                        value={formData.payment_method}
+                                        onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                                        required
+                                    >
+                                        <option value="efectivo">Efectivo</option>
+                                        <option value="tarjeta">Tarjeta</option>
+                                        <option value="transferencia">Transferencia</option>
+                                        <option value="mercadopago">MercadoPago</option>
+                                    </select>
+                                </div>
+                            </>
                         )}
                     </div>
                     <div className="reservation-total">

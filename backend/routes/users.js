@@ -4,7 +4,7 @@ const User = require('../models/User');
 const { authenticateToken, requireRole, ROLES } = require('../middleware/auth');
 
 // GET /api/users - Listar todos los usuarios
-router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { role, search, status } = req.query;
         let users = await User.findAll();
@@ -32,7 +32,7 @@ router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req,
 });
 
 // GET /api/users/:id - Obtener usuario por ID
-router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -46,9 +46,16 @@ router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (r
 });
 
 // POST /api/users - Crear usuario
-router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { name, email, password, phone, role_id } = req.body;
+
+        // Validar permisos del Recepcionista
+        if (req.user.role_id === ROLES.RECEPCIONISTA) {
+            if (role_id === ROLES.ADMINISTRADOR || role_id === ROLES.RECEPCIONISTA) {
+                return res.status(403).json({ success: false, message: 'No tienes permisos para crear usuarios con este rol' });
+            }
+        }
 
         // Validar campos requeridos
         if (!name || !email || !password) {
@@ -85,7 +92,7 @@ router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req
 });
 
 // PUT /api/users/:id - Actualizar usuario
-router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { name, email, phone, role_id, is_active, password } = req.body;
         const targetId = parseInt(req.params.id);
@@ -102,6 +109,16 @@ router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (r
         const user = await User.findById(targetId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        }
+
+        // Restringir operaciones para el Recepcionista
+        if (req.user.role_id === ROLES.RECEPCIONISTA) {
+            if (user.role_id === ROLES.ADMINISTRADOR || user.role_id === ROLES.RECEPCIONISTA) {
+                return res.status(403).json({ success: false, message: 'No tienes permisos para modificar a este usuario' });
+            }
+            if (role_id !== undefined && (role_id === ROLES.ADMINISTRADOR || role_id === ROLES.RECEPCIONISTA)) {
+                return res.status(403).json({ success: false, message: 'No puedes asignar este rol' });
+            }
         }
 
         // Prevención de auto-modificación riesgosa
@@ -123,10 +140,15 @@ router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (r
 });
 
 // DELETE /api/users/:id - Eliminar usuario
-router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         if (req.user.id === parseInt(req.params.id)) {
             return res.status(400).json({ success: false, message: 'No puedes eliminar tu propia cuenta' });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (user && req.user.role_id === ROLES.RECEPCIONISTA && (user.role_id === ROLES.ADMINISTRADOR || user.role_id === ROLES.RECEPCIONISTA)) {
+            return res.status(403).json({ success: false, message: 'No tienes permisos para eliminar a este usuario' });
         }
 
         const deleted = await User.delete(req.params.id);
@@ -159,7 +181,7 @@ router.patch('/:id/role', authenticateToken, requireRole(ROLES.ADMINISTRADOR), a
 });
 
 // GET /api/users/role/:roleName - Obtener usuarios por nombre de rol
-router.get('/role/:roleName', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.get('/role/:roleName', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const users = await User.findAll();
         const filteredUsers = users.filter(u =>

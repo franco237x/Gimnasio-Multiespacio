@@ -116,7 +116,7 @@ class Activity {
 
         await executeQuery(query, [
             name, teacher_id, space_id, day_of_week.toLowerCase(),
-            start_time, end_time, capacity, newStatus, id
+            start_time, end_time, capacity || 20, newStatus, id
         ]);
 
         return await Activity.findById(id);

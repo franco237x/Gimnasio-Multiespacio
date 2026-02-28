@@ -41,6 +41,11 @@ const GestionPagos = () => {
         notes: ''
     });
 
+    const [cancelData, setCancelData] = useState({
+        id: null,
+        reason: ''
+    });
+
     useEffect(() => {
         loadData();
     }, []);
@@ -78,7 +83,7 @@ const GestionPagos = () => {
         addToast(message, type);
     };
 
-    const handleOpenModal = (type) => {
+    const handleOpenModal = (type, data = null) => {
         setModalType(type);
         if (type === 'pago') {
             setFormData({
@@ -101,6 +106,8 @@ const GestionPagos = () => {
             setCajaFormData({ opening_balance: 0, counted_balance: 0, notes: '' });
         } else if (type === 'ticket') {
             // Se maneja aparte
+        } else if (type === 'cancelar_pago') {
+            setCancelData({ id: data?.id, reason: '' });
         }
         setShowModal(true);
     };
@@ -159,6 +166,10 @@ const GestionPagos = () => {
             } else if (modalType === 'cerrar_caja') {
                 await cashRegistersAPI.close(cajaActiva.id, parseFloat(cajaFormData.counted_balance), cajaFormData.notes);
                 showNotification('✅ Caja Cerrada Exitosamente', 'success');
+            } else if (modalType === 'cancelar_pago') {
+                if (!cancelData.reason) throw new Error("Debes indicar un motivo de anulación");
+                await paymentsAPI.cancel(cancelData.id, cancelData.reason);
+                showNotification('✅ Pago Anulado contablemente', 'success');
             }
 
             handleCloseModal();
@@ -353,18 +364,19 @@ const GestionPagos = () => {
                                 <thead>
                                     <tr>
                                         <th>Fecha</th>
-                                        <th>Alumno</th>
+                                        <th>Cliente / Alumno</th>
                                         <th>Concepto</th>
                                         <th>Método</th>
                                         <th>Monto</th>
                                         <th>Estado</th>
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {historialPagos.map(pago => (
                                         <tr key={pago.id}>
                                             <td>{new Date(pago.payment_date).toLocaleDateString('es-AR')}</td>
-                                            <td>{pago.user_name}</td>
+                                            <td>{pago.concept === 'alquiler' && pago.notes?.includes(' - ') ? pago.notes.split(' - ')[1] : pago.user_name}</td>
                                             <td>{getConceptoLabel(pago.concept)}</td>
                                             <td>{getMetodoPagoLabel(pago.payment_method)}</td>
                                             <td className="amount">${pago.amount?.toLocaleString('es-AR')}</td>
@@ -377,6 +389,11 @@ const GestionPagos = () => {
                                                 <button className="btn-icon" title="Imprimir Ticket" onClick={() => handlePrintTicket(pago)}>
                                                     <i className='bx bx-printer'></i>
                                                 </button>
+                                                {pago.status === 'completed' && (
+                                                    <button className="btn-icon" style={{ color: '#dc2626' }} title="Anular Pago" onClick={() => handleOpenModal('cancelar_pago', pago)}>
+                                                        <i className='bx bx-x-circle'></i>
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -391,7 +408,7 @@ const GestionPagos = () => {
             <Modal
                 isOpen={showModal}
                 onClose={handleCloseModal}
-                title={modalType === 'pago' ? 'Registrar Pago' : modalType === 'cuota' ? 'Nuevo Plan/Cuota' : modalType === 'abrir_caja' ? 'Abrir Caja' : modalType === 'cerrar_caja' ? 'Cerrar Caja' : 'Ticket de Pago'}
+                title={modalType === 'pago' ? 'Registrar Pago' : modalType === 'cuota' ? 'Nuevo Plan/Cuota' : modalType === 'abrir_caja' ? 'Abrir Caja' : modalType === 'cerrar_caja' ? 'Cerrar Caja' : modalType === 'cancelar_pago' ? 'Anular Pago Contablemente' : 'Ticket de Pago'}
                 size={modalType === 'ticket' ? "sm" : "md"}
             >
                 <form onSubmit={handleSubmit}>
@@ -563,7 +580,7 @@ const GestionPagos = () => {
                             <div className="ticket-body">
                                 <p><strong>Fecha:</strong> {new Date(selectedPago.payment_date).toLocaleString('es-AR')}</p>
                                 <p><strong>Trámite:</strong> #{selectedPago.id}</p>
-                                <p><strong>Alumno:</strong> {selectedPago.user_name}</p>
+                                <p><strong>Cliente:</strong> {selectedPago.concept === 'alquiler' && selectedPago.notes?.includes(' - ') ? selectedPago.notes.split(' - ')[1] : selectedPago.user_name}</p>
                                 <p><strong>Concepto:</strong> {getConceptoLabel(selectedPago.concept)}</p>
                                 <p><strong>Medio de Pago:</strong> {getMetodoPagoLabel(selectedPago.payment_method)}</p>
                                 <p><strong>Estado:</strong> {selectedPago.status}</p>
@@ -574,13 +591,29 @@ const GestionPagos = () => {
                                 <p>¡Gracias por elegirnos!</p>
                             </div>
                         </div>
+                    ) : modalType === 'cancelar_pago' ? (
+                        <>
+                            <div className="form-group">
+                                <label>Motivo de la Anulación</label>
+                                <textarea
+                                    value={cancelData.reason}
+                                    onChange={(e) => setCancelData({ ...cancelData, reason: e.target.value })}
+                                    rows="3"
+                                    required
+                                    placeholder="Ej: Error de tipeo, devolución, etc."
+                                />
+                                <small style={{ color: '#dc2626', marginTop: '0.5rem', display: 'block' }}>
+                                    <i className='bx bx-error-circle'></i> Atención: Esta acción no borra el pago, pero lo marca como ANULADO y resta su valor del flujo de caja. Esta acción es irreversible.
+                                </small>
+                            </div>
+                        </>
                     ) : null}
 
                     {modalType !== 'ticket' && (
                         <div className="form-actions">
                             <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
-                            <button type="submit" className="btn-primary">
-                                {modalType === 'pago' ? 'Registrar Pago' : modalType === 'cuota' ? 'Crear Plan' : modalType === 'abrir_caja' ? 'Abrir Caja Blanca' : 'Ejecutar Cierre'}
+                            <button type="submit" className={modalType === 'cancelar_pago' ? "btn-danger" : "btn-primary"}>
+                                {modalType === 'pago' ? 'Registrar Pago' : modalType === 'cuota' ? 'Crear Plan' : modalType === 'abrir_caja' ? 'Abrir Caja' : modalType === 'cancelar_pago' ? 'Confirmar Anulación' : 'Ejecutar Cierre'}
                             </button>
                         </div>
                     )}

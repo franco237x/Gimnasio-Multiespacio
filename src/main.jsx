@@ -45,7 +45,7 @@ createRoot(document.getElementById('root')).render(
           }>
             {/* Rutas de Administrador */}
             <Route path="usuarios" element={
-              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
                 <GestionUsuarios />
               </RoleProtectedRoute>
             } />
@@ -72,18 +72,17 @@ createRoot(document.getElementById('root')).render(
               </RoleProtectedRoute>
             } />
 
-            {/* Rutas compartidas Admin/Profesor */}
-            <Route path="actividades" element={
-              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.PROFESOR]}>
-                <GestionActividades />
-              </RoleProtectedRoute>
-            } />
+            {/* Rutas compartidas Admin/Recepcionista/Profesor */}
             <Route path="alquileres" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR]}>
                 <AlquileresReservas />
               </RoleProtectedRoute>
             } />
-
+            <Route path="actividades" element={
+              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
+                <GestionActividades />
+              </RoleProtectedRoute>
+            } />
             {/* Rutas de Profesor */}
             <Route path="mis-clases" element={
               <RoleProtectedRoute allowedRoles={[ROLES.PROFESOR]}>
