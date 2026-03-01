@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { paymentsAPI, usersAPI, cashRegistersAPI } from '../services/apiService';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
@@ -9,6 +10,7 @@ const GestionPagos = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalType, setModalType] = useState('pago');
     const { toasts, addToast, removeToast } = useToast();
+    const { user: currentUser } = useAuth();
     const [alumnos, setAlumnos] = useState([]);
     const [planes, setPlanes] = useState([]);
     const [historialPagos, setHistorialPagos] = useState([]);
@@ -288,9 +290,11 @@ const GestionPagos = () => {
                         <div className="cuotas-section">
                             <div className="section-header">
                                 <h3>Planes de Membresía</h3>
-                                <button className="btn-primary" onClick={() => handleOpenModal('cuota')}>
-                                    <i className='bx bx-plus'></i> Nuevo Plan
-                                </button>
+                                {currentUser?.role_id === 1 && (
+                                    <button className="btn-primary" onClick={() => handleOpenModal('cuota')}>
+                                        <i className='bx bx-plus'></i> Nuevo Plan
+                                    </button>
+                                )}
                             </div>
                             <div className="plans-table-container">
                                 <table className="payments-table">

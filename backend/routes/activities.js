@@ -179,4 +179,35 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
     }
 });
 
+// =================== ASISTENCIA =================== //
+const Attendance = require('../models/Attendance');
+
+// GET /api/activities/:id/attendance?date=YYYY-MM-DD
+router.get('/:id/attendance', authenticateToken, async (req, res) => {
+    try {
+        const date = req.query.date;
+        const attendance = await Attendance.getByActivityAndDate(req.params.id, date);
+        res.json({ success: true, data: attendance });
+    } catch (error) {
+        console.error('Error al obtener asistencia:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener asistencia' });
+    }
+});
+
+// POST /api/activities/:id/attendance
+router.post('/:id/attendance', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR), async (req, res) => {
+    try {
+        const { attendanceList } = req.body; // Array de { user_id, status }
+        if (!attendanceList || !Array.isArray(attendanceList)) {
+            return res.status(400).json({ success: false, message: 'Se requiere una lista de asistencias válida' });
+        }
+
+        await Attendance.markBulkAttendance(req.params.id, attendanceList, req.user.id);
+        res.json({ success: true, message: 'Asistencia registrada correctamente' });
+    } catch (error) {
+        console.error('Error al registrar asistencia:', error);
+        res.status(500).json({ success: false, message: 'Error al registrar asistencia' });
+    }
+});
+
 module.exports = router;

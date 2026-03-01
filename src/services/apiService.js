@@ -64,6 +64,8 @@ export const activitiesAPI = {
     enrollStudent: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll`, { method: 'POST', body: JSON.stringify({ user_id: userId }) }),
     unenrollStudent: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll/${userId}`, { method: 'DELETE' }),
     getStudents: (activityId) => fetchAPI(`/activities/${activityId}/students`),
+    getAttendance: (activityId, date) => fetchAPI(`/activities/${activityId}/attendance${date ? `?date=${date}` : ''}`),
+    markAttendance: (activityId, attendanceList) => fetchAPI(`/activities/${activityId}/attendance`, { method: 'POST', body: JSON.stringify({ attendanceList }) })
 };
 
 // ============= PAGOS =============

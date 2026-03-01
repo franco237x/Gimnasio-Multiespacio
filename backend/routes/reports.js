@@ -4,16 +4,22 @@ const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
 const Attendance = require('../models/Attendance');
 const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole, ROLES } = require('../middleware/auth');
 
 // GET /api/reports/dashboard - Estadísticas para el dashboard principal
 router.get('/dashboard', authenticateToken, async (req, res) => {
     try {
-        // Estadísticas de pagos del mes
-        const paymentStats = await Payment.getStats('month');
+        const userRoleId = req.user.role_id;
+        const isAdminOrRecep = userRoleId === 1 || userRoleId === 2;
 
-        // Estadísticas de suscripciones
-        const subscriptionStats = await Subscription.getStats();
+        // Estadísticas de pagos del mes y suscripciones (SOLO ADMIN/RECEPCIONISTA)
+        let paymentStats = {};
+        let subscriptionStats = {};
+
+        if (isAdminOrRecep) {
+            paymentStats = await Payment.getStats('month');
+            subscriptionStats = await Subscription.getStats();
+        }
 
         // Contar usuarios activos (alumnos con suscripción activa)
         const activeUsersQuery = `
@@ -58,7 +64,7 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reports/income - Reporte de ingresos
-router.get('/income', authenticateToken, async (req, res) => {
+router.get('/income', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const { period, startDate, endDate } = req.query;
 
@@ -81,7 +87,7 @@ router.get('/income', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reports/activities - Estadísticas de actividades
-router.get('/activities', authenticateToken, async (req, res) => {
+router.get('/activities', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         // Actividades más populares (por inscripciones)
         const popularQuery = `
@@ -128,7 +134,7 @@ router.get('/activities', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reports/attendance - Estadísticas de asistencia
-router.get('/attendance', authenticateToken, async (req, res) => {
+router.get('/attendance', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 
