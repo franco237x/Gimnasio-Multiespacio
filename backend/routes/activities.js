@@ -140,9 +140,28 @@ router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.
 });
 
 // POST /api/activities/:id/enroll - Inscribir alumno
-router.post('/:id/enroll', authenticateToken, async (req, res) => {
+router.post('/:id/enroll', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
     try {
         const { user_id } = req.body;
+
+        // Si es Profesor, verifica que la actividad sea suya
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const activity = await Activity.findById(req.params.id);
+            if (!activity) {
+                return res.status(404).json({ success: false, message: 'Actividad no encontrada' });
+            }
+            if (activity.teacher_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés gestionar alumnos de tus propias clases' });
+            }
+        }
+
+        // Si es Alumno, solo puede inscribirse a sí mismo
+        if (req.user.role_id === ROLES.ALUMNO) {
+            if (parseInt(user_id) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedes inscribirte a ti mismo' });
+            }
+        }
+
         const activity = await Activity.enrollStudent(req.params.id, user_id);
         res.json({ success: true, data: activity, message: 'Inscripción exitosa' });
     } catch (error) {
@@ -155,8 +174,26 @@ router.post('/:id/enroll', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/activities/:id/enroll/:userId - Cancelar inscripción
-router.delete('/:id/enroll/:userId', authenticateToken, async (req, res) => {
+router.delete('/:id/enroll/:userId', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
     try {
+        // Si es Profesor, verifica que la actividad sea suya
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const activity = await Activity.findById(req.params.id);
+            if (!activity) {
+                return res.status(404).json({ success: false, message: 'Actividad no encontrada' });
+            }
+            if (activity.teacher_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés gestionar alumnos de tus propias clases' });
+            }
+        }
+
+        // Si es Alumno, solo puede desinscribirse a sí mismo
+        if (req.user.role_id === ROLES.ALUMNO) {
+            if (parseInt(req.params.userId) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedes desinscribirte a ti mismo' });
+            }
+        }
+
         const unenrolled = await Activity.unenrollStudent(req.params.id, req.params.userId);
         if (!unenrolled) {
             return res.status(404).json({ success: false, message: 'Inscripción no encontrada' });
@@ -169,8 +206,19 @@ router.delete('/:id/enroll/:userId', authenticateToken, async (req, res) => {
 });
 
 // GET /api/activities/:id/students - Obtener alumnos inscritos
-router.get('/:id/students', authenticateToken, async (req, res) => {
+router.get('/:id/students', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR), async (req, res) => {
     try {
+        // Si es Profesor, solo puede ver alumnos de sus propias clases
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const activity = await Activity.findById(req.params.id);
+            if (!activity) {
+                return res.status(404).json({ success: false, message: 'Actividad no encontrada' });
+            }
+            if (activity.teacher_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés ver alumnos de tus propias clases' });
+            }
+        }
+
         const students = await Activity.getEnrolledStudents(req.params.id);
         res.json({ success: true, data: students });
     } catch (error) {
@@ -179,12 +227,41 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/activities/student/:userId/enrollments - Obtener actividades en las que está inscripto un alumno
+router.get('/student/:userId/enrollments', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
+    try {
+        if (req.user.role_id === ROLES.ALUMNO && parseInt(req.params.userId) !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Solo puedes ver tus propias inscripciones' });
+        }
+
+        // Si es profesor, quizá no pueda ver que hace el alumno en OTROS profes, pero podemos dejarlo simple por ahora
+        // O restringir a admin y alumno.
+
+        const enrollments = await Activity.getStudentEnrollments(req.params.userId);
+        res.json({ success: true, data: enrollments });
+    } catch (error) {
+        console.error('Error al obtener inscripciones del alumno:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener inscripciones' });
+    }
+});
+
 // =================== ASISTENCIA =================== //
 const Attendance = require('../models/Attendance');
 
 // GET /api/activities/:id/attendance?date=YYYY-MM-DD
-router.get('/:id/attendance', authenticateToken, async (req, res) => {
+router.get('/:id/attendance', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR), async (req, res) => {
     try {
+        // Si es Profesor, solo puede ver asistencia de sus propias clases
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const activity = await Activity.findById(req.params.id);
+            if (!activity) {
+                return res.status(404).json({ success: false, message: 'Actividad no encontrada' });
+            }
+            if (activity.teacher_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés ver asistencia de tus propias clases' });
+            }
+        }
+
         const date = req.query.date;
         const attendance = await Attendance.getByActivityAndDate(req.params.id, date);
         res.json({ success: true, data: attendance });
@@ -197,7 +274,18 @@ router.get('/:id/attendance', authenticateToken, async (req, res) => {
 // POST /api/activities/:id/attendance
 router.post('/:id/attendance', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR), async (req, res) => {
     try {
-        const { attendanceList } = req.body; // Array de { user_id, status }
+        // Si es Profesor, solo puede registrar asistencia en sus propias clases
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const activity = await Activity.findById(req.params.id);
+            if (!activity) {
+                return res.status(404).json({ success: false, message: 'Actividad no encontrada' });
+            }
+            if (activity.teacher_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés registrar asistencia en tus propias clases' });
+            }
+        }
+
+        const { attendanceList } = req.body;
         if (!attendanceList || !Array.isArray(attendanceList)) {
             return res.status(400).json({ success: false, message: 'Se requiere una lista de asistencias válida' });
         }

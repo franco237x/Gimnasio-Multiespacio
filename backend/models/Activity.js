@@ -186,6 +186,24 @@ class Activity {
         return await executeQuery(query, [activityId]);
     }
 
+    // Obtener las actividades en las que está inscripto un alumno
+    static async getStudentEnrollments(userId) {
+        const query = `
+      SELECT a.*, 
+             u.name as teacher_name,
+             s.name as space_name,
+             ae.enrolled_at, ae.status as enrollment_status
+      FROM activity_enrollments ae
+      JOIN activities a ON ae.activity_id = a.id
+      LEFT JOIN users u ON a.teacher_id = u.id
+      LEFT JOIN spaces s ON a.space_id = s.id
+      WHERE ae.user_id = ?
+      ORDER BY a.start_time
+    `;
+        const results = await executeQuery(query, [userId]);
+        return results; // No devolvemos clase Activity para no perder columnas extra (enrollment_status) 
+    }
+
     // Obtener profesores disponibles
     static async getTeachers() {
         const query = `

@@ -50,6 +50,11 @@ export const usersAPI = {
     delete: (id) => fetchAPI(`/users/${id}`, { method: 'DELETE' }),
     changeRole: (id, roleId) => fetchAPI(`/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role_id: roleId }) }),
     getByRole: (roleName) => fetchAPI(`/users/role/${roleName}`),
+    getStudentsByTeacher: (teacherId) => fetchAPI(`/users/teacher/${teacherId}/students`),
+    updateMedical: (id, medicalData) => fetchAPI(`/users/${id}/medical`, { method: 'PATCH', body: JSON.stringify(medicalData) }),
+    getProgress: (id) => fetchAPI(`/users/${id}/progress`),
+    addProgressLog: (id, progressData) => fetchAPI(`/users/${id}/progress`, { method: 'POST', body: JSON.stringify(progressData) }),
+    getStudentAttendance: (id) => fetchAPI(`/users/${id}/attendance`),
 };
 
 // ============= ACTIVIDADES =============
@@ -65,7 +70,8 @@ export const activitiesAPI = {
     unenrollStudent: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll/${userId}`, { method: 'DELETE' }),
     getStudents: (activityId) => fetchAPI(`/activities/${activityId}/students`),
     getAttendance: (activityId, date) => fetchAPI(`/activities/${activityId}/attendance${date ? `?date=${date}` : ''}`),
-    markAttendance: (activityId, attendanceList) => fetchAPI(`/activities/${activityId}/attendance`, { method: 'POST', body: JSON.stringify({ attendanceList }) })
+    markAttendance: (activityId, attendanceList) => fetchAPI(`/activities/${activityId}/attendance`, { method: 'POST', body: JSON.stringify({ attendanceList }) }),
+    getStudentEnrollments: (userId) => fetchAPI(`/activities/student/${userId}/enrollments`)
 };
 
 // ============= PAGOS =============

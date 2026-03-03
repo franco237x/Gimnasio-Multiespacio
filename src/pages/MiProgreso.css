@@ -1,0 +1,174 @@
+.mi-progreso-page {
+    padding: 20px;
+    background-color: transparent;
+}
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.header-content h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    font-size: 1.75rem;
+    margin: 0 0 8px;
+}
+
+.header-content h2 i {
+    color: #0891b2;
+}
+
+.header-content p {
+    color: #9ca3af;
+    margin: 0;
+}
+
+.progreso-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ficha-medica-card,
+.historial-progreso-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.ficha-medica-card h3,
+.historial-progreso-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    margin: 0 0 20px 0;
+    font-size: 1.25rem;
+}
+
+.ficha-medica-card h3 i {
+    color: #0891b2;
+}
+
+.historial-progreso-card h3 i {
+    color: #0891b2;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.status-badge.fit {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-badge.not-fit {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Notes Area */
+.notes-box {
+    background: rgba(0, 0, 0, 0.2);
+    border-left: 4px solid #0891b2;
+    padding: 15px;
+    border-radius: 4px 8px 8px 4px;
+}
+
+.notes-box h4 {
+    margin: 0 0 8px 0;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+}
+
+.notes-box p {
+    margin: 0;
+    color: #9ca3af;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+/* Timeline */
+.logs-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.log-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border-left: 3px solid #0891b2;
+    padding: 15px;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.log-item:hover {
+    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+}
+
+.log-date {
+    color: #0891b2;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+}
+
+.log-teacher {
+    color: #9ca3af;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.log-body .log-weight {
+    color: #10b981;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.log-body .log-weight strong {
+    color: #fff;
+}
+
+.log-body .log-notes {
+    color: #e2e8f0;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .log-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}

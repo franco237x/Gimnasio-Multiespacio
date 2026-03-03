@@ -23,6 +23,8 @@ class User {
     this.reset_token = data.reset_token;
     this.reset_token_expires = data.reset_token_expires;
     this.is_active = data.is_active;
+    this.medical_notes = data.medical_notes;
+    this.is_fit = data.is_fit !== undefined ? Boolean(data.is_fit) : true;
     this.role_id = data.role_id;
     this.role_name = data.role_name;
     this.role_hierarchy = data.role_hierarchy;
@@ -337,6 +339,8 @@ class User {
       email: this.email,
       phone: this.phone,
       email_verified: this.email_verified,
+      medical_notes: this.medical_notes,
+      is_fit: this.is_fit,
       role: {
         id: this.role_id,
         name: this.role_name,
@@ -345,6 +349,65 @@ class User {
       created_at: this.created_at,
       updated_at: this.updated_at
     };
+  }
+
+  // Actualizar ficha médica
+  static async updateMedicalInfo(userId, isFit, medicalNotes) {
+    try {
+      const query = 'UPDATE users SET is_fit = ?, medical_notes = ? WHERE id = ?';
+      const fitVal = isFit ? 1 : 0;
+      await executeQuery(query, [fitVal, medicalNotes || null, userId]);
+      return await User.findById(userId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Obtener progreso de un usuario
+  static async getProgressLogs(userId) {
+    try {
+      const query = `
+        SELECT p.*, u.name as teacher_name 
+        FROM user_progress p
+        LEFT JOIN users u ON p.teacher_id = u.id
+        WHERE p.user_id = ?
+        ORDER BY p.date DESC, p.created_at DESC
+      `;
+      return await executeQuery(query, [userId]);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Obtener estudiantes de un profesor (por las actividades que dicta)
+  static async getStudentsByTeacher(teacherId) {
+    try {
+      const query = `
+        SELECT DISTINCT u.id, u.name, u.email, u.phone, u.medical_notes, u.is_fit 
+        FROM users u
+        JOIN activity_enrollments ae ON u.id = ae.user_id
+        JOIN activities a ON ae.activity_id = a.id
+        WHERE a.teacher_id = ? AND ae.status = 'confirmed'
+      `;
+      const results = await executeQuery(query, [teacherId]);
+      return results;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Agregar log de progreso a un usuario
+  static async addProgressLog(userId, teacherId, date, weight, notes) {
+    try {
+      const query = `
+        INSERT INTO user_progress (user_id, teacher_id, date, weight, notes)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      const result = await executeQuery(query, [userId, teacherId, date, weight || null, notes || null]);
+      return result.insertId;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

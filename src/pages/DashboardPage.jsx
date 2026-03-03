@@ -73,7 +73,8 @@ const DashboardPage = () => {
         ...commonItems,
         { icon: 'bx-chalkboard', label: 'Mis Clases', path: '/dashboard/mis-clases' },
         { icon: 'bx-group', label: 'Mis Alumnos', path: '/dashboard/alumnos' },
-        { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' }
+        { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' },
+        { icon: 'bx-user', label: 'Mi Perfil', path: '/dashboard/perfil' }
       ];
     }
 
@@ -81,6 +82,7 @@ const DashboardPage = () => {
     return [
       ...commonItems,
       { icon: 'bx-credit-card', label: 'Mis Cuotas', path: '/dashboard/mis-cuotas' },
+      { icon: 'bx-line-chart', label: 'Mi Progreso', path: '/dashboard/mi-progreso' },
       { icon: 'bx-calendar-check', label: 'Mis Reservas', path: '/dashboard/mis-reservas' },
       { icon: 'bx-user', label: 'Mi Perfil', path: '/dashboard/perfil' }
     ];

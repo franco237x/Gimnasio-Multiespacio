@@ -18,8 +18,10 @@ import Configuracion from './pages/Configuracion.jsx'
 import MisClases from './pages/MisClases.jsx'
 import MisAlumnos from './pages/MisAlumnos.jsx'
 import MisCuotas from './pages/MisCuotas.jsx'
+import MiCuotas from './pages/MisCuotas.jsx' // Just a comment to align
 import MisReservas from './pages/MisReservas.jsx'
 import MiPerfil from './pages/MiPerfil.jsx'
+import MiProgreso from './pages/MiProgreso.jsx'
 import Consultas from './pages/Consultas.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ProtectedRoute, RoleProtectedRoute, ROLES } from './components/auth/RoleProtectedRoute.jsx'
@@ -99,6 +101,11 @@ createRoot(document.getElementById('root')).render(
             <Route path="mis-cuotas" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ALUMNO]}>
                 <MisCuotas />
+              </RoleProtectedRoute>
+            } />
+            <Route path="mi-progreso" element={
+              <RoleProtectedRoute allowedRoles={[ROLES.ALUMNO]}>
+                <MiProgreso />
               </RoleProtectedRoute>
             } />
             <Route path="mis-reservas" element={

@@ -104,10 +104,14 @@ router.get('/pending', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES
 });
 
 // GET /api/reservations/upcoming - Próximas reservas
-router.get('/upcoming', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
+router.get('/upcoming', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR), async (req, res) => {
     try {
         const { days } = req.query;
-        const reservations = await Reservation.getUpcoming(parseInt(days) || 7);
+        let userId = null;
+        if (req.user.role_id === ROLES.PROFESOR) {
+            userId = req.user.id;
+        }
+        const reservations = await Reservation.getUpcoming(parseInt(days) || 30, userId);
         res.json({ success: true, data: reservations });
     } catch (error) {
         console.error('Error al obtener próximas reservas:', error);

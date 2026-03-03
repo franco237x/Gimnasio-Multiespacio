@@ -50,6 +50,11 @@ router.get('/monthly', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES
 // GET /api/payments/user/:id - Pagos de un usuario
 router.get('/user/:id', authenticateToken, async (req, res) => {
     try {
+        if (req.user.role_id === ROLES.ALUMNO || req.user.role_id === ROLES.PROFESOR) {
+            if (parseInt(req.params.id) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedes ver tus propios pagos' });
+            }
+        }
         const payments = await Payment.findByUser(req.params.id);
         res.json({ success: true, data: payments });
     } catch (error) {
@@ -152,6 +157,11 @@ router.post('/plans', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async
 // GET /api/payments/subscription/:userId - Suscripción activa de un usuario
 router.get('/subscription/:userId', authenticateToken, async (req, res) => {
     try {
+        if (req.user.role_id === ROLES.ALUMNO || req.user.role_id === ROLES.PROFESOR) {
+            if (parseInt(req.params.userId) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedes ver tu propia suscripción' });
+            }
+        }
         const subscription = await Subscription.findActiveByUser(req.params.userId);
         res.json({ success: true, data: subscription });
     } catch (error) {
