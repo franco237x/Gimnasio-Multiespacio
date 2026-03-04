@@ -207,6 +207,16 @@ const initializeTables = async () => {
       }
     }
 
+    // Agregar activity_id a payments para vincular pagos con inscripciones en actividades
+    try {
+      await executeQuery(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS activity_id INT NULL;`);
+      console.log('✅ Columna activity_id asegurada en payments');
+    } catch (e) {
+      if (!e.message.includes('Duplicate') && !e.message.includes("Can't create table")) {
+        console.log('ℹ️ Omitiendo alter de activity_id en payments');
+      }
+    }
+
     // Ejecutar migración para tablas adicionales
     await runMigration();
 

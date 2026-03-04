@@ -71,7 +71,8 @@ const MisClases = () => {
                 return {
                     user_id: estudiante.user_id,
                     user_name: estudiante.user_name,
-                    status: previo ? previo.status : 'present' // Por defecto presentes
+                    enrollment_status: estudiante.enrollment_status,
+                    status: previo ? previo.status : (estudiante.enrollment_status === 'pending' ? 'absent' : 'present')
                 };
             });
 
@@ -270,12 +271,21 @@ const MisClases = () => {
                     ) : (
                         <div className="asistencia-list">
                             {alumnosList.map(alumno => (
-                                <div key={alumno.user_id} className="alumno-asistencia-row">
-                                    <div className="alumno-name">{alumno.user_name}</div>
+                                <div key={alumno.user_id} className={`alumno-asistencia-row ${alumno.enrollment_status === 'pending' ? 'pending-row' : ''}`} style={alumno.enrollment_status === 'pending' ? { background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245,158,11,0.2)' } : {}}>
+                                    <div className="alumno-name">
+                                        {alumno.user_name}
+                                        {alumno.enrollment_status === 'pending' && (
+                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#f59e0b', marginTop: '4px', fontWeight: 'bold' }}>
+                                                <i className='bx bx-error-circle'></i> Alumno Nuevo - Pendiente de Pago
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="attendance-toggles">
                                         <button
                                             className={`toggle-btn present ${alumno.status === 'present' ? 'active' : ''}`}
                                             onClick={() => handleToggleAttendance(alumno.user_id, 'present')}
+                                            disabled={alumno.enrollment_status === 'pending'}
+                                            style={alumno.enrollment_status === 'pending' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                         >
                                             <i className='bx bx-check'></i> Presente
                                         </button>
@@ -285,6 +295,8 @@ const MisClases = () => {
                                         >
                                             <i className='bx bx-x'></i> Ausente
                                         </button>
+
+                                        {/* Optional: button to activate if user is Admin, but Prof can't */}
                                     </div>
                                 </div>
                             ))}

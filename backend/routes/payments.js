@@ -66,7 +66,7 @@ router.get('/user/:id', authenticateToken, async (req, res) => {
 // POST /api/payments - Registrar pago
 router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
-        const { user_id, subscription_id, amount, concept, payment_method, notes, status } = req.body;
+        const { user_id, subscription_id, amount, concept, payment_method, notes, status, activity_id } = req.body;
 
         if (!user_id || !amount) {
             return res.status(400).json({
@@ -88,7 +88,8 @@ router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEP
         const newPayment = await Payment.create({
             user_id, subscription_id, amount, concept, payment_method, notes,
             status: status || 'completed',
-            cash_register_id: activeRegister ? activeRegister.id : null
+            cash_register_id: activeRegister ? activeRegister.id : null,
+            activity_id: activity_id || null
         });
 
         res.status(201).json({ success: true, data: newPayment });

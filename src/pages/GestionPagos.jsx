@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { paymentsAPI, usersAPI, cashRegistersAPI } from '../services/apiService';
+import { paymentsAPI, usersAPI, cashRegistersAPI, activitiesAPI } from '../services/apiService';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
 import './GestionPagos.css';
@@ -19,6 +19,8 @@ const GestionPagos = () => {
     const [selectedPago, setSelectedPago] = useState(null);
     const validatePlanRef = useRef(null);
     const [loading, setLoading] = useState(true);
+    const [actividadesPendientes, setActividadesPendientes] = useState([]);
+    const [loadingActividades, setLoadingActividades] = useState(false);
 
     const [formData, setFormData] = useState({
         user_id: '',
@@ -27,7 +29,8 @@ const GestionPagos = () => {
         concept: 'mensualidad',
         payment_method: 'efectivo',
         status: 'completed',
-        notes: ''
+        notes: '',
+        activity_id: ''
     });
 
     const [planFormData, setPlanFormData] = useState({
@@ -51,6 +54,29 @@ const GestionPagos = () => {
     useEffect(() => {
         loadData();
     }, []);
+
+    // Cargar actividades pendientes cuando se seleccione alumno e inscripción como concepto
+    useEffect(() => {
+        const cargarPendientes = async () => {
+            if (formData.user_id && formData.concept === 'inscripcion') {
+                setLoadingActividades(true);
+                try {
+                    const res = await activitiesAPI.getPendingEnrollments(formData.user_id);
+                    if (res.success) {
+                        setActividadesPendientes(res.data || []);
+                    }
+                } catch (e) {
+                    setActividadesPendientes([]);
+                } finally {
+                    setLoadingActividades(false);
+                }
+            } else {
+                setActividadesPendientes([]);
+                setFormData(prev => ({ ...prev, activity_id: '' }));
+            }
+        };
+        cargarPendientes();
+    }, [formData.user_id, formData.concept]);
 
     const loadData = async () => {
         try {
@@ -87,6 +113,7 @@ const GestionPagos = () => {
 
     const handleOpenModal = (type, data = null) => {
         setModalType(type);
+        setActividadesPendientes([]);
         if (type === 'pago') {
             setFormData({
                 user_id: '',
@@ -95,7 +122,8 @@ const GestionPagos = () => {
                 concept: 'mensualidad',
                 payment_method: 'efectivo',
                 status: 'completed',
-                notes: ''
+                notes: '',
+                activity_id: ''
             });
         } else if (type === 'cuota') {
             setPlanFormData({
@@ -140,7 +168,8 @@ const GestionPagos = () => {
                     concept: formData.concept,
                     payment_method: formData.payment_method,
                     status: formData.status,
-                    notes: formData.notes
+                    notes: formData.notes,
+                    activity_id: formData.activity_id ? parseInt(formData.activity_id) : null
                 });
 
                 // Si hay plan seleccionado, crear suscripción
@@ -467,6 +496,37 @@ const GestionPagos = () => {
                                     </select>
                                 </div>
                             </div>
+                            {/* Selector de actividad pendiente (solo cuando concepto = inscripcion) */}
+                            {formData.concept === 'inscripcion' && (
+                                <div className="form-group" style={{ marginTop: '-4px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <i className='bx bx-dumbbell' style={{ color: '#f59e0b' }}></i>
+                                        Actividad a Confirmar
+                                    </label>
+                                    {loadingActividades ? (
+                                        <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}><i className='bx bx-loader-alt bx-spin'></i> Cargando actividades pendientes...</p>
+                                    ) : actividadesPendientes.length > 0 ? (
+                                        <select
+                                            value={formData.activity_id}
+                                            onChange={(e) => setFormData({ ...formData, activity_id: e.target.value })}
+                                            required
+                                        >
+                                            <option value="">Seleccionar actividad...</option>
+                                            {actividadesPendientes.map(a => (
+                                                <option key={a.id} value={a.id}>
+                                                    {a.name} ({a.day_of_week?.replace(/,/g, ' - ')})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : formData.user_id ? (
+                                        <div style={{ padding: '10px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '8px', color: '#22c55e', fontSize: '0.85rem' }}>
+                                            <i className='bx bx-check-circle'></i> Este alumno no tiene actividades pendientes de validación. Podrías registrar el pago como Mensualidad general.
+                                        </div>
+                                    ) : (
+                                        <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Seleccioná primero un alumno para ver sus actividades pendientes.</p>
+                                    )}
+                                </div>
+                            )}
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Método de Pago</label>

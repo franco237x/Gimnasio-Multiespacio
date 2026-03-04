@@ -271,7 +271,7 @@ router.get('/:id/progress', authenticateToken, requireRole(ROLES.ADMINISTRADOR, 
 });
 
 // POST /api/users/:id/progress - Agregar progreso de alumno
-router.post('/:id/progress', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.PROFESOR), async (req, res) => {
+router.post('/:id/progress', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
     try {
         // Si es Profesor, verifica que el alumno sea uno de los suyos
         if (req.user.role_id === ROLES.PROFESOR) {
@@ -282,8 +282,15 @@ router.post('/:id/progress', authenticateToken, requireRole(ROLES.ADMINISTRADOR,
             }
         }
 
+        // Si es Alumno, solo puede agregarse a sí mismo
+        if (req.user.role_id === ROLES.ALUMNO) {
+            if (parseInt(req.params.id) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés agregar progreso a tu propia cuenta' });
+            }
+        }
+
         const { date, weight, notes } = req.body;
-        const teacherId = req.user.id;
+        const teacherId = req.user.id; // En caso de alumno, el autor será él mismo
         const insertId = await User.addProgressLog(req.params.id, teacherId, date, weight, notes);
         res.json({ success: true, data: { id: insertId, date, weight, notes, teacher_id: teacherId } });
     } catch (error) {

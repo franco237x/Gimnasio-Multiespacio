@@ -8,6 +8,8 @@ import './GestionActividades.css';
 const GestionActividades = () => {
     const [activeTab, setActiveTab] = useState('horario');
     const [showModal, setShowModal] = useState(false);
+    const [showStudentsModal, setShowStudentsModal] = useState(false);
+    const [studentsList, setStudentsList] = useState([]);
     const [selectedActivity, setSelectedActivity] = useState(null);
     const { toasts, addToast, removeToast } = useToast();
     const [actividades, setActividades] = useState([]);
@@ -86,6 +88,33 @@ const GestionActividades = () => {
     const handleCloseModal = () => {
         setShowModal(false);
         setSelectedActivity(null);
+    };
+
+    const handleViewStudents = async (act) => {
+        setSelectedActivity(act);
+        try {
+            const res = await activitiesAPI.getStudents(act.id);
+            if (res.success) {
+                setStudentsList(res.data);
+                setShowStudentsModal(true);
+            }
+        } catch (error) {
+            showNotification('❌ Error al cargar alumnos', 'error');
+        }
+    };
+
+    const handleActivateStudent = async (userId) => {
+        try {
+            const res = await activitiesAPI.activateEnrollment(selectedActivity.id, userId);
+            if (res.success) {
+                showNotification('✅ Alumno dado de alta exitosamente', 'success');
+                setStudentsList(prev => prev.map(s => s.user_id === userId ? { ...s, enrollment_status: 'confirmed' } : s));
+            } else {
+                showNotification('❌ ' + (res.message || 'Error al dar de alta'), 'error');
+            }
+        } catch (error) {
+            showNotification('❌ Error al dar de alta', 'error');
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -214,6 +243,11 @@ const GestionActividades = () => {
                                         <div className="activity-capacity">
                                             <i className='bx bx-group'></i> {act.enrolled_count || 0}/{act.capacity}
                                         </div>
+                                        <div style={{ marginTop: '10px' }}>
+                                            <button className="btn-secondary" style={{ width: '100%', fontSize: '0.8rem', padding: '6px' }} onClick={(e) => { e.stopPropagation(); handleViewStudents(act); }}>
+                                                <i className='bx bx-group'></i> Ver Alumnos
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -244,6 +278,9 @@ const GestionActividades = () => {
                                     <td>{act.space_name}</td>
                                     <td>{act.enrolled_count}/{act.capacity}</td>
                                     <td className="actions">
+                                        <button className="action-btn view" title="Ver Alumnos" onClick={() => handleViewStudents(act)} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                            <i className='bx bx-group'></i>
+                                        </button>
                                         <button className="action-btn edit" onClick={() => handleOpenModal(act)}>
                                             <i className='bx bx-edit'></i>
                                         </button>
@@ -370,6 +407,47 @@ const GestionActividades = () => {
                 onConfirm={handleDeleteConfirm}
                 onCancel={() => setConfirmDelete({ show: false, id: null, name: '' })}
             />
+
+            {/* Modal Alumnos Inscriptos */}
+            <Modal
+                isOpen={showStudentsModal}
+                onClose={() => setShowStudentsModal(false)}
+                title={`Alumnos Inscriptos: ${selectedActivity?.name || ''}`}
+            >
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                    {studentsList.length === 0 ? (
+                        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px' }}>No hay alumnos inscriptos en esta actividad.</p>
+                    ) : (
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {studentsList.map(alumno => (
+                                <li key={alumno.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: alumno.enrollment_status === 'pending' ? 'rgba(245, 158, 11, 0.05)' : 'transparent', borderRadius: alumno.enrollment_status === 'pending' ? '8px' : '0' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 'bold' }}>{alumno.user_name}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{alumno.email}</div>
+                                        {alumno.enrollment_status === 'pending' && (
+                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#f59e0b', marginTop: '4px', fontWeight: 'bold' }}>
+                                                <i className='bx bx-error-circle'></i> Pendiente de Pago
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div>
+                                        {alumno.enrollment_status === 'pending' ? (
+                                            <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '6px 12px' }} onClick={() => handleActivateStudent(alumno.user_id)}>
+                                                Aprobar Alta
+                                            </button>
+                                        ) : (
+                                            <span style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 500 }}><i className='bx bx-check-circle'></i> Alta Confirmada</span>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+                <div className="form-actions" style={{ marginTop: '20px' }}>
+                    <button type="button" className="btn-secondary" onClick={() => setShowStudentsModal(false)}>Cerrar</button>
+                </div>
+            </Modal>
         </div>
     );
 };

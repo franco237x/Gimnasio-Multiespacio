@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { paymentsAPI } from '../services/apiService';
 import { differenceInDays } from 'date-fns';
+import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
 import './MisCuotas.css';
 
@@ -12,6 +13,8 @@ const MisCuotas = () => {
     const [loading, setLoading] = useState(true);
     const [subscription, setSubscription] = useState(null);
     const [historial, setHistorial] = useState([]);
+    const [selectedPago, setSelectedPago] = useState(null);
+    const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
         if (user?.id) {
@@ -41,8 +44,35 @@ const MisCuotas = () => {
         }
     };
 
-    const handleDescargarComprobante = (id) => {
-        addToast('📄 Función de comprobante en desarrollo', 'info');
+    const handleDescargarComprobante = (pago) => {
+        setSelectedPago(pago);
+        setShowModal(true);
+    };
+
+    const printTicketWindow = () => {
+        const printableElements = document.getElementById('ticket-print-area').innerHTML;
+        const originalContents = document.body.innerHTML;
+
+        document.body.innerHTML = printableElements;
+        window.print();
+        document.body.innerHTML = originalContents;
+        window.location.reload();
+    };
+
+    const getConceptoLabel = (concept) => {
+        const labels = {
+            mensualidad: 'Mensualidad', inscripcion: 'Inscripción',
+            clase_especial: 'Clase Especial', alquiler: 'Alquiler', otro: 'Otro'
+        };
+        return labels[concept] || concept;
+    };
+
+    const getMetodoPagoLabel = (method) => {
+        const labels = {
+            efectivo: 'Efectivo', tarjeta: 'Tarjeta',
+            transferencia: 'Transferencia', mercadopago: 'MercadoPago'
+        };
+        return labels[method] || method;
     };
 
     const handlePagarOnline = () => {
@@ -164,11 +194,11 @@ const MisCuotas = () => {
                                             {pago.status === 'completed' ? 'Pagada' : pago.status === 'refunded' ? 'Anulada' : pago.status}
                                         </span>
                                         <button
-                                            className="btn-comprobante"
-                                            onClick={() => handleDescargarComprobante(pago.id)}
-                                            title="Descargar comprobante"
+                                            className="btn-icon"
+                                            onClick={() => handleDescargarComprobante(pago)}
+                                            title="Imprimir Ticket"
                                         >
-                                            <i className='bx bx-download'></i>
+                                            <i className='bx bx-printer'></i>
                                         </button>
                                     </div>
                                 ))
@@ -177,6 +207,47 @@ const MisCuotas = () => {
                     </div>
                 </>
             )}
+
+            {/* Modal de Comprobante */}
+            <Modal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title="Comprobante de Pago"
+                size="sm"
+            >
+                {selectedPago && (
+                    <>
+                        <div className="ticket-container" id="ticket-print-area">
+                            <div className="ticket-header" style={{ textAlign: 'center', marginBottom: '15px' }}>
+                                <h2 style={{ fontSize: '1.2rem', marginBottom: '5px' }}>GIMNASIO MULTIESPACIO</h2>
+                                <p style={{ fontSize: '0.85rem', color: '#666', margin: 0 }}>CUIT: 30-00000000-0</p>
+                                <p style={{ fontSize: '0.9rem', margin: '5px 0' }}>Comprobante de Pago</p>
+                                <hr style={{ borderTop: '1px dashed #ccc', margin: '15px 0' }} />
+                            </div>
+                            <div className="ticket-body" style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                <p><strong>Fecha:</strong> {new Date(selectedPago.payment_date).toLocaleString('es-AR')}</p>
+                                <p><strong>Trámite:</strong> #{selectedPago.id}</p>
+                                <p><strong>Cliente:</strong> {selectedPago.user_name || user.name}</p>
+                                <p><strong>Concepto:</strong> {getConceptoLabel(selectedPago.concept)}</p>
+                                <p><strong>Medio de Pago:</strong> {getMetodoPagoLabel(selectedPago.payment_method)}</p>
+                                <p><strong>Estado:</strong> {selectedPago.status}</p>
+                            </div>
+                            <div className="ticket-footer" style={{ marginTop: '20px' }}>
+                                <hr style={{ borderTop: '1px dashed #ccc', margin: '15px 0' }} />
+                                <h3 style={{ fontSize: '1.2rem', textAlign: 'right' }}>TOTAL: ${Number(selectedPago.amount).toLocaleString('es-AR')}</h3>
+                                <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.9rem', fontStyle: 'italic' }}>¡Gracias por entrenar con nosotros!</p>
+                            </div>
+                        </div>
+                        <div className="form-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cerrar</button>
+                            <button type="button" className="btn-primary" onClick={printTicketWindow}>
+                                <i className='bx bx-printer'></i> Imprimir Comprobante
+                            </button>
+                        </div>
+                    </>
+                )}
+            </Modal>
+
             <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
     );

@@ -80,8 +80,15 @@
     border-radius: 16px;
     padding: 20px;
     display: flex;
+    flex-direction: column;
     gap: 16px;
     transition: all 0.3s ease;
+}
+
+.reserva-main {
+    display: flex;
+    gap: 16px;
+    width: 100%;
 }
 
 .reserva-card:hover {
@@ -117,9 +124,18 @@
     flex: 1;
 }
 
+.reserva-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
 .reserva-content h4 {
     color: #ffffff;
-    margin: 0 0 6px;
+    margin: 0;
 }
 
 .reserva-content .profesor {
@@ -133,7 +149,9 @@
 
 .reserva-datetime {
     display: flex;
-    gap: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 5px;
 }
 
 .reserva-datetime span {
@@ -142,13 +160,28 @@
     gap: 6px;
     color: #6b7280;
     font-size: 0.85rem;
+    white-space: nowrap;
 }
 
 .reserva-actions {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 10px;
+    justify-content: center;
+    gap: 12px;
+}
+
+.reserva-footer {
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+    margin-top: auto;
+}
+
+.reserva-footer .btn-baja,
+.reserva-footer .btn-reservar {
+    width: 100%;
 }
 
 .estado-badge {
@@ -161,6 +194,16 @@
 .estado-badge.confirmada {
     background: rgba(16, 185, 129, 0.2);
     color: #10b981;
+}
+
+.estado-badge.disponible {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.estado-badge.sin-cupos {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
 }
 
 .estado-badge.pendiente {
@@ -344,6 +387,10 @@
 }
 
 .btn-reservar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     padding: 8px 20px;
     background: linear-gradient(135deg, #7c3aed, #5b21b6);
     border: none;
@@ -353,6 +400,32 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.btn-reservar:disabled {
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn-baja {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: rgba(239, 68, 68, 0.1);
+    border: none;
+    border-radius: 8px;
+    color: #ef4444;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-baja:hover {
+    background: #ef4444;
+    color: white;
 }
 
 .btn-reservar:hover {

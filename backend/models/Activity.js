@@ -135,8 +135,8 @@ class Activity {
     // Inscribir alumno en actividad
     static async enrollStudent(activityId, userId) {
         const insertQuery = `
-      INSERT INTO activity_enrollments (activity_id, user_id)
-      VALUES (?, ?)
+      INSERT INTO activity_enrollments (activity_id, user_id, status)
+      VALUES (?, ?, 'pending')
     `;
 
         await executeQuery(insertQuery, [activityId, userId]);
@@ -154,6 +154,18 @@ class Activity {
         }
 
         return activity;
+    }
+
+    // Confirmar pago/alta de inscripción
+    static async activateEnrollment(activityId, userId) {
+        const updateQuery = `
+      UPDATE activity_enrollments 
+      SET status = 'confirmed' 
+      WHERE activity_id = ? AND user_id = ?
+    `;
+
+        const result = await executeQuery(updateQuery, [activityId, userId]);
+        return result.affectedRows > 0;
     }
 
     // Cancelar inscripción
@@ -177,7 +189,7 @@ class Activity {
     // Obtener alumnos inscritos
     static async getEnrolledStudents(activityId) {
         const query = `
-      SELECT u.id, u.name, u.email, u.phone, ae.enrolled_at, ae.status
+      SELECT u.id as user_id, u.name as user_name, u.email, u.phone, ae.enrolled_at, ae.status as enrollment_status
       FROM activity_enrollments ae
       JOIN users u ON ae.user_id = u.id
       WHERE ae.activity_id = ?
@@ -187,8 +199,8 @@ class Activity {
     }
 
     // Obtener las actividades en las que está inscripto un alumno
-    static async getStudentEnrollments(userId) {
-        const query = `
+    static async getStudentEnrollments(userId, statusFilter = null) {
+        let query = `
       SELECT a.*, 
              u.name as teacher_name,
              s.name as space_name,
@@ -198,10 +210,14 @@ class Activity {
       LEFT JOIN users u ON a.teacher_id = u.id
       LEFT JOIN spaces s ON a.space_id = s.id
       WHERE ae.user_id = ?
-      ORDER BY a.start_time
     `;
-        const results = await executeQuery(query, [userId]);
-        return results; // No devolvemos clase Activity para no perder columnas extra (enrollment_status) 
+        const params = [userId];
+        if (statusFilter) {
+            query += ' AND ae.status = ?';
+            params.push(statusFilter);
+        }
+        query += ' ORDER BY a.start_time';
+        return await executeQuery(query, params);
     }
 
     // Obtener profesores disponibles

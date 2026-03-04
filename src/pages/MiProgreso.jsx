@@ -3,13 +3,22 @@ import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/apiService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Modal from '../components/ui/Modal';
+import { ToastContainer, useToast } from '../components/ui/Toast';
 import './MiProgreso.css';
 
 const MiProgreso = () => {
     const { user } = useAuth();
+    const { toasts, addToast, removeToast } = useToast();
     const [progressLogs, setProgressLogs] = useState([]);
     const [medicalData, setMedicalData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [formData, setFormData] = useState({
+        weight: '',
+        notes: '',
+        date: format(new Date(), 'yyyy-MM-dd')
+    });
 
     useEffect(() => {
         if (user?.id) {
@@ -37,8 +46,29 @@ const MiProgreso = () => {
             }
         } catch (error) {
             console.error('Error al cargar datos:', error);
+            addToast('Error al cargar información', 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleAddProgress = async (e) => {
+        e.preventDefault();
+        try {
+            const dataToSubmit = {
+                date: formData.date,
+                weight: formData.weight ? parseFloat(formData.weight) : null,
+                notes: formData.notes
+            };
+            const response = await usersAPI.addProgressLog(user.id, dataToSubmit);
+            if (response.success) {
+                addToast('✅ Avance registrado correctamente', 'success');
+                setShowModal(false);
+                setFormData({ weight: '', notes: '', date: format(new Date(), 'yyyy-MM-dd') });
+                loadData();
+            }
+        } catch (error) {
+            addToast('❌ ' + (error.message || 'Error al registrar avance'), 'error');
         }
     };
 
@@ -80,7 +110,12 @@ const MiProgreso = () => {
 
                     {/* Historial de Progreso */}
                     <div className="historial-progreso-card">
-                        <h3><i className='bx bx-history'></i> Historial de Avances y Rutina</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                            <h3 style={{ margin: 0 }}><i className='bx bx-history'></i> Historial de Avances y Rutina</h3>
+                            <button className="btn-primary" onClick={() => setShowModal(true)}>
+                                <i className='bx bx-plus-circle'></i> Registrar Avance
+                            </button>
+                        </div>
                         {progressLogs.length === 0 ? (
                             <div className="empty-logs" style={{ textAlign: 'center', padding: '30px', color: '#9ca3af' }}>
                                 <i className='bx bx-sleepy' style={{ fontSize: '4rem', marginBottom: '10px', display: 'block' }}></i>
@@ -97,7 +132,7 @@ const MiProgreso = () => {
                                                 {format(new Date(log.date), "d 'de' MMMM, yyyy", { locale: es })}
                                             </div>
                                             <div className="log-teacher">
-                                                <i className='bx bx-user'></i> Prof. {log.teacher_name}
+                                                <i className='bx bx-user'></i> Registrado por: {log.teacher_name === user.name ? 'Mí mismo' : `Prof. ${log.teacher_name}`}
                                             </div>
                                         </div>
                                         <div className="log-body">
@@ -117,6 +152,55 @@ const MiProgreso = () => {
                     </div>
                 </div>
             )}
+
+            <Modal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title="Nuevo Registro de Avance"
+            >
+                <form onSubmit={handleAddProgress}>
+                    <div className="form-group" style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', color: '#9ca3af' }}>Fecha</label>
+                        <input
+                            type="date"
+                            value={formData.date}
+                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                            required
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #374151', background: '#1f2937', color: 'white' }}
+                        />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', color: '#9ca3af' }}>Peso Actual (kg) - Opcional</label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            value={formData.weight}
+                            onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                            placeholder="Ej: 75.5"
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #374151', background: '#1f2937', color: 'white' }}
+                        />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', color: '#9ca3af' }}>Notas / Sentimientos / Rutina</label>
+                        <textarea
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            required
+                            rows="4"
+                            placeholder="Ej: Completé 10 repeticiones de pecho, me sentí mejor que la semana pasada..."
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #374151', background: '#1f2937', color: 'white' }}
+                        />
+                    </div>
+                    <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                        <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                        <button type="submit" className="btn-primary">
+                            <i className='bx bx-save'></i> Guardar Avance
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
     );
 };

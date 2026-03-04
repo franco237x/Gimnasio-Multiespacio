@@ -46,7 +46,7 @@ const MisReservas = () => {
 
         try {
             await activitiesAPI.enrollStudent(actividad.id, user.id);
-            addToast(`✅ Te inscribiste en ${actividad.name}`, 'success');
+            addToast(`✅ Te inscribiste en ${actividad.name}. Estado: Pendiente de Pago`, 'success');
             loadData();
             setActiveTab('mis-inscripciones');
         } catch (error) {
@@ -139,32 +139,42 @@ const MisReservas = () => {
                         ) : (
                             misInscripciones.map((actividad) => (
                                 <div key={actividad.id} className="reserva-card confirmada">
-                                    <div className="reserva-icon">
-                                        <i className='bx bx-check-circle' style={{ color: '#10b981' }}></i>
-                                    </div>
-                                    <div className="reserva-content">
-                                        <h4>{actividad.name}</h4>
-                                        <p className="profesor">
-                                            <i className='bx bx-user'></i> {actividad.teacher_name || 'Sin asignar'}
-                                        </p>
-                                        <div className="reserva-datetime">
-                                            {actividad.day_of_week?.split(',').map((d, i) => (
-                                                <span key={i}><i className='bx bx-calendar'></i> {getDayLabel(d.trim())}</span>
-                                            ))}
-                                            <span><i className='bx bx-time'></i> {actividad.start_time?.slice(0, 5)} - {actividad.end_time?.slice(0, 5)}</span>
+                                    <div className="reserva-main">
+                                        <div className="reserva-icon">
+                                            <i className='bx bx-check-circle' style={{ color: '#10b981' }}></i>
                                         </div>
-                                        {actividad.space_name && (
-                                            <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px' }}>
-                                                <i className='bx bx-building-house'></i> {actividad.space_name}
+                                        <div className="reserva-content">
+                                            <div className="reserva-header-info">
+                                                <h4>{actividad.name}</h4>
+                                                <span className={`estado-badge ${actividad.enrollment_status === 'pending' ? 'pendiente' : 'confirmada'}`}>
+                                                    {actividad.enrollment_status === 'pending' ? 'Pendiente' : 'Inscripto'}
+                                                </span>
+                                            </div>
+                                            <p className="profesor">
+                                                <i className='bx bx-user'></i> {actividad.teacher_name || 'Sin asignar'}
                                             </p>
-                                        )}
+                                            <div className="reserva-datetime">
+                                                {actividad.day_of_week?.split(',').map((d, i) => (
+                                                    <span key={i}><i className='bx bx-calendar'></i> {getDayLabel(d.trim())}</span>
+                                                ))}
+                                                <span><i className='bx bx-time'></i> {actividad.start_time?.slice(0, 5)} - {actividad.end_time?.slice(0, 5)}</span>
+                                            </div>
+                                            {actividad.space_name && (
+                                                <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px' }}>
+                                                    <i className='bx bx-building-house'></i> {actividad.space_name}
+                                                </p>
+                                            )}
+                                            {actividad.enrollment_status === 'pending' && (
+                                                <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', color: '#f59e0b', fontSize: '0.85rem' }}>
+                                                    <i className='bx bx-error-circle'></i> <strong>Pendiente de Validación.</strong> Cuando realices el pago de la cuota de la actividad se te dará el alta oficial.
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="reserva-actions">
-                                        <span className="estado-badge confirmada">Inscripto</span>
+                                    <div className="reserva-footer">
                                         <button
-                                            className="btn-accion-peligro"
+                                            className="btn-baja"
                                             onClick={() => handleDesinscribirse(actividad)}
-                                            style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
                                         >
                                             <i className='bx bx-trash'></i> Dar de Baja
                                         </button>
@@ -188,35 +198,39 @@ const MisReservas = () => {
 
                                 return (
                                     <div key={actividad.id} className={`reserva-card ${sinCupos ? 'sin-cupos' : 'disponible'}`}>
-                                        <div className="reserva-icon">
-                                            <i className='bx bx-dumbbell'></i>
-                                        </div>
-                                        <div className="reserva-content">
-                                            <h4>{actividad.name}</h4>
-                                            <p className="profesor">
-                                                <i className='bx bx-user'></i> {actividad.teacher_name || 'Sin asignar'}
-                                            </p>
-                                            <div className="reserva-datetime">
-                                                {actividad.day_of_week?.split(',').map((d, i) => (
-                                                    <span key={i}><i className='bx bx-calendar'></i> {getDayLabel(d.trim())}</span>
-                                                ))}
-                                                <span><i className='bx bx-time'></i> {actividad.start_time?.slice(0, 5)} - {actividad.end_time?.slice(0, 5)}</span>
+                                        <div className="reserva-main">
+                                            <div className="reserva-icon">
+                                                <i className='bx bx-dumbbell'></i>
                                             </div>
-                                            {actividad.space_name && (
-                                                <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px' }}>
-                                                    <i className='bx bx-building-house'></i> {actividad.space_name}
+                                            <div className="reserva-content">
+                                                <div className="reserva-header-info">
+                                                    <h4>{actividad.name}</h4>
+                                                    <span className={`estado-badge ${sinCupos ? 'sin-cupos' : 'disponible'}`}>
+                                                        {sinCupos ? 'Sin cupos' : `${cuposLibres} cupo${cuposLibres !== 1 ? 's' : ''}`}
+                                                    </span>
+                                                </div>
+                                                <p className="profesor">
+                                                    <i className='bx bx-user'></i> {actividad.teacher_name || 'Sin asignar'}
                                                 </p>
-                                            )}
+                                                <div className="reserva-datetime">
+                                                    {actividad.day_of_week?.split(',').map((d, i) => (
+                                                        <span key={i}><i className='bx bx-calendar'></i> {getDayLabel(d.trim())}</span>
+                                                    ))}
+                                                    <span><i className='bx bx-time'></i> {actividad.start_time?.slice(0, 5)} - {actividad.end_time?.slice(0, 5)}</span>
+                                                </div>
+                                                {actividad.space_name && (
+                                                    <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '4px' }}>
+                                                        <i className='bx bx-building-house'></i> {actividad.space_name}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="reserva-actions">
-                                            <span className={`estado-badge ${sinCupos ? 'sin-cupos' : 'disponible'}`}>
-                                                {sinCupos ? 'Sin cupos' : `${cuposLibres} cupo${cuposLibres !== 1 ? 's' : ''}`}
-                                            </span>
+                                        <div className="reserva-footer">
                                             {yaInscripto ? (
                                                 <button
                                                     className="btn-reservar"
                                                     disabled
-                                                    style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: 'none' }}
+                                                    style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981' }}
                                                 >
                                                     <i className='bx bx-check'></i> Inscripto
                                                 </button>

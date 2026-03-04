@@ -68,10 +68,12 @@ export const activitiesAPI = {
     delete: (id) => fetchAPI(`/activities/${id}`, { method: 'DELETE' }),
     enrollStudent: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll`, { method: 'POST', body: JSON.stringify({ user_id: userId }) }),
     unenrollStudent: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll/${userId}`, { method: 'DELETE' }),
+    activateEnrollment: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll/${userId}/activate`, { method: 'PATCH' }),
     getStudents: (activityId) => fetchAPI(`/activities/${activityId}/students`),
     getAttendance: (activityId, date) => fetchAPI(`/activities/${activityId}/attendance${date ? `?date=${date}` : ''}`),
     markAttendance: (activityId, attendanceList) => fetchAPI(`/activities/${activityId}/attendance`, { method: 'POST', body: JSON.stringify({ attendanceList }) }),
-    getStudentEnrollments: (userId) => fetchAPI(`/activities/student/${userId}/enrollments`)
+    getStudentEnrollments: (userId) => fetchAPI(`/activities/student/${userId}/enrollments`),
+    getPendingEnrollments: (userId) => fetchAPI(`/activities/student/${userId}/enrollments?status=pending`)
 };
 
 // ============= PAGOS =============

@@ -173,6 +173,20 @@ router.post('/:id/enroll', authenticateToken, requireRole(ROLES.ADMINISTRADOR, R
     }
 });
 
+// PATCH /api/activities/:id/enroll/:userId/activate - Confirmar pago escolar/de inscripción
+router.patch('/:id/enroll/:userId/activate', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
+    try {
+        const activated = await Activity.activateEnrollment(req.params.id, req.params.userId);
+        if (!activated) {
+            return res.status(404).json({ success: false, message: 'Inscripción no encontrada' });
+        }
+        res.json({ success: true, message: 'Alumno dado de alta exitosamente' });
+    } catch (error) {
+        console.error('Error al dar de alta la inscripción:', error);
+        res.status(500).json({ success: false, message: 'Error al dar de alta' });
+    }
+});
+
 // DELETE /api/activities/:id/enroll/:userId - Cancelar inscripción
 router.delete('/:id/enroll/:userId', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
     try {
@@ -234,10 +248,8 @@ router.get('/student/:userId/enrollments', authenticateToken, requireRole(ROLES.
             return res.status(403).json({ success: false, message: 'Solo puedes ver tus propias inscripciones' });
         }
 
-        // Si es profesor, quizá no pueda ver que hace el alumno en OTROS profes, pero podemos dejarlo simple por ahora
-        // O restringir a admin y alumno.
-
-        const enrollments = await Activity.getStudentEnrollments(req.params.userId);
+        const { status } = req.query;
+        const enrollments = await Activity.getStudentEnrollments(req.params.userId, status || null);
         res.json({ success: true, data: enrollments });
     } catch (error) {
         console.error('Error al obtener inscripciones del alumno:', error);
