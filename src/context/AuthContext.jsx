@@ -117,11 +117,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        const { token: authToken, user } = data;
-        localStorage.setItem('authToken', authToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        setUser(user);
-        return { success: true, user };
+        return { success: true };
       }
 
       setError(data.message || 'No se pudo verificar el email');
@@ -199,11 +195,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        const { token: authToken, user } = data;
-        localStorage.setItem('authToken', authToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        setUser(user);
-        return { success: true, user };
+        return { success: true };
       }
 
       setError(data.message || 'No se pudo restablecer la contraseña');
