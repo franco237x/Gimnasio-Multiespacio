@@ -56,7 +56,6 @@ const ResetPassword = () => {
       setIsReset(true);
       setStatus('¡Contraseña restablecida exitosamente!');
       setStatusType('success');
-      setTimeout(() => navigate('/dashboard'), 1500);
     } else {
       setStatus(response.error || authError || 'No se pudo restablecer la contraseña.');
       setStatusType('error');
@@ -75,8 +74,11 @@ const ResetPassword = () => {
             </div>
             <h1 className="auth-title" style={{ textAlign: 'center' }}>¡Contraseña Actualizada!</h1>
             <p className="auth-subtitle" style={{ textAlign: 'center' }}>
-              Tu contraseña ha sido restablecida. Serás redirigido al panel en unos segundos.
+              Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.
             </p>
+            <button className="auth-button" style={{ marginTop: '20px', width: '100%', display: 'block' }} onClick={() => navigate('/login')}>
+              Ir a Iniciar Sesión
+            </button>
           </>
         ) : (
           <>

@@ -43,9 +43,8 @@ const VerifyEmail = () => {
 
     if (result.success) {
       setIsVerified(true);
-      setStatus('¡Cuenta verificada correctamente! Redirigiendo al panel...');
+      setStatus('¡Cuenta verificada correctamente!');
       setStatusType('success');
-      setTimeout(() => navigate('/dashboard'), 1500);
     } else {
       setStatus(result.error || authError || 'No se pudo verificar el email.');
       setStatusType('error');
@@ -88,8 +87,11 @@ const VerifyEmail = () => {
             </div>
             <h1 className="auth-title" style={{ textAlign: 'center' }}>¡Cuenta Verificada!</h1>
             <p className="auth-subtitle" style={{ textAlign: 'center' }}>
-              Tu correo ha sido verificado exitosamente. Serás redirigido al panel en unos segundos.
+              Tu correo ha sido verificado exitosamente. Ya puedes iniciar sesión en tu cuenta.
             </p>
+            <button className="auth-button" style={{ marginTop: '20px', width: '100%', display: 'block' }} onClick={() => navigate('/login')}>
+              Ir a Iniciar Sesión
+            </button>
           </>
         ) : (
           <>
