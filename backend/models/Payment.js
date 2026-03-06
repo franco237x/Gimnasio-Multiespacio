@@ -92,11 +92,11 @@ class Payment {
 
     // Crear pago
     static async create(paymentData) {
-        const { user_id, subscription_id, amount, concept, payment_method, status, notes } = paymentData;
+        const { user_id, subscription_id, amount, concept, payment_method, status, notes, cash_register_id, activity_id } = paymentData;
 
         const query = `
-      INSERT INTO payments (user_id, subscription_id, amount, concept, payment_method, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO payments (user_id, subscription_id, amount, concept, payment_method, status, notes, cash_register_id, activity_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
         const result = await executeQuery(query, [
@@ -106,8 +106,22 @@ class Payment {
             concept || 'mensualidad',
             payment_method || 'efectivo',
             status || 'completed',
-            notes || null
+            notes || null,
+            cash_register_id || null,
+            activity_id || null
         ]);
+
+        // ✨ Si el pago es de inscripción completado y tiene actividad vinculada, confirmar automáticamente
+        if (activity_id && concept === 'inscripcion' && (status === 'completed' || !status)) {
+            try {
+                const Activity = require('./Activity');
+                await Activity.activateEnrollment(activity_id, user_id);
+                console.log(`✅ Inscripción auto-confirmada: usuario ${user_id} en actividad ${activity_id}`);
+            } catch (enrollError) {
+                console.error('⚠️ No se pudo activar inscripción:', enrollError.message);
+                // No bloqueamos el pago aunque falle la activación
+            }
+        }
 
         return await Payment.findById(result.insertId);
     }

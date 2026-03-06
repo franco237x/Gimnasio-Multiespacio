@@ -145,6 +145,26 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
 /* Table Container */
 .alumnos-table-container,
 .historial-section {
@@ -773,4 +793,96 @@
 /* Registro Pago Section */
 .registro-pago-section {
   margin-top: 8px;
+}
+
+/* Caja Section */
+.caja-section {
+  margin-top: 8px;
+}
+
+.caja-activa-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.caja-activa-card.cerrado {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.status-indicator_open {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+
+.status-indicator_closed {
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+
+/* Ticket Printeo */
+.ticket-container {
+  font-family: 'Courier New', Courier, monospace;
+  color: #000;
+  background: #fff;
+  padding: 20px;
+  width: 100%;
+}
+
+.ticket-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ticket-header h2 {
+  font-size: 1.2rem;
+  margin: 0;
+  color: black;
+}
+
+.ticket-header p {
+  font-size: 0.9rem;
+  margin: 4px 0;
+  color: black;
+}
+
+.ticket-body p {
+  color: #000;
+  font-size: 0.95rem;
+  margin: 6px 0;
+}
+
+.ticket-footer {
+  text-align: center;
+  margin-top: 20px;
+  color: black;
+}
+
+.ticket-footer h3 {
+  font-size: 1.3rem;
+  margin-top: 8px;
+  color: black;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #ticket-print-area,
+  #ticket-print-area * {
+    visibility: visible;
+  }
+
+  #ticket-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 300px;
+  }
 }

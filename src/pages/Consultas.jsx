@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { usersAPI, reportsAPI } from '../services/apiService';
+import { usersAPI, reportsAPI, paymentsAPI } from '../services/apiService';
 import './Consultas.css';
 
 const Consultas = () => {
@@ -51,8 +51,21 @@ const Consultas = () => {
                         u.phone?.includes(searchTerm)
                     );
                 }
-                setResultados(filtered);
-                if (filtered.length === 0) {
+
+                // NUEVO: Obtener la suscripción para que el recepcionista vea la cuota
+                const usersWithSubs = await Promise.all(filtered.map(async (u) => {
+                    const isAlumno = u.role_id === 4 || u.role_name?.toLowerCase() === 'alumno';
+                    if (isAlumno) {
+                        try {
+                            const subRes = await paymentsAPI.getSubscription(u.id);
+                            return { ...u, subscription: subRes.success ? subRes.data : null };
+                        } catch (e) { return u; }
+                    }
+                    return u;
+                }));
+
+                setResultados(usersWithSubs);
+                if (usersWithSubs.length === 0) {
                     showNotification('🔍 No se encontraron resultados', 'info');
                 }
             }
@@ -139,10 +152,19 @@ const Consultas = () => {
                                         <span><i className='bx bx-envelope'></i> {usuario.email}</span>
                                     </div>
                                 </div>
-                                <div className="resultado-status">
+                                <div className="resultado-status" style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
                                     <span className={`estado-badge ${usuario.email_verified ? 'activo' : 'inactivo'}`}>
                                         {usuario.email_verified ? 'Verificado' : 'Sin verificar'}
                                     </span>
+                                    {usuario.subscription ? (
+                                        <span className="estado-badge activo" style={{ background: 'var(--success-color)', color: 'white', whiteSpace: 'nowrap' }}>
+                                            <i className='bx bx-check-circle'></i> {usuario.subscription.plan_name} (Vence: {new Date(usuario.subscription.end_date).toLocaleDateString('es-AR')})
+                                        </span>
+                                    ) : (usuario.role_id === 4 || usuario.role_name?.toLowerCase() === 'alumno') ? (
+                                        <span className="estado-badge inactivo" style={{ background: 'var(--danger-color)', color: 'white', whiteSpace: 'nowrap' }}>
+                                            <i className='bx bx-x-circle'></i> Sin Cuota Activa
+                                        </span>
+                                    ) : null}
                                 </div>
                             </div>
                         ))}

@@ -4,16 +4,90 @@ const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
 const Attendance = require('../models/Attendance');
 const { executeQuery } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole, ROLES } = require('../middleware/auth');
 
 // GET /api/reports/dashboard - Estadísticas para el dashboard principal
 router.get('/dashboard', authenticateToken, async (req, res) => {
     try {
-        // Estadísticas de pagos del mes
-        const paymentStats = await Payment.getStats('month');
+        const userRoleId = req.user.role_id;
+        const isAdminOrRecep = userRoleId === ROLES.ADMINISTRADOR || userRoleId === ROLES.RECEPCIONISTA;
+        const isProfesor = userRoleId === ROLES.PROFESOR;
 
-        // Estadísticas de suscripciones
-        const subscriptionStats = await Subscription.getStats();
+        // ======= ESTADÍSTICAS PARA PROFESOR =======
+        if (isProfesor) {
+            const teacherId = req.user.id;
+
+            // Mis clases (actividades donde soy el profesor)
+            const myClassesResult = await executeQuery(
+                `SELECT COUNT(*) as total_classes FROM activities WHERE teacher_id = ? AND status = 'active'`,
+                [teacherId]
+            );
+
+            // Mis alumnos (inscritos en mis clases)
+            const myStudentsResult = await executeQuery(
+                `SELECT COUNT(DISTINCT ae.user_id) as total_students
+                 FROM activity_enrollments ae
+                 INNER JOIN activities a ON ae.activity_id = a.id
+                 WHERE a.teacher_id = ? AND ae.status = 'confirmed'`,
+                [teacherId]
+            );
+
+            // Mis reservas próximas vinculadas a mi ID
+            const myReservationsResult = await executeQuery(
+                `SELECT COUNT(*) as pending_reservations FROM reservations
+                 WHERE client_id = ? AND status = 'pending' AND reservation_date >= CURDATE()`,
+                [teacherId]
+            );
+
+            return res.json({
+                success: true,
+                data: {
+                    totalClasses: myClassesResult[0]?.total_classes || 0,
+                    activeStudents: myStudentsResult[0]?.total_students || 0,
+                    pendingReservations: myReservationsResult[0]?.pending_reservations || 0,
+                    income: null,
+                    subscriptions: null
+                }
+            });
+        }
+
+        // ======= ESTADÍSTICAS PARA ALUMNO =======
+        const isAlumno = userRoleId === ROLES.ALUMNO;
+        if (isAlumno) {
+            const studentId = req.user.id;
+
+            // Inscripciones actuales
+            const enrollmentsResult = await executeQuery(
+                `SELECT COUNT(*) as active_enrollments FROM activity_enrollments WHERE user_id = ?`,
+                [studentId]
+            );
+
+            // Estado de suscripción
+            const subResult = await executeQuery(
+                `SELECT status, end_date FROM user_subscriptions WHERE user_id = ? ORDER BY id DESC LIMIT 1`,
+                [studentId]
+            );
+
+            const hasActiveSub = subResult.length > 0 && subResult[0].status === 'active' && new Date(subResult[0].end_date) >= new Date();
+
+            return res.json({
+                success: true,
+                data: {
+                    pendingReservations: enrollmentsResult[0]?.active_enrollments || 0,
+                    subscriptions: { active_count: hasActiveSub ? 1 : 0 },
+                    totalClasses: 0 // Fetch available classes from frontend or add here if needed
+                }
+            });
+        }
+
+        // ======= ESTADÍSTICAS PARA ADMIN / RECEPCIONISTA =======
+        let paymentStats = {};
+        let subscriptionStats = {};
+
+        if (isAdminOrRecep) {
+            paymentStats = await Payment.getStats('month');
+            subscriptionStats = await Subscription.getStats();
+        }
 
         // Contar usuarios activos (alumnos con suscripción activa)
         const activeUsersQuery = `
@@ -57,8 +131,9 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
     }
 });
 
+
 // GET /api/reports/income - Reporte de ingresos
-router.get('/income', authenticateToken, async (req, res) => {
+router.get('/income', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const { period, startDate, endDate } = req.query;
 
@@ -81,7 +156,7 @@ router.get('/income', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reports/activities - Estadísticas de actividades
-router.get('/activities', authenticateToken, async (req, res) => {
+router.get('/activities', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         // Actividades más populares (por inscripciones)
         const popularQuery = `
@@ -128,7 +203,7 @@ router.get('/activities', authenticateToken, async (req, res) => {
 });
 
 // GET /api/reports/attendance - Estadísticas de asistencia
-router.get('/attendance', authenticateToken, async (req, res) => {
+router.get('/attendance', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 

@@ -60,6 +60,8 @@ const DashboardPage = () => {
     if (isRecepcionista()) {
       return [
         ...commonItems,
+        { icon: 'bx-group', label: 'Gestionar Usuarios', path: '/dashboard/usuarios' },
+        { icon: 'bx-calendar-event', label: 'Gestionar Actividades', path: '/dashboard/actividades' },
         { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' },
         { icon: 'bx-money', label: 'Gestión de Pagos', path: '/dashboard/pagos' },
         { icon: 'bx-search', label: 'Consultas', path: '/dashboard/consultas' }
@@ -69,10 +71,10 @@ const DashboardPage = () => {
     if (isProfesor()) {
       return [
         ...commonItems,
-        { icon: 'bx-calendar-event', label: 'Gestionar Actividades', path: '/dashboard/actividades' },
         { icon: 'bx-chalkboard', label: 'Mis Clases', path: '/dashboard/mis-clases' },
         { icon: 'bx-group', label: 'Mis Alumnos', path: '/dashboard/alumnos' },
-        { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' }
+        { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' },
+        { icon: 'bx-user', label: 'Mi Perfil', path: '/dashboard/perfil' }
       ];
     }
 
@@ -80,6 +82,7 @@ const DashboardPage = () => {
     return [
       ...commonItems,
       { icon: 'bx-credit-card', label: 'Mis Cuotas', path: '/dashboard/mis-cuotas' },
+      { icon: 'bx-line-chart', label: 'Mi Progreso', path: '/dashboard/mi-progreso' },
       { icon: 'bx-calendar-check', label: 'Mis Reservas', path: '/dashboard/mis-reservas' },
       { icon: 'bx-user', label: 'Mi Perfil', path: '/dashboard/perfil' }
     ];
@@ -267,7 +270,7 @@ const DashboardHome = ({ user, roleId }) => {
         { icon: 'bx-money', value: stats?.totalPayments ?? '—', label: 'Pagos Mes', color: '#16a34a' },
         { icon: 'bx-calendar', value: stats?.pendingReservations ?? '—', label: 'Reservas Pendientes', color: '#0891b2' },
         { icon: 'bx-group', value: stats?.activeStudents ?? '—', label: 'Alumnos Activos', color: '#7c3aed' },
-        { icon: 'bx-dollar', value: stats?.income !== undefined && stats?.income !== null ? `$${Number(stats.income).toLocaleString('es-AR')}` : '—', label: 'Ingresos Mes', color: '#dc2626' }
+        { icon: 'bx-calendar-event', value: stats?.totalClasses ?? '—', label: 'Clases Activas', color: '#dc2626' }
       ];
     }
     if (isProfesor()) {
@@ -298,6 +301,8 @@ const DashboardHome = ({ user, roleId }) => {
     }
     if (isRecepcionista()) {
       return [
+        { icon: 'bx-group', label: 'Gestionar Usuarios', path: '/dashboard/usuarios', color: '#dc2626' },
+        { icon: 'bx-calendar-event', label: 'Actividades', path: '/dashboard/actividades', color: '#f59e0b' },
         { icon: 'bx-money', label: 'Gestionar Pagos', path: '/dashboard/pagos', color: '#16a34a' },
         { icon: 'bx-building-house', label: 'Reservas', path: '/dashboard/alquileres', color: '#7c3aed' },
         { icon: 'bx-search', label: 'Consultas', path: '/dashboard/consultas', color: '#0891b2' },
@@ -308,7 +313,6 @@ const DashboardHome = ({ user, roleId }) => {
       return [
         { icon: 'bx-chalkboard', label: 'Mis Clases', path: '/dashboard/mis-clases', color: '#0891b2' },
         { icon: 'bx-group', label: 'Mis Alumnos', path: '/dashboard/alumnos', color: '#7c3aed' },
-        { icon: 'bx-calendar-event', label: 'Actividades', path: '/dashboard/actividades', color: '#16a34a' },
         { icon: 'bx-building-house', label: 'Reservas', path: '/dashboard/alquileres', color: '#dc2626' }
       ];
     }

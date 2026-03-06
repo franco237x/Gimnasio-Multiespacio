@@ -12,6 +12,8 @@ class Reservation {
         this.start_time = data.start_time;
         this.end_time = data.end_time;
         this.total_amount = data.total_amount;
+        this.payment_status = data.payment_status;
+        this.payment_amount = data.payment_amount;
         this.status = data.status;
         this.notes = data.notes;
         this.created_by = data.created_by;
@@ -86,21 +88,47 @@ class Reservation {
     static async create(reservationData) {
         const {
             space_id, client_name, client_phone, client_email,
-            reservation_date, start_time, end_time, total_amount, notes, created_by
+            reservation_date, start_time, end_time, total_amount, notes, created_by,
+            payment_status, payment_amount
         } = reservationData;
 
         const query = `
       INSERT INTO reservations 
-        (space_id, client_name, client_phone, client_email, reservation_date, start_time, end_time, total_amount, notes, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (space_id, client_id, client_name, client_phone, client_email, reservation_date, start_time, end_time, total_amount, notes, created_by, payment_status, payment_amount)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
         const result = await executeQuery(query, [
-            space_id, client_name, client_phone || null, client_email || null,
-            reservation_date, start_time, end_time, total_amount, notes || null, created_by || null
+            space_id, reservationData.client_id || null, client_name, client_phone || null, client_email || null,
+            reservation_date, start_time, end_time, total_amount, notes || null, created_by || null,
+            payment_status || 'pending', payment_amount || 0.00
         ]);
 
         return await Reservation.findById(result.insertId);
+    }
+
+    // Actualizar (Editar) reserva
+    static async update(id, updateData) {
+        const {
+            space_id, client_name, client_phone, client_email, reservation_date,
+            start_time, end_time, total_amount, notes, status, payment_status, payment_amount
+        } = updateData;
+
+        const query = `
+      UPDATE reservations 
+      SET space_id = ?, client_id = ?, client_name = ?, client_phone = ?, client_email = ?, 
+          reservation_date = ?, start_time = ?, end_time = ?, total_amount = ?, 
+          notes = ?, status = ?, payment_status = ?, payment_amount = ?
+      WHERE id = ?
+    `;
+
+        await executeQuery(query, [
+            space_id, updateData.client_id || null, client_name, client_phone || null, client_email || null,
+            reservation_date, start_time, end_time, total_amount,
+            notes || null, status || 'pending', payment_status || 'pending', payment_amount || 0.00, id
+        ]);
+
+        return await Reservation.findById(id);
     }
 
     // Confirmar reserva
@@ -130,17 +158,25 @@ class Reservation {
     }
 
     // Obtener reservas próximas
-    static async getUpcoming(days = 7) {
-        const query = `
+    static async getUpcoming(days = 7, userId = null) {
+        let query = `
       SELECT r.*, s.name as space_name
       FROM reservations r
       LEFT JOIN spaces s ON r.space_id = s.id
       WHERE r.reservation_date >= CURDATE()
         AND r.reservation_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
         AND r.status != 'cancelled'
-      ORDER BY r.reservation_date, r.start_time
     `;
-        const results = await executeQuery(query, [days]);
+        const params = [days];
+
+        if (userId) {
+            query += " AND r.client_id = ?";
+            params.push(userId);
+        }
+
+        query += " ORDER BY r.reservation_date, r.start_time";
+
+        const results = await executeQuery(query, params);
         return results.map(row => new Reservation(row));
     }
 }

@@ -1,32 +1,40 @@
 import { useState, useEffect } from 'react';
-import { reservationsAPI, configAPI } from '../services/apiService';
+import { reservationsAPI, configAPI, usersAPI } from '../services/apiService';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
+import { usePermissions } from '../components/auth/RoleProtectedRoute';
 import './AlquileresReservas.css';
 
 const AlquileresReservas = () => {
     const [activeTab, setActiveTab] = useState('reservas');
     const [showModal, setShowModal] = useState(false);
     const { toasts, addToast, removeToast } = useToast();
+    const { isProfesor, isAdmin, isRecepcionista } = usePermissions();
     const [reservas, setReservas] = useState([]);
     const [espacios, setEspacios] = useState([]);
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [gymHours, setGymHours] = useState({ opening_time: '06:00', closing_time: '23:00' });
     const [confirmCancel, setConfirmCancel] = useState({ show: false, id: null });
     const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
+    const [selectedReservation, setSelectedReservation] = useState(null);
     const [showSpaceModal, setShowSpaceModal] = useState(false);
     const [editingSpace, setEditingSpace] = useState(null);
     const [confirmDeleteSpace, setConfirmDeleteSpace] = useState({ show: false, id: null, name: '' });
 
     const [formData, setFormData] = useState({
         space_id: '',
+        client_id: '',
         client_name: '',
         client_phone: '',
         client_email: '',
         reservation_date: '',
         start_time: '08:00',
         end_time: '10:00',
+        payment_status: 'pending',
+        payment_amount: 0,
+        payment_method: 'efectivo',
         notes: ''
     });
 
@@ -43,51 +51,90 @@ const AlquileresReservas = () => {
         loadData();
     }, []);
 
+    const showNotification = (message, type) => {
+        addToast(message, type);
+    };
+
     const loadData = async () => {
         try {
             setLoading(true);
-            const [resRes, spacesRes, configRes] = await Promise.all([
+
+            const promises = [
                 reservationsAPI.getUpcoming(30),
                 reservationsAPI.getSpaces(),
-                configAPI.getAll()
-            ]);
+                configAPI.getAll(),
+                isProfesor() ? Promise.resolve({ success: true, data: [] }) : usersAPI.getAll()
+            ];
 
-            if (resRes.success) setReservas(resRes.data);
-            if (spacesRes.success) setEspacios(spacesRes.data);
-            if (configRes.success && configRes.data) {
+            const results = await Promise.allSettled(promises);
+
+            const [resResult, spacesResult, configResult, usersResult] = results;
+
+            if (resResult.status === 'fulfilled' && resResult.value?.success) {
+                setReservas(resResult.value.data || []);
+            }
+            if (spacesResult.status === 'fulfilled' && spacesResult.value?.success) {
+                setEspacios(spacesResult.value.data || []);
+            }
+            if (configResult.status === 'fulfilled' && configResult.value?.success && configResult.value?.data) {
                 setGymHours({
-                    opening_time: configRes.data.opening_time || '06:00',
-                    closing_time: configRes.data.closing_time || '23:00'
+                    opening_time: configResult.value.data.opening_time || '06:00',
+                    closing_time: configResult.value.data.closing_time || '23:00'
                 });
             }
+            if (usersResult.status === 'fulfilled' && usersResult.value?.success) {
+                setUsers(usersResult.value.data || []);
+            }
         } catch (error) {
-            showNotification('❌ Error al cargar datos', 'error');
+            console.error('Error al cargar datos:', error);
+            addToast('❌ Error al cargar datos', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const showNotification = (message, type) => {
-        addToast(message, type);
-    };
 
-    const handleOpenModal = () => {
-        const today = new Date().toISOString().split('T')[0];
-        setFormData({
-            space_id: espacios[0]?.id || '',
-            client_name: '',
-            client_phone: '',
-            client_email: '',
-            reservation_date: today,
-            start_time: '08:00',
-            end_time: '10:00',
-            notes: ''
-        });
+    const handleOpenModal = (reserva = null) => {
+        if (reserva) {
+            setSelectedReservation(reserva);
+            setFormData({
+                space_id: reserva.space_id,
+                client_id: reserva.client_id || '',
+                client_name: reserva.client_name,
+                client_phone: reserva.client_phone || '',
+                client_email: reserva.client_email || '',
+                reservation_date: reserva.reservation_date.split('T')[0],
+                start_time: reserva.start_time.slice(0, 5),
+                end_time: reserva.end_time.slice(0, 5),
+                payment_status: reserva.payment_status || 'pending',
+                payment_amount: reserva.payment_amount || 0,
+                payment_method: reserva.payment_method || 'efectivo',
+                notes: reserva.notes || ''
+            });
+        } else {
+            setSelectedReservation(null);
+            const today = new Date().toISOString().split('T')[0];
+            setFormData({
+                space_id: espacios[0]?.id || '',
+                client_id: '',
+                client_name: '',
+                client_phone: '',
+                client_email: '',
+                reservation_date: today,
+                start_time: '08:00',
+                end_time: '10:00',
+                payment_status: 'pending',
+                payment_amount: 0,
+                payment_method: 'efectivo',
+                notes: ''
+            });
+        }
         setShowModal(true);
     };
 
     const handleCloseModal = () => {
         setShowModal(false);
+        setSelectedReservation(null);
     };
 
     const handleOpenSpaceModal = (space = null) => {
@@ -120,18 +167,25 @@ const AlquileresReservas = () => {
         setEditingSpace(null);
     };
 
-    const calculateTotal = () => {
-        const space = espacios.find(s => s.id === parseInt(formData.space_id));
-        if (!space || !formData.start_time || !formData.end_time) return 0;
+    const calculateTotalSpace = () => {
+        const space = espacios.find((s) => s.id === parseInt(formData.space_id));
+        if (!space || !formData.start_time || !formData.end_time) {
+            return 0; // Missing data means no charge
+        }
 
-        const [startH, startM] = formData.start_time.split(':').map(Number);
-        const [endH, endM] = formData.end_time.split(':').map(Number);
-        const totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        try {
+            const startH = parseInt(formData.start_time.split(':')[0], 10);
+            const startM = parseInt(formData.start_time.split(':')[1], 10);
+            const endH = parseInt(formData.end_time.split(':')[0], 10);
+            const endM = parseInt(formData.end_time.split(':')[1], 10);
 
-        if (totalMinutes <= 0) return 0;
+            let totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
 
-        const hours = totalMinutes / 60;
-        return Math.round(hours * (space.price_per_hour || 0));
+            const hours = Math.max(0, parseFloat(totalMinutes / 60));
+            return Math.abs(Number(hours * (space.price_per_hour || 0)));
+        } catch (e) {
+            return 0;
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -151,13 +205,21 @@ const AlquileresReservas = () => {
         }
 
         try {
-            const total = calculateTotal();
-            await reservationsAPI.create({
+            const total = Math.round(calculateTotalSpace());
+            const payload = {
                 ...formData,
                 space_id: parseInt(formData.space_id),
-                total_amount: total
-            });
-            showNotification('✅ Reserva creada exitosamente', 'success');
+                total_amount: total,
+                payment_method: formData.payment_method
+            };
+
+            if (selectedReservation) {
+                await reservationsAPI.update(selectedReservation.id, payload);
+                showNotification('✅ Reserva actualizada exitosamente', 'success');
+            } else {
+                await reservationsAPI.create(payload);
+                showNotification('✅ Reserva creada exitosamente', 'success');
+            }
             handleCloseModal();
             loadData();
         } catch (error) {
@@ -217,6 +279,16 @@ const AlquileresReservas = () => {
         return <span className="badge" style={{ background: style.bg, color: style.color }}>{style.label}</span>;
     };
 
+    const getPaymentBadge = (status) => {
+        const styles = {
+            pending: { bg: 'rgba(234, 179, 8, 0.2)', color: '#eab308', label: 'Sin Pagar' },
+            partial: { bg: 'rgba(56, 188, 248, 0.2)', color: '#38bdf8', label: 'Seña' },
+            paid: { bg: 'rgba(22, 163, 74, 0.2)', color: '#16a34a', label: 'Pagado' }
+        };
+        const style = styles[status] || styles.pending;
+        return <span className="badge" style={{ background: style.bg, color: style.color, marginLeft: '8px' }}>{style.label}</span>;
+    };
+
     const getSpaceTypeBadge = (type) => {
         const labels = {
             deportivo: 'Deportivo',
@@ -264,13 +336,17 @@ const AlquileresReservas = () => {
             <div className="page-header">
                 <h1><i className='bx bx-calendar-check'></i> Alquileres y Reservas</h1>
                 {activeTab === 'reservas' ? (
-                    <button className="btn-primary" onClick={handleOpenModal}>
-                        <i className='bx bx-plus'></i> Nueva Reserva
-                    </button>
+                    (!isProfesor()) && (
+                        <button className="btn-primary" onClick={() => handleOpenModal()}>
+                            <i className='bx bx-plus'></i> Nueva Reserva
+                        </button>
+                    )
                 ) : (
-                    <button className="btn-primary" onClick={() => handleOpenSpaceModal()}>
-                        <i className='bx bx-plus'></i> Nuevo Espacio
-                    </button>
+                    (!isProfesor()) && (
+                        <button className="btn-primary" onClick={() => handleOpenSpaceModal()}>
+                            <i className='bx bx-plus'></i> Nuevo Espacio
+                        </button>
+                    )
                 )}
             </div>
 
@@ -279,9 +355,11 @@ const AlquileresReservas = () => {
                     <button className={`tab ${activeTab === 'reservas' ? 'active' : ''}`} onClick={() => setActiveTab('reservas')}>
                         <i className='bx bx-calendar'></i> Reservas
                     </button>
-                    <button className={`tab ${activeTab === 'espacios' ? 'active' : ''}`} onClick={() => setActiveTab('espacios')}>
-                        <i className='bx bx-building-house'></i> Espacios
-                    </button>
+                    {!isProfesor() && (
+                        <button className={`tab ${activeTab === 'espacios' ? 'active' : ''}`} onClick={() => setActiveTab('espacios')}>
+                            <i className='bx bx-building-house'></i> Espacios
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -292,6 +370,27 @@ const AlquileresReservas = () => {
                 </div>
             ) : (
                 <div className="tab-content">
+                    {/* Banner informativo solo para Profesores */}
+                    {isProfesor() && (
+                        <div style={{
+                            background: 'rgba(8, 145, 178, 0.08)',
+                            border: '1px solid rgba(8, 145, 178, 0.25)',
+                            borderRadius: '10px',
+                            padding: '12px 18px',
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            color: '#0891b2',
+                            fontSize: '0.9rem'
+                        }}>
+                            <i className='bx bx-info-circle' style={{ fontSize: '1.2rem', flexShrink: 0 }}></i>
+                            <span>
+                                <strong>Vista de solo lectura.</strong> Aquí ves únicamente las reservas vinculadas a tu cuenta.
+                                Para crear o administrar reservas, contactá con un Administrador o Recepcionista.
+                            </span>
+                        </div>
+                    )}
                     {activeTab === 'reservas' && (
                         <div className="reservas-section">
                             <table className="reservas-table">
@@ -301,7 +400,7 @@ const AlquileresReservas = () => {
                                         <th>Horario</th>
                                         <th>Espacio</th>
                                         <th>Cliente</th>
-                                        <th>Monto</th>
+                                        {!isProfesor() && <th>Monto / Pago</th>}
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -309,7 +408,11 @@ const AlquileresReservas = () => {
                                 <tbody>
                                     {reservas.length === 0 ? (
                                         <tr>
-                                            <td colSpan="7" className="no-results">No hay reservas próximas</td>
+                                            <td colSpan={isProfesor() ? "6" : "7"} className="no-results">
+                                                {isProfesor()
+                                                    ? '📅 No tenés reservas próximas vinculadas a tu cuenta. Si esperabas ver una, pedile al Administrador que la vincule a tu usuario.'
+                                                    : 'No hay reservas próximas'}
+                                            </td>
                                         </tr>
                                     ) : (
                                         reservas.map(reserva => (
@@ -321,22 +424,37 @@ const AlquileresReservas = () => {
                                                     <div>{reserva.client_name}</div>
                                                     {reserva.client_phone && <small>{reserva.client_phone}</small>}
                                                 </td>
-                                                <td className="amount">${reserva.total_amount?.toLocaleString('es-AR')}</td>
+                                                {!isProfesor() && (
+                                                    <td>
+                                                        <div className="amount">${reserva.total_amount?.toLocaleString('es-AR')}</div>
+                                                        {getPaymentBadge(reserva.payment_status)}
+                                                    </td>
+                                                )}
                                                 <td>{getStatusBadge(reserva.status)}</td>
                                                 <td className="actions">
-                                                    {reserva.status === 'pending' && (
+                                                    {!isProfesor() && (
+                                                        <button className="action-btn edit" title="Editar" onClick={() => handleOpenModal(reserva)}>
+                                                            <i className='bx bx-edit'></i>
+                                                        </button>
+                                                    )}
+                                                    {!isProfesor() && reserva.status === 'pending' && (
                                                         <button className="action-btn confirm" title="Confirmar" onClick={() => handleConfirm(reserva.id)}>
                                                             <i className='bx bx-check'></i>
                                                         </button>
                                                     )}
-                                                    {reserva.status !== 'cancelled' && (
+                                                    {!isProfesor() && reserva.status !== 'cancelled' && (
                                                         <button className="action-btn cancel" title="Cancelar" onClick={() => handleCancelClick(reserva.id)}>
                                                             <i className='bx bx-x'></i>
                                                         </button>
                                                     )}
-                                                    <button className="action-btn delete" title="Eliminar" onClick={() => handleDeleteClick(reserva.id)}>
-                                                        <i className='bx bx-trash'></i>
-                                                    </button>
+                                                    {!isProfesor() && (
+                                                        <button className="action-btn delete" title="Eliminar" onClick={() => handleDeleteClick(reserva.id)}>
+                                                            <i className='bx bx-trash'></i>
+                                                        </button>
+                                                    )}
+                                                    {isProfesor() && (
+                                                        <span style={{ color: 'var(--text-muted, #888)', fontSize: '0.8rem' }}>Solo lectura</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
@@ -365,18 +483,20 @@ const AlquileresReservas = () => {
                                                 {espacio.status === 'available' ? 'Disponible' :
                                                     espacio.status === 'occupied' ? 'Ocupado' : 'Mantenimiento'}
                                             </span>
-                                            <div className="space-actions">
-                                                <button className="action-btn edit" title="Editar" onClick={() => handleOpenSpaceModal(espacio)}>
-                                                    <i className='bx bx-edit'></i>
-                                                </button>
-                                                <button
-                                                    className="action-btn delete"
-                                                    title="Eliminar"
-                                                    onClick={() => setConfirmDeleteSpace({ show: true, id: espacio.id, name: espacio.name })}
-                                                >
-                                                    <i className='bx bx-trash'></i>
-                                                </button>
-                                            </div>
+                                            {!isProfesor() && (
+                                                <div className="space-actions">
+                                                    <button className="action-btn edit" title="Editar" onClick={() => handleOpenSpaceModal(espacio)}>
+                                                        <i className='bx bx-edit'></i>
+                                                    </button>
+                                                    <button
+                                                        className="action-btn delete"
+                                                        title="Eliminar"
+                                                        onClick={() => setConfirmDeleteSpace({ show: true, id: espacio.id, name: espacio.name })}
+                                                    >
+                                                        <i className='bx bx-trash'></i>
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -390,7 +510,7 @@ const AlquileresReservas = () => {
             <Modal
                 isOpen={showModal}
                 onClose={handleCloseModal}
-                title="Nueva Reserva"
+                title={selectedReservation ? "Editar Reserva" : "Nueva Reserva"}
                 size="md"
             >
                 <form onSubmit={handleSubmit}>
@@ -403,6 +523,32 @@ const AlquileresReservas = () => {
                         >
                             {espacios.filter(e => e.status === 'available').map(e => (
                                 <option key={e.id} value={e.id}>{e.name} - ${e.price_per_hour}/hora</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label>Vincular a Usuario (Opcional)</label>
+                        <select
+                            value={formData.client_id}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                const user = users.find(u => u.id === parseInt(val));
+                                if (user) {
+                                    setFormData({
+                                        ...formData,
+                                        client_id: val,
+                                        client_name: user.name,
+                                        client_phone: user.phone || '',
+                                        client_email: user.email || ''
+                                    });
+                                } else {
+                                    setFormData({ ...formData, client_id: '' });
+                                }
+                            }}
+                        >
+                            <option value="">Selecciona usuario o deja en blanco</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>({u.role_name || 'Usuario'}) {u.name}</option>
                             ))}
                         </select>
                     </div>
@@ -474,12 +620,59 @@ const AlquileresReservas = () => {
                             rows="2"
                         />
                     </div>
-                    <div className="reservation-total">
-                        <strong>Total Estimado: ${calculateTotal().toLocaleString('es-AR')}</strong>
-                    </div>
+                    {!isProfesor() && (
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Estado del Pago</label>
+                                <select
+                                    value={formData.payment_status}
+                                    onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
+                                    required
+                                >
+                                    <option value="pending">Pendiente (Sin Pagar)</option>
+                                    <option value="partial">Seña (Pago Parcial)</option>
+                                    <option value="paid">Pagado Totalmente</option>
+                                </select>
+                            </div>
+                            {formData.payment_status !== 'pending' && (
+                                <>
+                                    {formData.payment_status === 'partial' && (
+                                        <div className="form-group">
+                                            <label>Monto de Seña Abonado ($)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formData.payment_amount}
+                                                onChange={(e) => setFormData({ ...formData, payment_amount: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="form-group">
+                                        <label>Método de Pago</label>
+                                        <select
+                                            value={formData.payment_method}
+                                            onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                                            required
+                                        >
+                                            <option value="efectivo">Efectivo</option>
+                                            <option value="tarjeta">Tarjeta</option>
+                                            <option value="transferencia">Transferencia</option>
+                                            <option value="mercadopago">MercadoPago</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    {!isProfesor() && (
+                        <div className="reservation-total">
+                            <strong>Total Estimado: ${calculateTotalSpace().toLocaleString('es-AR')}</strong>
+                        </div>
+                    )}
                     <div className="form-actions">
                         <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancelar</button>
-                        <button type="submit" className="btn-primary">Crear Reserva</button>
+                        <button type="submit" className="btn-primary">{selectedReservation ? 'Guardar Cambios' : 'Crear Reserva'}</button>
                     </div>
                 </form>
             </Modal>

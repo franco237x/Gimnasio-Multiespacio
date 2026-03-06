@@ -4,7 +4,7 @@ const GymConfig = require('../models/GymConfig');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // GET /api/config - Obtener toda la configuración
-router.get('/', authenticateToken, requireRole(1), async (req, res) => {
+router.get('/', authenticateToken, requireRole(1, 2, 3), async (req, res) => {
     try {
         const config = await GymConfig.getAll();
         res.json({ success: true, data: config });
@@ -26,7 +26,7 @@ router.put('/', authenticateToken, requireRole(1), async (req, res) => {
 });
 
 // GET /api/config/:key - Obtener valor específico
-router.get('/:key', authenticateToken, requireRole(1), async (req, res) => {
+router.get('/:key', authenticateToken, requireRole(1, 2), async (req, res) => {
     try {
         const value = await GymConfig.get(req.params.key);
         res.json({ success: true, data: { [req.params.key]: value } });

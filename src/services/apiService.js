@@ -50,6 +50,11 @@ export const usersAPI = {
     delete: (id) => fetchAPI(`/users/${id}`, { method: 'DELETE' }),
     changeRole: (id, roleId) => fetchAPI(`/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role_id: roleId }) }),
     getByRole: (roleName) => fetchAPI(`/users/role/${roleName}`),
+    getStudentsByTeacher: (teacherId) => fetchAPI(`/users/teacher/${teacherId}/students`),
+    updateMedical: (id, medicalData) => fetchAPI(`/users/${id}/medical`, { method: 'PATCH', body: JSON.stringify(medicalData) }),
+    getProgress: (id) => fetchAPI(`/users/${id}/progress`),
+    addProgressLog: (id, progressData) => fetchAPI(`/users/${id}/progress`, { method: 'POST', body: JSON.stringify(progressData) }),
+    getStudentAttendance: (id) => fetchAPI(`/users/${id}/attendance`),
 };
 
 // ============= ACTIVIDADES =============
@@ -63,7 +68,12 @@ export const activitiesAPI = {
     delete: (id) => fetchAPI(`/activities/${id}`, { method: 'DELETE' }),
     enrollStudent: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll`, { method: 'POST', body: JSON.stringify({ user_id: userId }) }),
     unenrollStudent: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll/${userId}`, { method: 'DELETE' }),
+    activateEnrollment: (activityId, userId) => fetchAPI(`/activities/${activityId}/enroll/${userId}/activate`, { method: 'PATCH' }),
     getStudents: (activityId) => fetchAPI(`/activities/${activityId}/students`),
+    getAttendance: (activityId, date) => fetchAPI(`/activities/${activityId}/attendance${date ? `?date=${date}` : ''}`),
+    markAttendance: (activityId, attendanceList) => fetchAPI(`/activities/${activityId}/attendance`, { method: 'POST', body: JSON.stringify({ attendanceList }) }),
+    getStudentEnrollments: (userId) => fetchAPI(`/activities/student/${userId}/enrollments`),
+    getPendingEnrollments: (userId) => fetchAPI(`/activities/student/${userId}/enrollments?status=pending`)
 };
 
 // ============= PAGOS =============
@@ -85,6 +95,15 @@ export const paymentsAPI = {
     getSubscription: (userId) => fetchAPI(`/payments/subscription/${userId}`),
     createSubscription: (data) => fetchAPI('/payments/subscription', { method: 'POST', body: JSON.stringify(data) }),
     renewSubscription: (userId, planId) => fetchAPI(`/payments/subscription/${userId}/renew`, { method: 'POST', body: JSON.stringify({ plan_id: planId }) }),
+    cancel: (id, reason) => fetchAPI(`/payments/${id}/cancel`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+};
+
+// ============= CAJA (ARQUEO Y TICKETS) =============
+export const cashRegistersAPI = {
+    getCurrent: () => fetchAPI('/cash-registers/current'),
+    getAll: () => fetchAPI('/cash-registers'),
+    open: (opening_balance) => fetchAPI('/cash-registers/open', { method: 'POST', body: JSON.stringify({ opening_balance }) }),
+    close: (id, counted_balance, notes) => fetchAPI('/cash-registers/close', { method: 'POST', body: JSON.stringify({ id, counted_balance, notes }) }),
 };
 
 // ============= ESPACIOS Y RESERVAS =============
@@ -107,6 +126,7 @@ export const reservationsAPI = {
     getPending: () => fetchAPI('/reservations/pending'),
     getUpcoming: (days = 7) => fetchAPI(`/reservations/upcoming?days=${days}`),
     create: (reservationData) => fetchAPI('/reservations', { method: 'POST', body: JSON.stringify(reservationData) }),
+    update: (id, reservationData) => fetchAPI(`/reservations/${id}`, { method: 'PUT', body: JSON.stringify(reservationData) }),
     confirm: (id) => fetchAPI(`/reservations/${id}/confirm`, { method: 'PATCH' }),
     cancel: (id) => fetchAPI(`/reservations/${id}/cancel`, { method: 'PATCH' }),
     delete: (id) => fetchAPI(`/reservations/${id}`, { method: 'DELETE' }),
@@ -144,4 +164,5 @@ export default {
     config: configAPI,
     reports: reportsAPI,
     auth: authAPI,
+    cashRegisters: cashRegistersAPI,
 };

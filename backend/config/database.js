@@ -169,14 +169,16 @@ const initializeTables = async () => {
     // Nota: role_id y la FK ya están definidos en el CREATE TABLE de arriba.
     // No necesitamos ALTER TABLE adicional.
 
-    // Agregar columnas de verificación y recuperación si faltan
+    // Agregar columnas de autenticación y perfil médico si faltan
     const authColumns = [
       'ADD COLUMN IF NOT EXISTS email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER phone',
       'ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255) AFTER email_verified',
       'ADD COLUMN IF NOT EXISTS verification_token_expires DATETIME AFTER verification_token',
       'ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) AFTER verification_token_expires',
       'ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME AFTER reset_token',
-      'ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id'
+      'ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id',
+      'ADD COLUMN IF NOT EXISTS medical_notes TEXT AFTER is_active',
+      'ADD COLUMN IF NOT EXISTS is_fit TINYINT(1) NOT NULL DEFAULT 1 AFTER medical_notes'
     ];
 
     for (const clause of authColumns) {
@@ -194,6 +196,26 @@ const initializeTables = async () => {
       UPDATE users SET role_id = 4 WHERE role_id IS NULL;
     `;
     await executeQuery(updateUsersWithoutRole);
+
+    // Asegurar que reservations tenga client_id (se ignora el error de duplicidad si ya existe)
+    try {
+      await executeQuery(`ALTER TABLE reservations ADD COLUMN client_id INT NULL AFTER notes, ADD FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE SET NULL;`);
+      console.log('✅ Columna client_id anadida a reservations');
+    } catch (e) {
+      if (!e.message.includes('Duplicate') && !e.message.includes('Can\'t create table') && !e.message.includes('Base table or view not found')) {
+        console.log('ℹ️ Omitiendo alter table de reservations (probablemente ya existe o tabla no creada aún)');
+      }
+    }
+
+    // Agregar activity_id a payments para vincular pagos con inscripciones en actividades
+    try {
+      await executeQuery(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS activity_id INT NULL;`);
+      console.log('✅ Columna activity_id asegurada en payments');
+    } catch (e) {
+      if (!e.message.includes('Duplicate') && !e.message.includes("Can't create table")) {
+        console.log('ℹ️ Omitiendo alter de activity_id en payments');
+      }
+    }
 
     // Ejecutar migración para tablas adicionales
     await runMigration();

@@ -96,8 +96,30 @@ class Space {
             params.push(excludeReservationId);
         }
 
-        const results = await executeQuery(query, params);
-        return results[0].conflicts === 0;
+        const resResults = await executeQuery(query, params);
+        if (resResults[0].conflicts > 0) return false;
+
+        // --- RN1 Extendida: También debemos verificar que no choque con clases fijas (activities) ---
+        // Determinar qué día de la semana es la fecha para buscar en activities
+        const dateObj = new Date(date);
+        const days = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+        // Ajustamos para obtener el día local donde se crea la fecha
+        const dayOfWeek = days[(dateObj.getDay() + 1) % 7] || days[dateObj.getDay()];
+
+        const activityQuery = `
+            SELECT COUNT(*) as activityConflicts FROM activities
+            WHERE space_id = ?
+            AND FIND_IN_SET(?, day_of_week) > 0
+            AND (
+                (start_time < ? AND end_time > ?) OR
+                (start_time >= ? AND start_time < ?)
+            )
+        `;
+
+        const actParams = [spaceId, dayOfWeek.toLowerCase(), endTime, startTime, startTime, endTime];
+        const actResults = await executeQuery(activityQuery, actParams);
+
+        return actResults[0].activityConflicts === 0;
     }
 }
 

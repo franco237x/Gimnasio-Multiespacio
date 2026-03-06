@@ -66,6 +66,14 @@ const GestionUsuarios = () => {
         return roles[roleName.toLowerCase()] || 4;
     };
 
+    const isRestrictedForReceptionist = (targetRolName) => {
+        // En algunos lugares puede venir como currentUser?.role_name o currentUser?.role?.name
+        const roleName = currentUser?.role_name || currentUser?.role?.name || '';
+        const currentRole = roleName.toLowerCase();
+        const target = targetRolName?.toLowerCase();
+        return currentRole === 'recepcionista' && (target === 'administrador' || target === 'recepcionista');
+    };
+
     const handleOpenModal = (user = null) => {
         if (user) {
             setEditingUser(user);
@@ -255,26 +263,28 @@ const GestionUsuarios = () => {
                                         <td className="actions">
                                             <button
                                                 className="action-btn edit"
-                                                title="Editar"
+                                                title={isRestrictedForReceptionist(user.rol) ? "No tienes permisos" : "Editar"}
                                                 onClick={() => handleOpenModal(user)}
+                                                disabled={isRestrictedForReceptionist(user.rol)}
+                                                style={isRestrictedForReceptionist(user.rol) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                             >
                                                 <i className='bx bx-edit'></i>
                                             </button>
                                             <button
                                                 className={`action-btn ${user.estado === 'activo' ? 'deactivate' : 'activate'}`}
-                                                title={user.id === currentUser?.id ? "No puedes desactivar tu cuenta actual" : (user.estado === 'activo' ? 'Desactivar' : 'Activar')}
+                                                title={user.id === currentUser?.id ? "No puedes desactivar tu cuenta actual" : isRestrictedForReceptionist(user.rol) ? "No tienes permisos" : (user.estado === 'activo' ? 'Desactivar' : 'Activar')}
                                                 onClick={() => handleToggleStatus(user)}
-                                                disabled={user.id === currentUser?.id}
-                                                style={user.id === currentUser?.id ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                                                disabled={user.id === currentUser?.id || isRestrictedForReceptionist(user.rol)}
+                                                style={user.id === currentUser?.id || isRestrictedForReceptionist(user.rol) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                             >
                                                 <i className={`bx ${user.estado === 'activo' ? 'bx-pause' : 'bx-play'}`}></i>
                                             </button>
                                             <button
                                                 className="action-btn delete"
-                                                title={user.id === currentUser?.id ? "No puedes eliminar tu cuenta actual" : "Eliminar"}
+                                                title={user.id === currentUser?.id ? "No puedes eliminar tu cuenta actual" : isRestrictedForReceptionist(user.rol) ? "No tienes permisos" : "Eliminar"}
                                                 onClick={() => handleDeleteClick(user)}
-                                                disabled={user.id === currentUser?.id}
-                                                style={user.id === currentUser?.id ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                                                disabled={user.id === currentUser?.id || isRestrictedForReceptionist(user.rol)}
+                                                style={user.id === currentUser?.id || isRestrictedForReceptionist(user.rol) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                             >
                                                 <i className='bx bx-trash'></i>
                                             </button>
@@ -329,8 +339,12 @@ const GestionUsuarios = () => {
                         >
                             <option value="alumno">Alumno</option>
                             <option value="profesor">Profesor</option>
-                            <option value="recepcionista">Recepcionista</option>
-                            <option value="administrador">Administrador</option>
+                            {((currentUser?.role_name || currentUser?.role?.name || '').toLowerCase() !== 'recepcionista') && (
+                                <>
+                                    <option value="recepcionista">Recepcionista</option>
+                                    <option value="administrador">Administrador</option>
+                                </>
+                            )}
                         </select>
                     </div>
                     <div className="form-group">

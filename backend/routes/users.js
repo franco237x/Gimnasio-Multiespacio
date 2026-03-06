@@ -4,14 +4,23 @@ const User = require('../models/User');
 const { authenticateToken, requireRole, ROLES } = require('../middleware/auth');
 
 // GET /api/users - Listar todos los usuarios
-router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { role, search, status } = req.query;
-        let users = await User.findAll();
+        let users;
+
+        // Si es recepcionista y es la vista admin_roles no cargar usuarios admin etc
+        // Lo dejamos usando User.findAll que hace una consulta con joins
+        users = await User.findAll();
 
         // Filtrar por rol
         if (role) {
             users = users.filter(u => u.role_name?.toLowerCase() === role.toLowerCase());
+        }
+
+        // Si es recepcionista y queremos ocultar administradores genéricamente
+        if (req.user.role_id === ROLES.RECEPCIONISTA) {
+            users = users.filter(u => u.role_id !== ROLES.ADMINISTRADOR);
         }
 
         // Filtrar por búsqueda
@@ -32,8 +41,12 @@ router.get('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req,
 });
 
 // GET /api/users/:id - Obtener usuario por ID
-router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
     try {
+        if ((req.user.role_id === ROLES.PROFESOR || req.user.role_id === ROLES.ALUMNO) && parseInt(req.params.id) !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'No tienes permisos para consultar otros usuarios por esta vía' });
+        }
+
         const user = await User.findById(req.params.id);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
@@ -46,9 +59,16 @@ router.get('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (r
 });
 
 // POST /api/users - Crear usuario
-router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { name, email, password, phone, role_id } = req.body;
+
+        // Validar permisos del Recepcionista
+        if (req.user.role_id === ROLES.RECEPCIONISTA) {
+            if (role_id === ROLES.ADMINISTRADOR || role_id === ROLES.RECEPCIONISTA) {
+                return res.status(403).json({ success: false, message: 'No tienes permisos para crear usuarios con este rol' });
+            }
+        }
 
         // Validar campos requeridos
         if (!name || !email || !password) {
@@ -85,7 +105,7 @@ router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req
 });
 
 // PUT /api/users/:id - Actualizar usuario
-router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const { name, email, phone, role_id, is_active, password } = req.body;
         const targetId = parseInt(req.params.id);
@@ -102,6 +122,16 @@ router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (r
         const user = await User.findById(targetId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        }
+
+        // Restringir operaciones para el Recepcionista
+        if (req.user.role_id === ROLES.RECEPCIONISTA) {
+            if (user.role_id === ROLES.ADMINISTRADOR || user.role_id === ROLES.RECEPCIONISTA) {
+                return res.status(403).json({ success: false, message: 'No tienes permisos para modificar a este usuario' });
+            }
+            if (role_id !== undefined && (role_id === ROLES.ADMINISTRADOR || role_id === ROLES.RECEPCIONISTA)) {
+                return res.status(403).json({ success: false, message: 'No puedes asignar este rol' });
+            }
         }
 
         // Prevención de auto-modificación riesgosa
@@ -123,10 +153,15 @@ router.put('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (r
 });
 
 // DELETE /api/users/:id - Eliminar usuario
-router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         if (req.user.id === parseInt(req.params.id)) {
             return res.status(400).json({ success: false, message: 'No puedes eliminar tu propia cuenta' });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (user && req.user.role_id === ROLES.RECEPCIONISTA && (user.role_id === ROLES.ADMINISTRADOR || user.role_id === ROLES.RECEPCIONISTA)) {
+            return res.status(403).json({ success: false, message: 'No tienes permisos para eliminar a este usuario' });
         }
 
         const deleted = await User.delete(req.params.id);
@@ -159,7 +194,7 @@ router.patch('/:id/role', authenticateToken, requireRole(ROLES.ADMINISTRADOR), a
 });
 
 // GET /api/users/role/:roleName - Obtener usuarios por nombre de rol
-router.get('/role/:roleName', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+router.get('/role/:roleName', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
         const users = await User.findAll();
         const filteredUsers = users.filter(u =>
@@ -169,6 +204,124 @@ router.get('/role/:roleName', authenticateToken, requireRole(ROLES.ADMINISTRADOR
     } catch (error) {
         console.error('Error al obtener usuarios por rol:', error);
         res.status(500).json({ success: false, message: 'Error al obtener usuarios' });
+    }
+});
+
+// PATCH /api/users/:id/medical - Ficha médica de un alumno
+router.patch('/:id/medical', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.PROFESOR), async (req, res) => {
+    try {
+        // Si es Profesor, verifica que el alumno sea uno de los suyos
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const myStudents = await User.getStudentsByTeacher(req.user.id);
+            const isMyStudent = myStudents.some(s => s.id === parseInt(req.params.id));
+            if (!isMyStudent) {
+                return res.status(403).json({ success: false, message: 'Solo puedés editar la ficha médica de tus propios alumnos' });
+            }
+        }
+
+        const { is_fit, medical_notes } = req.body;
+        const updatedUser = await User.updateMedicalInfo(req.params.id, is_fit, medical_notes);
+        res.json({ success: true, data: updatedUser });
+    } catch (error) {
+        console.error('Error al actualizar ficha médica:', error);
+        res.status(500).json({ success: false, message: 'Error al actualizar ficha médica' });
+    }
+});
+
+// GET /api/users/teacher/:teacherId/students - Obtener estudiantes de un profesor
+router.get('/teacher/:teacherId/students', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR), async (req, res) => {
+    try {
+        // Si es Profesor, solo puede consultar sus propios alumnos
+        if (req.user.role_id === ROLES.PROFESOR) {
+            if (parseInt(req.params.teacherId) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés consultar tus propios alumnos' });
+            }
+        }
+        const students = await User.getStudentsByTeacher(req.params.teacherId);
+        res.json({ success: true, data: students });
+    } catch (error) {
+        console.error('Error al obtener estudiantes del profesor:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener estudiantes' });
+    }
+});
+
+// GET /api/users/:id/progress - Obtener progreso de alumno
+router.get('/:id/progress', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
+    try {
+        // Si es Profesor, verifica que el alumno sea uno de los suyos
+        // Si es Alumno, solo puede ver su propio progreso
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const myStudents = await User.getStudentsByTeacher(req.user.id);
+            const isMyStudent = myStudents.some(s => s.id === parseInt(req.params.id));
+            if (!isMyStudent) {
+                return res.status(403).json({ success: false, message: 'Solo puedés ver el progreso de tus propios alumnos' });
+            }
+        } else if (req.user.role_id === ROLES.ALUMNO) {
+            if (parseInt(req.params.id) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés ver tu propio progreso' });
+            }
+        }
+
+        const logs = await User.getProgressLogs(req.params.id);
+        res.json({ success: true, data: logs });
+    } catch (error) {
+        console.error('Error al obtener progreso:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener progreso' });
+    }
+});
+
+// POST /api/users/:id/progress - Agregar progreso de alumno
+router.post('/:id/progress', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
+    try {
+        // Si es Profesor, verifica que el alumno sea uno de los suyos
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const myStudents = await User.getStudentsByTeacher(req.user.id);
+            const isMyStudent = myStudents.some(s => s.id === parseInt(req.params.id));
+            if (!isMyStudent) {
+                return res.status(403).json({ success: false, message: 'Solo puedés agregar progreso a tus propios alumnos' });
+            }
+        }
+
+        // Si es Alumno, solo puede agregarse a sí mismo
+        if (req.user.role_id === ROLES.ALUMNO) {
+            if (parseInt(req.params.id) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedés agregar progreso a tu propia cuenta' });
+            }
+        }
+
+        const { date, weight, notes } = req.body;
+        const teacherId = req.user.id; // En caso de alumno, el autor será él mismo
+        const insertId = await User.addProgressLog(req.params.id, teacherId, date, weight, notes);
+        res.json({ success: true, data: { id: insertId, date, weight, notes, teacher_id: teacherId } });
+    } catch (error) {
+        console.error('Error al guardar progreso:', error);
+        res.status(500).json({ success: false, message: 'Error al guardar progreso' });
+    }
+});
+
+// GET /api/users/:id/attendance - Obtener historial de asistencia de alumno
+router.get('/:id/attendance', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
+    try {
+        const Attendance = require('../models/Attendance');
+        // Si es Profesor, verifica que el alumno sea uno de los suyos
+        if (req.user.role_id === ROLES.PROFESOR) {
+            const myStudents = await User.getStudentsByTeacher(req.user.id);
+            const isMyStudent = myStudents.some(s => s.id === parseInt(req.params.id));
+            if (!isMyStudent) {
+                return res.status(403).json({ success: false, message: 'Solo puedes ver el historial de tus propios alumnos' });
+            }
+        } else if (req.user.role_id === ROLES.ALUMNO) {
+            if (parseInt(req.params.id) !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Solo puedes ver tu propio historial' });
+            }
+        }
+
+        const stats = await Attendance.getUserStats(req.params.id);
+        const history = await Attendance.getByUser(req.params.id);
+        res.json({ success: true, data: { stats, history } });
+    } catch (error) {
+        console.error('Error al obtener asistencia del alumno:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener historial de asistencia' });
     }
 });
 

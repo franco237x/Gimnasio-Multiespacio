@@ -125,18 +125,33 @@ class Subscription {
         return results.map(row => new Subscription(row));
     }
 
+    // Calcular fecha de vencimiento inteligente (RN1)
+    static calculateSmartEndDate(startDate, durationDays) {
+        let endDate = new Date(startDate);
+        // Si no es fecha válida, usamos hoy
+        if (isNaN(endDate.getTime())) endDate = new Date();
+
+        endDate.setDate(endDate.getDate() + durationDays);
+
+        // RN1: Evitar que venza un Domingo (0). Si cae domingo, se pasa al Lunes (1)
+        if (endDate.getDay() === 0) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+        return endDate.toISOString().split('T')[0];
+    }
+
     // Crear suscripción
     static async create(subscriptionData) {
         const { user_id, plan_id, start_date, end_date, status } = subscriptionData;
 
-        // Si no se especifica end_date, calcular según duración del plan
+        // Si no se especifica end_date, calcular según duración del plan (RN1)
         let finalEndDate = end_date;
+        const finalStartDate = start_date || new Date().toISOString().split('T')[0];
+
         if (!finalEndDate) {
             const plan = await Subscription.getPlanById(plan_id);
             if (plan) {
-                const startDateObj = new Date(start_date || Date.now());
-                startDateObj.setDate(startDateObj.getDate() + plan.duration_days);
-                finalEndDate = startDateObj.toISOString().split('T')[0];
+                finalEndDate = Subscription.calculateSmartEndDate(finalStartDate, plan.duration_days);
             }
         }
 
@@ -144,8 +159,6 @@ class Subscription {
       INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date, status)
       VALUES (?, ?, ?, ?, ?)
     `;
-
-        const finalStartDate = start_date || new Date().toISOString().split('T')[0];
 
         const result = await executeQuery(query, [
             user_id, plan_id, finalStartDate, finalEndDate, status || 'active'
@@ -162,19 +175,40 @@ class Subscription {
         return results.length > 0 ? new Subscription(results[0]) : null;
     }
 
-    // Renovar suscripción
+    // Renovar suscripción (Acumula días si renueva antes - RN6)
     static async renew(userId, planId) {
-        // Marcar suscripción actual como expirada
-        await executeQuery(
-            "UPDATE user_subscriptions SET status = 'expired' WHERE user_id = ? AND status = 'active'",
-            [userId]
-        );
+        // Buscar si el usuario ya tiene una suscripción activa
+        const currentSub = await Subscription.findActiveByUser(userId);
+        let newStartDate = new Date().toISOString().split('T')[0];
 
-        // Crear nueva suscripción
+        // RN6: Premiar el pago adelantado agregando a la fecha de vencimiento actual
+        if (currentSub && currentSub.end_date) {
+            const currentEndDate = new Date(currentSub.end_date);
+            const today = new Date();
+            if (currentEndDate >= today) {
+                // Inicia al día siguiente del vencimiento actual
+                currentEndDate.setDate(currentEndDate.getDate() + 1);
+                newStartDate = currentEndDate.toISOString().split('T')[0];
+            }
+
+            // Expirar la anterior contablemente porque fue renovada/extendida
+            await executeQuery(
+                "UPDATE user_subscriptions SET status = 'extended' WHERE id = ?",
+                [currentSub.id]
+            );
+        } else {
+            // Si no tiene activa, marcar las expiradas por seguridad
+            await executeQuery(
+                "UPDATE user_subscriptions SET status = 'expired' WHERE user_id = ? AND status = 'active'",
+                [userId]
+            );
+        }
+
+        // Crear nueva suscripción que comienza cuando termine la actual
         return await Subscription.create({
             user_id: userId,
             plan_id: planId,
-            start_date: new Date().toISOString().split('T')[0]
+            start_date: newStartDate
         });
     }
 
@@ -201,7 +235,7 @@ class Subscription {
     static async getStats() {
         const query = `
       SELECT 
-        COUNT(CASE WHEN status = 'active' AND end_date >= CURDATE() THEN 1 END) as active_count,
+        COUNT(CASE WHEN status IN ('active', 'extended') AND end_date >= CURDATE() THEN 1 END) as active_count,
         COUNT(CASE WHEN status = 'expired' OR end_date < CURDATE() THEN 1 END) as expired_count,
         COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count
       FROM user_subscriptions
