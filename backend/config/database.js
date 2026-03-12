@@ -151,12 +151,10 @@ const initializeTables = async () => {
         password VARCHAR(255) NOT NULL,
         phone VARCHAR(20),
         email_verified TINYINT(1) NOT NULL DEFAULT 0,
-        verification_token VARCHAR(255),
-        verification_token_expires DATETIME,
-        reset_token VARCHAR(255),
-        reset_token_expires DATETIME,
         role_id INT DEFAULT 4,
         is_active TINYINT(1) NOT NULL DEFAULT 1,
+        medical_notes TEXT,
+        is_fit TINYINT(1) NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
@@ -166,16 +164,52 @@ const initializeTables = async () => {
     await executeQuery(createUsersTable);
     console.log('✅ Tabla users creada/verificada correctamente');
 
+    // Crear tabla de tokens de verificación/reset (tabla separada de users)
+    const createUserTokensTable = `
+      CREATE TABLE IF NOT EXISTS user_tokens (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        user_id       INT NOT NULL,
+        token_type    ENUM('email_verification', 'password_reset') NOT NULL,
+        token_hash    VARCHAR(64) NOT NULL,
+        expires_at    TIMESTAMP NOT NULL,
+        used_at       TIMESTAMP NULL DEFAULT NULL,
+        is_revoked    TINYINT(1) NOT NULL DEFAULT 0,
+        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_token_hash (token_hash),
+        INDEX idx_user_type (user_id, token_type),
+        INDEX idx_expires (expires_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+
+    await executeQuery(createUserTokensTable);
+    console.log('✅ Tabla user_tokens creada/verificada correctamente');
+
+    // Migración: eliminar columnas de tokens de la tabla users si aún existen
+    const tokenColumnsToRemove = [
+      'DROP COLUMN IF EXISTS verification_token',
+      'DROP COLUMN IF EXISTS verification_token_expires',
+      'DROP COLUMN IF EXISTS reset_token',
+      'DROP COLUMN IF EXISTS reset_token_expires'
+    ];
+
+    for (const clause of tokenColumnsToRemove) {
+      try {
+        await executeQuery(`ALTER TABLE users ${clause};`);
+      } catch (dropError) {
+        // Ignorar si la columna ya no existe
+        if (!dropError.message.includes("Can't DROP") && !dropError.message.includes('check that column/key exists')) {
+          console.log('ℹ️ No se pudo eliminar columna de tokens:', clause);
+        }
+      }
+    }
+
     // Nota: role_id y la FK ya están definidos en el CREATE TABLE de arriba.
     // No necesitamos ALTER TABLE adicional.
 
-    // Agregar columnas de autenticación y perfil médico si faltan
+    // Agregar columnas de perfil médico y estado si faltan
     const authColumns = [
       'ADD COLUMN IF NOT EXISTS email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER phone',
-      'ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255) AFTER email_verified',
-      'ADD COLUMN IF NOT EXISTS verification_token_expires DATETIME AFTER verification_token',
-      'ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) AFTER verification_token_expires',
-      'ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME AFTER reset_token',
       'ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id',
       'ADD COLUMN IF NOT EXISTS medical_notes TEXT AFTER is_active',
       'ADD COLUMN IF NOT EXISTS is_fit TINYINT(1) NOT NULL DEFAULT 1 AFTER medical_notes'
