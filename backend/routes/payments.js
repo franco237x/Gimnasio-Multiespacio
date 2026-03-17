@@ -63,16 +63,20 @@ router.get('/user/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/payments - Registrar pago
+// POST /api/payments - Registrar pago individual (retrocompatibilidad)
 router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
     try {
-        const { user_id, subscription_id, amount, concept, payment_method, notes, status, activity_id } = req.body;
+        const {
+            user_id, client_name_guest, subscription_id, amount, concept,
+            payment_method, notes, status, activity_id,
+            billing_concept_id
+        } = req.body;
 
-        if (!user_id || !amount) {
-            return res.status(400).json({
-                success: false,
-                message: 'Usuario y monto son requeridos'
-            });
+        if (!amount) {
+            return res.status(400).json({ success: false, message: 'El monto es requerido' });
+        }
+        if (!user_id && !client_name_guest) {
+            return res.status(400).json({ success: false, message: 'Se requiere un cliente registrado o nombre de invitado' });
         }
 
         const CashRegister = require('../models/CashRegister');
@@ -81,21 +85,63 @@ router.post('/', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEP
         if (!activeRegister && payment_method === 'efectivo') {
             return res.status(400).json({
                 success: false,
-                message: 'Debes abrir una caja en la sección de Gestión de Pagos para cobrar en efectivo.'
+                message: 'Debes abrir una caja para cobrar en efectivo.'
             });
         }
 
         const newPayment = await Payment.create({
-            user_id, subscription_id, amount, concept, payment_method, notes,
+            user_id, client_name_guest, subscription_id, amount, concept,
+            payment_method, notes,
             status: status || 'completed',
             cash_register_id: activeRegister ? activeRegister.id : null,
-            activity_id: activity_id || null
+            activity_id: activity_id || null,
+            billing_concept_id: billing_concept_id || null
         });
 
         res.status(201).json({ success: true, data: newPayment });
     } catch (error) {
         console.error('Error al registrar pago:', error);
         res.status(500).json({ success: false, message: 'Error al registrar pago' });
+    }
+});
+
+// POST /api/payments/batch - Checkout multi-ítem
+// Body: { user_id?, client_name_guest?, payment_method, status?, notes?, items: [{billing_concept_id, amount, activity_id?}] }
+router.post('/batch', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA), async (req, res) => {
+    try {
+        const { user_id, client_name_guest, payment_method, status, notes, items } = req.body;
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({ success: false, message: 'El carrito está vacío' });
+        }
+        if (!user_id && !client_name_guest) {
+            return res.status(400).json({ success: false, message: 'Se requiere un cliente registrado o nombre de invitado' });
+        }
+
+        const CashRegister = require('../models/CashRegister');
+        const activeRegister = await CashRegister.getCurrentOpen();
+
+        if (!activeRegister && payment_method === 'efectivo') {
+            return res.status(400).json({
+                success: false,
+                message: 'Debes abrir una caja para cobrar en efectivo.'
+            });
+        }
+
+        const batch = await Payment.createBatch({
+            user_id: user_id || null,
+            client_name_guest: client_name_guest || null,
+            payment_method,
+            status: status || 'completed',
+            notes,
+            items,
+            cash_register_id: activeRegister ? activeRegister.id : null
+        });
+
+        res.status(201).json({ success: true, data: batch });
+    } catch (error) {
+        console.error('Error al registrar batch de pagos:', error);
+        res.status(500).json({ success: false, message: error.message || 'Error al registrar pagos' });
     }
 });
 

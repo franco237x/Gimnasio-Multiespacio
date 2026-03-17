@@ -45,7 +45,17 @@ class Subscription {
             features ? JSON.stringify(features) : null
         ]);
 
-        return await Subscription.getPlanById(result.insertId);
+        const newPlan = await Subscription.getPlanById(result.insertId);
+
+        // ✨ Auto-sincronizar en billing_concepts para el selector de pagos
+        try {
+            const BillingConcept = require('./BillingConcept');
+            await BillingConcept.syncFromPlan(newPlan);
+        } catch (syncErr) {
+            console.warn('⚠️ No se pudo sincronizar billing_concept para el plan:', syncErr.message);
+        }
+
+        return newPlan;
     }
 
     // Actualizar plan

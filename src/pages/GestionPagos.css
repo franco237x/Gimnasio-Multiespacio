@@ -886,3 +886,648 @@
     width: 300px;
   }
 }
+
+/* ══════════════════════════════════════════════════════
+   TIPO DE PAGO — Botones tipo caja registradora
+══════════════════════════════════════════════════════ */
+.payment-method-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.payment-method-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #9ca3af;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.payment-method-btn i:first-child {
+  font-size: 1.6rem;
+  transition: color 0.2s ease;
+}
+
+.payment-method-btn:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  transform: translateY(-2px);
+}
+
+.payment-method-btn.active {
+  color: #f0fdf4;
+}
+
+.payment-method-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 1rem !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   SELECTOR DE CONCEPTO — Grilla categorizada
+══════════════════════════════════════════════════════ */
+.concept-selector-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.concept-selector-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.concept-selector-grid::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+}
+
+.concept-selector-grid::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+}
+
+.concept-selector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.concept-selector-cat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #6b7280;
+}
+
+.concept-selector-cat-label i {
+  font-size: 1rem;
+}
+
+.concept-selector-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.concept-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #d1d5db;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+}
+
+.concept-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+
+.concept-btn i:first-child {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.concept-btn-name {
+  font-weight: 500;
+}
+
+.concept-btn-amount {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.concept-btn-tag {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+.concept-btn-check {
+  margin-left: auto;
+  font-size: 1rem !important;
+  flex-shrink: 0;
+}
+
+.concept-empty-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+}
+
+/* ══════════════════════════════════════════════════════
+   VISTA PREVIA DE CONCEPTOS (tab Registrar Pago)
+══════════════════════════════════════════════════════ */
+.concepts-overview {
+  margin-top: 28px;
+}
+
+.concepts-overview h3 {
+  color: #fff;
+  font-size: 1.05rem;
+  margin-bottom: 16px;
+}
+
+.concept-category-group {
+  margin-bottom: 18px;
+}
+
+.concept-category-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.concepts-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.concept-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #d1d5db;
+  cursor: default;
+  transition: transform 0.2s ease;
+}
+
+.concept-chip:hover {
+  transform: translateY(-1px);
+}
+
+.concept-chip i {
+  font-size: 1rem;
+}
+
+.chip-tag {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+.empty-state-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.empty-state-small i {
+  font-size: 2rem;
+}
+
+/* ══════════════════════════════════════════════════════
+   CONCEPTOS — tabla y badges
+══════════════════════════════════════════════════════ */
+.conceptos-section {
+  margin-top: 8px;
+}
+
+.section-description {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.concept-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.concept-icon-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   HISTORIAL — method badge
+══════════════════════════════════════════════════════ */
+.method-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: #d1d5db;
+}
+
+/* ══════════════════════════════════════════════════════
+   CHECKOUT LAYOUT — dos columnas tipo POS
+══════════════════════════════════════════════════════ */
+.checkout-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.checkout-left,
+.checkout-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.checkout-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.checkout-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+.checkout-section-title i {
+  font-size: 1rem;
+  color: #f59e0b;
+}
+
+/* ── Toggle cliente registrado / invitado ── */
+.client-mode-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.toggle-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.toggle-btn i {
+  font-size: 1rem;
+}
+
+.toggle-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #d1d5db;
+}
+
+.toggle-btn.active {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+}
+
+/* ── Buscador / select de usuario ── */
+.search-input {
+  width: 100%;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 0.88rem;
+  outline: none;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  border-color: #f59e0b;
+}
+
+.search-input::placeholder {
+  color: #6b7280;
+}
+
+.user-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  padding: 4px 0;
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.user-select option {
+  background: #1e1e2e;
+  padding: 6px 12px;
+}
+
+.selected-user-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  color: #34d399;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.selected-user-badge i {
+  font-size: 1rem;
+}
+
+/* ── Fila de agregar ítem ── */
+.add-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.add-item-concept-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fbbf24;
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex: 1;
+  min-width: 120px;
+}
+
+.add-item-concept-preview i {
+  font-size: 1.1rem;
+}
+
+.amount-input {
+  width: 110px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  text-align: right;
+}
+
+.amount-input:focus {
+  border-color: #f59e0b;
+}
+
+.btn-add-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  color: #fbbf24;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-add-item:hover {
+  background: rgba(245, 158, 11, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Carrito ── */
+.cart-section {
+  min-height: 140px;
+}
+
+.cart-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #f59e0b;
+  color: #000;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 0;
+  color: #4b5563;
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+.cart-empty i {
+  font-size: 2rem;
+  display: block;
+}
+
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  animation: slideInCart 0.2s ease;
+}
+
+@keyframes slideInCart {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.cart-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.cart-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-item-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #e5e7eb;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-item-amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f9fafb;
+  white-space: nowrap;
+}
+
+.cart-item-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.cart-item-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.cart-item-remove i {
+  font-size: 1rem;
+}
+
+.cart-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 9px;
+  margin-top: 6px;
+}
+
+.cart-total span {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.cart-total strong {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+

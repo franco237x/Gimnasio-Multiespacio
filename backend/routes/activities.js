@@ -44,6 +44,22 @@ router.get('/teacher/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/activities/student/:userId/enrollments - Obtener actividades en las que está inscripto un alumno
+router.get('/student/:userId/enrollments', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
+    try {
+        if (req.user.role_id === ROLES.ALUMNO && parseInt(req.params.userId) !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Solo puedes ver tus propias inscripciones' });
+        }
+
+        const { status } = req.query;
+        const enrollments = await Activity.getStudentEnrollments(req.params.userId, status || null);
+        res.json({ success: true, data: enrollments });
+    } catch (error) {
+        console.error('Error al obtener inscripciones del alumno:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener inscripciones' });
+    }
+});
+
 // GET /api/activities/:id - Obtener actividad por ID
 router.get('/:id', authenticateToken, async (req, res) => {
     try {
@@ -241,21 +257,7 @@ router.get('/:id/students', authenticateToken, requireRole(ROLES.ADMINISTRADOR, 
     }
 });
 
-// GET /api/activities/student/:userId/enrollments - Obtener actividades en las que está inscripto un alumno
-router.get('/student/:userId/enrollments', authenticateToken, requireRole(ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA, ROLES.PROFESOR, ROLES.ALUMNO), async (req, res) => {
-    try {
-        if (req.user.role_id === ROLES.ALUMNO && parseInt(req.params.userId) !== req.user.id) {
-            return res.status(403).json({ success: false, message: 'Solo puedes ver tus propias inscripciones' });
-        }
-
-        const { status } = req.query;
-        const enrollments = await Activity.getStudentEnrollments(req.params.userId, status || null);
-        res.json({ success: true, data: enrollments });
-    } catch (error) {
-        console.error('Error al obtener inscripciones del alumno:', error);
-        res.status(500).json({ success: false, message: 'Error al obtener inscripciones' });
-    }
-});
+// (Ruta movida arriba, antes del wildcard /:id para evitar conflicto de Express)
 
 // =================== ASISTENCIA =================== //
 const Attendance = require('../models/Attendance');
