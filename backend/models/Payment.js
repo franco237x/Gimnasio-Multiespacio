@@ -3,10 +3,16 @@ const { executeQuery } = require('../config/database');
 class Payment {
     constructor(data) {
         this.id = data.id;
+        this.batch_id = data.batch_id || null;
         this.user_id = data.user_id;
-        this.user_name = data.user_name;
+        this.client_name_guest = data.client_name_guest || null;
+        this.user_name = data.client_name_guest || data.user_name;
         this.user_email = data.user_email;
         this.subscription_id = data.subscription_id;
+        this.billing_concept_id = data.billing_concept_id;
+        this.billing_concept_name = data.billing_concept_name || null;
+        this.billing_concept_icon = data.billing_concept_icon || null;
+        this.billing_concept_color = data.billing_concept_color || null;
         this.amount = data.amount;
         this.concept = data.concept;
         this.payment_method = data.payment_method;
@@ -19,11 +25,15 @@ class Payment {
     // Obtener todos los pagos
     static async findAll(filters = {}) {
         let query = `
-      SELECT p.*, 
-             u.name as user_name,
-             u.email as user_email
+      SELECT p.*,
+             u.name  AS user_name,
+             u.email AS user_email,
+             bc.name  AS billing_concept_name,
+             bc.icon  AS billing_concept_icon,
+             bc.color AS billing_concept_color
       FROM payments p
-      LEFT JOIN users u ON p.user_id = u.id
+      LEFT JOIN users            u  ON p.user_id            = u.id
+      LEFT JOIN billing_concepts bc ON p.billing_concept_id = bc.id
       WHERE 1=1
     `;
 
@@ -63,11 +73,15 @@ class Payment {
     // Obtener pagos de un usuario
     static async findByUser(userId) {
         const query = `
-      SELECT p.*, 
-             u.name as user_name,
-             u.email as user_email
+      SELECT p.*,
+             u.name  AS user_name,
+             u.email AS user_email,
+             bc.name  AS billing_concept_name,
+             bc.icon  AS billing_concept_icon,
+             bc.color AS billing_concept_color
       FROM payments p
-      LEFT JOIN users u ON p.user_id = u.id
+      LEFT JOIN users            u  ON p.user_id            = u.id
+      LEFT JOIN billing_concepts bc ON p.billing_concept_id = bc.id
       WHERE p.user_id = ?
       ORDER BY p.payment_date DESC
     `;
@@ -78,11 +92,15 @@ class Payment {
     // Obtener un pago por ID
     static async findById(id) {
         const query = `
-      SELECT p.*, 
-             u.name as user_name,
-             u.email as user_email
+      SELECT p.*,
+             u.name  AS user_name,
+             u.email AS user_email,
+             bc.name  AS billing_concept_name,
+             bc.icon  AS billing_concept_icon,
+             bc.color AS billing_concept_color
       FROM payments p
-      LEFT JOIN users u ON p.user_id = u.id
+      LEFT JOIN users            u  ON p.user_id            = u.id
+      LEFT JOIN billing_concepts bc ON p.billing_concept_id = bc.id
       WHERE p.id = ?
     `;
         const results = await executeQuery(query, [id]);
@@ -90,40 +108,148 @@ class Payment {
         return new Payment(results[0]);
     }
 
-    // Crear pago
+    // Crear pago individual
     static async create(paymentData) {
-        const { user_id, subscription_id, amount, concept, payment_method, status, notes, cash_register_id, activity_id } = paymentData;
+        const {
+            user_id, client_name_guest, subscription_id, amount, concept,
+            payment_method, status, notes,
+            cash_register_id, activity_id,
+            billing_concept_id, batch_id
+        } = paymentData;
 
-        const query = `
-      INSERT INTO payments (user_id, subscription_id, amount, concept, payment_method, status, notes, cash_register_id, activity_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+        // Derivar concept legacy del catálogo si se envía billing_concept_id
+        let resolvedConcept = concept || 'otro';
+        if (billing_concept_id) {
+            try {
+                const BillingConcept = require('./BillingConcept');
+                const bc = await BillingConcept.getById(billing_concept_id);
+                if (bc) resolvedConcept = bc.category;
+            } catch (_) { /* usa el concept recibido si falla */ }
+        }
 
-        const result = await executeQuery(query, [
-            user_id,
-            subscription_id || null,
-            amount,
-            concept || 'mensualidad',
-            payment_method || 'efectivo',
-            status || 'completed',
-            notes || null,
-            cash_register_id || null,
-            activity_id || null
-        ]);
+        const result = await executeQuery(
+            `INSERT INTO payments
+                (batch_id, user_id, client_name_guest, subscription_id,
+                 billing_concept_id, amount, concept,
+                 payment_method, status, notes, cash_register_id, activity_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                batch_id || null,
+                user_id || null,
+                client_name_guest || null,
+                subscription_id || null,
+                billing_concept_id || null,
+                amount,
+                resolvedConcept,
+                payment_method || 'efectivo',
+                status || 'completed',
+                notes || null,
+                cash_register_id || null,
+                activity_id || null
+            ]
+        );
 
-        // ✨ Si el pago es de inscripción completado y tiene actividad vinculada, confirmar automáticamente
-        if (activity_id && concept === 'inscripcion' && (status === 'completed' || !status)) {
+        // Auto-confirmar inscripción si corresponde
+        if (activity_id && user_id && resolvedConcept === 'inscripcion' && (status === 'completed' || !status)) {
             try {
                 const Activity = require('./Activity');
                 await Activity.activateEnrollment(activity_id, user_id);
-                console.log(`✅ Inscripción auto-confirmada: usuario ${user_id} en actividad ${activity_id}`);
-            } catch (enrollError) {
-                console.error('⚠️ No se pudo activar inscripción:', enrollError.message);
-                // No bloqueamos el pago aunque falle la activación
+            } catch (e) {
+                console.warn('⚠️ No se pudo activar inscripción:', e.message);
             }
         }
 
         return await Payment.findById(result.insertId);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Crear múltiples pagos en un solo checkout (batch)
+    // Parámetros:
+    //   user_id          → ID de usuario registrado (o null si es invitado)
+    //   client_name_guest→ Nombre libre para clientes sin cuenta
+    //   payment_method   → Medio de pago único para todo el batch
+    //   status           → Estado de todas las transacciones
+    //   notes            → Nota general del checkout
+    //   items[]          → [{billing_concept_id, amount, activity_id?, notes?}]
+    //   cash_register_id → ID de caja activa
+    // ─────────────────────────────────────────────────────────────
+    static async createBatch(batchData) {
+        const {
+            user_id, client_name_guest,
+            payment_method, status, notes,
+            items, cash_register_id
+        } = batchData;
+
+        if (!items || items.length === 0) {
+            throw new Error('El carrito de pagos está vacío');
+        }
+        if (!user_id && !client_name_guest) {
+            throw new Error('Debe indicar un cliente registrado o un nombre de cliente invitado');
+        }
+
+        // Generar UUID para agrupar los ítems del mismo checkout
+        const batchId = require('crypto').randomUUID();
+        const resolvedStatus = status || 'completed';
+
+        // Pre-cargar conceptos para resolver categorías
+        const BillingConcept = require('./BillingConcept');
+        const createdPayments = [];
+
+        for (const item of items) {
+            let resolvedConcept = 'otro';
+            if (item.billing_concept_id) {
+                try {
+                    const bc = await BillingConcept.getById(item.billing_concept_id);
+                    if (bc) resolvedConcept = bc.category;
+                } catch (_) {}
+            }
+
+            const result = await executeQuery(
+                `INSERT INTO payments
+                    (batch_id, user_id, client_name_guest, billing_concept_id,
+                     amount, concept, payment_method, status,
+                     notes, cash_register_id, activity_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    batchId,
+                    user_id || null,
+                    client_name_guest || null,
+                    item.billing_concept_id || null,
+                    item.amount,
+                    resolvedConcept,
+                    payment_method || 'efectivo',
+                    resolvedStatus,
+                    item.notes || notes || null,
+                    cash_register_id || null,
+                    item.activity_id || null
+                ]
+            );
+
+            // Auto-confirmar inscripción si corresponde
+            if (item.activity_id && user_id && resolvedConcept === 'inscripcion' && resolvedStatus === 'completed') {
+                try {
+                    const Activity = require('./Activity');
+                    await Activity.activateEnrollment(item.activity_id, user_id);
+                } catch (e) {
+                    console.warn('⚠️ No se pudo activar inscripción:', e.message);
+                }
+            }
+
+            const created = await Payment.findById(result.insertId);
+            createdPayments.push(created);
+        }
+
+        const total = createdPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+        return {
+            batch_id: batchId,
+            payments: createdPayments,
+            total,
+            count: createdPayments.length,
+            client: client_name_guest || createdPayments[0]?.user_name || 'Sin identificar',
+            payment_method: payment_method || 'efectivo',
+            status: resolvedStatus
+        };
     }
 
     // Obtener estadísticas de pagos

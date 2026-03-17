@@ -96,6 +96,22 @@ export const paymentsAPI = {
     createSubscription: (data) => fetchAPI('/payments/subscription', { method: 'POST', body: JSON.stringify(data) }),
     renewSubscription: (userId, planId) => fetchAPI(`/payments/subscription/${userId}/renew`, { method: 'POST', body: JSON.stringify({ plan_id: planId }) }),
     cancel: (id, reason) => fetchAPI(`/payments/${id}/cancel`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+    createBatch: (batchData) => fetchAPI('/payments/batch', { method: 'POST', body: JSON.stringify(batchData) }),
+};
+
+// ============= CATÁLOGO DE CONCEPTOS (billing_concepts) =============
+// Tabla maestra única: une planes, actividades, espacios y otros ítems cobrables
+export const billingConceptsAPI = {
+    getAll: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return fetchAPI(`/billing-concepts${qs ? `?${qs}` : ''}`);
+    },
+    getById: (id) => fetchAPI(`/billing-concepts/${id}`),
+    getStats: () => fetchAPI('/billing-concepts/stats'),
+    create: (data) => fetchAPI('/billing-concepts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => fetchAPI(`/billing-concepts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    toggle: (id) => fetchAPI(`/billing-concepts/${id}/toggle`, { method: 'PATCH' }),
+    delete: (id) => fetchAPI(`/billing-concepts/${id}`, { method: 'DELETE' }),
 };
 
 // ============= CAJA (ARQUEO Y TICKETS) =============
@@ -160,6 +176,7 @@ export default {
     users: usersAPI,
     activities: activitiesAPI,
     payments: paymentsAPI,
+    billingConcepts: billingConceptsAPI,
     reservations: reservationsAPI,
     config: configAPI,
     reports: reportsAPI,

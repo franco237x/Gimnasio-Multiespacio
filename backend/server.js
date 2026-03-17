@@ -45,6 +45,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/activities', require('./routes/activities'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/billing-concepts', require('./routes/billing_concepts'));
 app.use('/api/reservations', require('./routes/reservations'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/reports', require('./routes/reports'));
