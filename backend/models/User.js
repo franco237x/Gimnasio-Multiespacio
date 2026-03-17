@@ -18,10 +18,6 @@ class User {
     this.password = data.password;
     this.phone = data.phone;
     this.email_verified = Boolean(data.email_verified);
-    this.verification_token = data.verification_token;
-    this.verification_token_expires = data.verification_token_expires;
-    this.reset_token = data.reset_token;
-    this.reset_token_expires = data.reset_token_expires;
     this.is_active = data.is_active;
     this.medical_notes = data.medical_notes;
     this.is_fit = data.is_fit !== undefined ? Boolean(data.is_fit) : true;
@@ -121,9 +117,15 @@ class User {
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
     const expiresAt = new Date(Date.now() + hoursToExpire * 60 * 60 * 1000);
 
+    // Revocar tokens previos del mismo tipo para este usuario
     await executeQuery(
-      'UPDATE users SET verification_token = ?, verification_token_expires = ? WHERE id = ?',
-      [hashedToken, expiresAt, userId]
+      'UPDATE user_tokens SET is_revoked = 1 WHERE user_id = ? AND token_type = ? AND used_at IS NULL AND is_revoked = 0',
+      [userId, 'email_verification']
+    );
+
+    await executeQuery(
+      'INSERT INTO user_tokens (user_id, token_type, token_hash, expires_at) VALUES (?, ?, ?, ?)',
+      [userId, 'email_verification', hashedToken, expiresAt]
     );
 
     return { token: rawToken, expiresAt };
@@ -134,10 +136,15 @@ class User {
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     const query = `
-      SELECT * FROM users
-      WHERE verification_token = ?
-        AND verification_token_expires > NOW()
-        AND email_verified = 0
+      SELECT ut.id as token_id, ut.user_id
+      FROM user_tokens ut
+      JOIN users u ON ut.user_id = u.id
+      WHERE ut.token_hash = ?
+        AND ut.token_type = 'email_verification'
+        AND ut.expires_at > NOW()
+        AND ut.used_at IS NULL
+        AND ut.is_revoked = 0
+        AND u.email_verified = 0
       LIMIT 1
     `;
 
@@ -147,16 +154,21 @@ class User {
       throw new Error('Token inválido o expirado');
     }
 
-    const userId = results[0].id;
+    const { token_id, user_id } = results[0];
 
+    // Marcar el token como usado
     await executeQuery(
-      `UPDATE users 
-       SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`,
-      [userId]
+      'UPDATE user_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [token_id]
     );
 
-    return await User.findById(userId);
+    // Marcar el email como verificado
+    await executeQuery(
+      'UPDATE users SET email_verified = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [user_id]
+    );
+
+    return await User.findById(user_id);
   }
 
   // Generar y guardar token de recuperación de contraseña
@@ -165,9 +177,15 @@ class User {
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
     const expiresAt = new Date(Date.now() + hoursToExpire * 60 * 60 * 1000);
 
+    // Revocar tokens previos del mismo tipo para este usuario
     await executeQuery(
-      'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
-      [hashedToken, expiresAt, userId]
+      'UPDATE user_tokens SET is_revoked = 1 WHERE user_id = ? AND token_type = ? AND used_at IS NULL AND is_revoked = 0',
+      [userId, 'password_reset']
+    );
+
+    await executeQuery(
+      'INSERT INTO user_tokens (user_id, token_type, token_hash, expires_at) VALUES (?, ?, ?, ?)',
+      [userId, 'password_reset', hashedToken, expiresAt]
     );
 
     return { token: rawToken, expiresAt };
@@ -178,9 +196,13 @@ class User {
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     const query = `
-      SELECT * FROM users
-      WHERE reset_token = ?
-        AND reset_token_expires > NOW()
+      SELECT ut.id as token_id, ut.user_id
+      FROM user_tokens ut
+      WHERE ut.token_hash = ?
+        AND ut.token_type = 'password_reset'
+        AND ut.expires_at > NOW()
+        AND ut.used_at IS NULL
+        AND ut.is_revoked = 0
       LIMIT 1
     `;
 
@@ -190,18 +212,23 @@ class User {
       throw new Error('Token inválido o expirado');
     }
 
-    const userId = results[0].id;
+    const { token_id, user_id } = results[0];
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
+    // Marcar el token como usado
     await executeQuery(
-      `UPDATE users 
-       SET password = ?, reset_token = NULL, reset_token_expires = NULL, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`,
-      [hashedPassword, userId]
+      'UPDATE user_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [token_id]
     );
 
-    return await User.findById(userId);
+    // Actualizar la contraseña
+    await executeQuery(
+      'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [hashedPassword, user_id]
+    );
+
+    return await User.findById(user_id);
   }
 
   // Actualizar contraseña directamente
