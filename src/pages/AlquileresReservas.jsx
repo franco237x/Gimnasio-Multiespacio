@@ -667,7 +667,7 @@ const AlquileresReservas = () => {
                     )}
                     {!isProfesor() && (
                         <div className="reservation-total">
-                            <strong>Total Estimado: ${calculateTotalSpace().toLocaleString('es-AR')}</strong>
+                            <strong>Total: ${calculateTotalSpace().toLocaleString('es-AR')}</strong>
                         </div>
                     )}
                     <div className="form-actions">

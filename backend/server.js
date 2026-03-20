@@ -8,7 +8,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middlewares
-// Middlewares
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) || origin === process.env.FRONTEND_URL) {

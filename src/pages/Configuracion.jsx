@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { configAPI } from '../services/apiService';
+import { configAPI, paymentsAPI } from '../services/apiService';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import './Configuracion.css';
 
 const Configuracion = () => {
@@ -7,6 +8,7 @@ const Configuracion = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
+    // ─── Config general ───
     const [config, setConfig] = useState({
         gym_name: '',
         email: '',
@@ -21,10 +23,23 @@ const Configuracion = () => {
         reminder_days: '5'
     });
 
+    // ─── Planes de membresía ───
+    const [plans, setPlans] = useState([]);
+    const [plansLoading, setPlansLoading] = useState(true);
+    const [planSaving, setPlanSaving] = useState(false);
+    const [showPlanForm, setShowPlanForm] = useState(false);
+    const [editingPlan, setEditingPlan] = useState(null);
+    const [planForm, setPlanForm] = useState({
+        name: '', description: '', price: '', duration_days: 30, features: ''
+    });
+    const [confirmDialog, setConfirmDialog] = useState({ show: false, title: '', message: '', onConfirm: null });
+
     useEffect(() => {
         loadConfig();
+        loadPlans();
     }, []);
 
+    // ─── Config helpers ───
     const loadConfig = async () => {
         try {
             setLoading(true);
@@ -61,6 +76,109 @@ const Configuracion = () => {
         }
     };
 
+    // ─── Plans CRUD ───
+    const loadPlans = async () => {
+        try {
+            setPlansLoading(true);
+            const res = await paymentsAPI.getPlans();
+            if (res.success) setPlans(res.data);
+        } catch (error) {
+            console.error('Error al cargar planes:', error);
+        } finally {
+            setPlansLoading(false);
+        }
+    };
+
+    const resetPlanForm = () => {
+        setPlanForm({ name: '', description: '', price: '', duration_days: 30, features: '' });
+        setEditingPlan(null);
+        setShowPlanForm(false);
+    };
+
+    const openNewPlan = () => {
+        resetPlanForm();
+        setShowPlanForm(true);
+    };
+
+    const openEditPlan = (plan) => {
+        let featuresStr = '';
+        if (plan.features) {
+            try {
+                const arr = typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features;
+                featuresStr = Array.isArray(arr) ? arr.join(', ') : '';
+            } catch { featuresStr = ''; }
+        }
+        setPlanForm({
+            name: plan.name,
+            description: plan.description || '',
+            price: plan.price,
+            duration_days: plan.duration_days,
+            features: featuresStr
+        });
+        setEditingPlan(plan);
+        setShowPlanForm(true);
+    };
+
+    const handlePlanSubmit = async (e) => {
+        e.preventDefault();
+        if (!planForm.name || !planForm.price) {
+            showNotification('❌ Nombre y precio son obligatorios', 'error');
+            return;
+        }
+        try {
+            setPlanSaving(true);
+            const payload = {
+                name: planForm.name,
+                description: planForm.description || null,
+                price: parseFloat(planForm.price),
+                duration_days: parseInt(planForm.duration_days) || 30,
+                features: planForm.features
+                    ? planForm.features.split(',').map(f => f.trim()).filter(Boolean)
+                    : null
+            };
+
+            if (editingPlan) {
+                await paymentsAPI.updatePlan(editingPlan.id, payload);
+                showNotification('✅ Plan actualizado correctamente', 'success');
+            } else {
+                await paymentsAPI.createPlan(payload);
+                showNotification('✅ Plan creado correctamente', 'success');
+            }
+            resetPlanForm();
+            await loadPlans();
+        } catch (error) {
+            showNotification(`❌ ${error.message || 'Error al guardar plan'}`, 'error');
+        } finally {
+            setPlanSaving(false);
+        }
+    };
+
+    const handleDeletePlan = (plan) => {
+        setConfirmDialog({
+            show: true,
+            title: 'Desactivar Plan',
+            message: `¿Estás seguro de desactivar el plan "${plan.name}"? Las suscripciones existentes no se verán afectadas.`,
+            onConfirm: async () => {
+                try {
+                    await paymentsAPI.deletePlan(plan.id);
+                    showNotification('✅ Plan desactivado correctamente', 'success');
+                    await loadPlans();
+                } catch (error) {
+                    showNotification('❌ Error al desactivar plan', 'error');
+                }
+                setConfirmDialog({ show: false });
+            }
+        });
+    };
+
+    const parsePlanFeatures = (features) => {
+        if (!features) return [];
+        try {
+            const arr = typeof features === 'string' ? JSON.parse(features) : features;
+            return Array.isArray(arr) ? arr : [];
+        } catch { return []; }
+    };
+
     if (loading) {
         return (
             <div className="configuracion loading-state">
@@ -78,10 +196,166 @@ const Configuracion = () => {
                 </div>
             )}
 
+            <ConfirmDialog
+                isOpen={confirmDialog.show}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                onConfirm={confirmDialog.onConfirm}
+                onCancel={() => setConfirmDialog({ show: false })}
+                confirmText="Desactivar"
+                variant="danger"
+            />
+
             <div className="page-header">
                 <h1><i className='bx bx-cog'></i> Configuración</h1>
             </div>
 
+            {/* ═══════════════════════════════════════════════
+                SECCIÓN: PLANES DE MEMBRESÍA
+            ═══════════════════════════════════════════════ */}
+            <div className="config-section plans-section">
+                <div className="section-title-row">
+                    <h2><i className='bx bx-id-card'></i> Planes de Membresía</h2>
+                    {!showPlanForm && (
+                        <button className="btn-add-plan" onClick={openNewPlan}>
+                            <i className='bx bx-plus'></i> Agregar Plan
+                        </button>
+                    )}
+                </div>
+
+                {/* Formulario crear / editar */}
+                {showPlanForm && (
+                    <form className="plan-form" onSubmit={handlePlanSubmit}>
+                        <h3>{editingPlan ? 'Editar Plan' : 'Nuevo Plan'}</h3>
+                        <div className="plan-form-grid">
+                            <div className="form-group">
+                                <label>Nombre *</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: Plan Premium"
+                                    value={planForm.name}
+                                    onChange={(e) => setPlanForm(p => ({ ...p, name: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Precio (ARS) *</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={planForm.price}
+                                    onChange={(e) => setPlanForm(p => ({ ...p, price: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Duración (días)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={planForm.duration_days}
+                                    onChange={(e) => setPlanForm(p => ({ ...p, duration_days: e.target.value }))}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Descripción</label>
+                                <input
+                                    type="text"
+                                    placeholder="Descripción breve del plan"
+                                    value={planForm.description}
+                                    onChange={(e) => setPlanForm(p => ({ ...p, description: e.target.value }))}
+                                />
+                            </div>
+                            <div className="form-group full-width">
+                                <label>Características (separadas por coma)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Musculación, Clases grupales, Vestuarios"
+                                    value={planForm.features}
+                                    onChange={(e) => setPlanForm(p => ({ ...p, features: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                        <div className="plan-form-actions">
+                            <button type="button" className="btn-secondary" onClick={resetPlanForm}>
+                                Cancelar
+                            </button>
+                            <button type="submit" className="btn-primary" disabled={planSaving}>
+                                {planSaving ? (
+                                    <><i className='bx bx-loader-alt bx-spin'></i> Guardando...</>
+                                ) : (
+                                    <><i className='bx bx-save'></i> {editingPlan ? 'Actualizar' : 'Crear Plan'}</>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                )}
+
+                {/* Lista de planes */}
+                {plansLoading ? (
+                    <div className="plans-loading">
+                        <i className='bx bx-loader-alt bx-spin'></i> Cargando planes...
+                    </div>
+                ) : plans.length === 0 ? (
+                    <div className="plans-empty">
+                        <i className='bx bx-info-circle'></i>
+                        <p>No hay planes creados todavía.</p>
+                    </div>
+                ) : (
+                    <div className="plans-grid">
+                        {plans.map(plan => {
+                            const features = parsePlanFeatures(plan.features);
+                            return (
+                                <div key={plan.id} className="plan-card">
+                                    <div className="plan-card-header">
+                                        <h3>{plan.name}</h3>
+                                        <span className="plan-price">
+                                            ${Number(plan.price).toLocaleString('es-AR')}
+                                        </span>
+                                    </div>
+                                    {plan.description && (
+                                        <p className="plan-description">{plan.description}</p>
+                                    )}
+                                    <div className="plan-meta">
+                                        <span className="plan-duration">
+                                            <i className='bx bx-calendar'></i> {plan.duration_days} días
+                                        </span>
+                                    </div>
+                                    {features.length > 0 && (
+                                        <ul className="plan-features">
+                                            {features.map((f, i) => (
+                                                <li key={i}><i className='bx bx-check'></i> {f}</li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    <div className="plan-card-actions">
+                                        <button
+                                            className="btn-edit-plan"
+                                            onClick={() => openEditPlan(plan)}
+                                            title="Editar"
+                                        >
+                                            <i className='bx bx-edit-alt'></i> Editar
+                                        </button>
+                                        <button
+                                            className="btn-delete-plan"
+                                            onClick={() => handleDeletePlan(plan)}
+                                            title="Desactivar"
+                                        >
+                                            <i className='bx bx-trash'></i> Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {/* ═══════════════════════════════════════════════
+                SECCIÓN: CONFIGURACIÓN GENERAL (existente)
+            ═══════════════════════════════════════════════ */}
             <form onSubmit={handleSubmit}>
                 {/* Información General */}
                 <div className="config-section">

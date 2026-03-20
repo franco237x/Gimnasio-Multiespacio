@@ -90,6 +90,8 @@ export const paymentsAPI = {
     // Planes de suscripción
     getPlans: () => fetchAPI('/payments/plans'),
     createPlan: (planData) => fetchAPI('/payments/plans', { method: 'POST', body: JSON.stringify(planData) }),
+    updatePlan: (id, planData) => fetchAPI(`/payments/plans/${id}`, { method: 'PUT', body: JSON.stringify(planData) }),
+    deletePlan: (id) => fetchAPI(`/payments/plans/${id}`, { method: 'DELETE' }),
 
     // Suscripciones de usuarios
     getSubscription: (userId) => fetchAPI(`/payments/subscription/${userId}`),

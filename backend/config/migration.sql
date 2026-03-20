@@ -261,5 +261,17 @@ VALUES
 ALTER TABLE payments
     ADD COLUMN IF NOT EXISTS billing_concept_id INT NULL AFTER concept;
 
+ALTER TABLE payments
+    ADD COLUMN IF NOT EXISTS batch_id VARCHAR(36) NULL AFTER id;
+
+ALTER TABLE payments
+    ADD COLUMN IF NOT EXISTS client_name_guest VARCHAR(150) NULL AFTER user_id;
+
+ALTER TABLE payments
+    ADD COLUMN IF NOT EXISTS cash_register_id INT NULL AFTER notes;
+
+ALTER TABLE payments
+    ADD COLUMN IF NOT EXISTS activity_id INT NULL AFTER cash_register_id;
+
 -- Índices adicionales para mejor rendimiento
 -- Los errores de índices duplicados o tablas inexistentes son manejados por database.js
