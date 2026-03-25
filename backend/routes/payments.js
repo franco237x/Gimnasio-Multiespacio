@@ -201,6 +201,63 @@ router.post('/plans', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async
     }
 });
 
+// PUT /api/payments/plans/:id - Actualizar plan
+router.put('/plans/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+    try {
+        const { name, description, price, duration_days, features, is_active } = req.body;
+
+        if (!name || !price) {
+            return res.status(400).json({
+                success: false,
+                message: 'Nombre y precio son requeridos'
+            });
+        }
+
+        const existing = await Subscription.getPlanById(req.params.id);
+        if (!existing) {
+            return res.status(404).json({ success: false, message: 'Plan no encontrado' });
+        }
+
+        const updated = await Subscription.updatePlan(req.params.id, {
+            name, description, price, duration_days, features, is_active
+        });
+
+        // Sincronizar billing_concept asociado
+        try {
+            const BillingConcept = require('../models/BillingConcept');
+            await BillingConcept.syncFromPlan(updated);
+        } catch (syncErr) {
+            console.warn('⚠️ No se pudo sincronizar billing_concept:', syncErr.message);
+        }
+
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        console.error('Error al actualizar plan:', error);
+        res.status(500).json({ success: false, message: 'Error al actualizar plan' });
+    }
+});
+
+// DELETE /api/payments/plans/:id - Desactivar plan (soft-delete)
+router.delete('/plans/:id', authenticateToken, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+    try {
+        const existing = await Subscription.getPlanById(req.params.id);
+        if (!existing) {
+            return res.status(404).json({ success: false, message: 'Plan no encontrado' });
+        }
+
+        await Subscription.updatePlan(req.params.id, {
+            ...existing,
+            features: existing.features ? JSON.parse(existing.features) : null,
+            is_active: 0
+        });
+
+        res.json({ success: true, message: 'Plan desactivado correctamente' });
+    } catch (error) {
+        console.error('Error al desactivar plan:', error);
+        res.status(500).json({ success: false, message: 'Error al desactivar plan' });
+    }
+});
+
 // GET /api/payments/subscription/:userId - Suscripción activa de un usuario
 router.get('/subscription/:userId', authenticateToken, async (req, res) => {
     try {

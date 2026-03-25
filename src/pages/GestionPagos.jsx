@@ -131,9 +131,17 @@ const GestionPagos = () => {
             setAddingConceptId('');
             setAddingAmount('');
         } else if (type === 'cuota') {
-            setPlanFormData({ name: '', description: '', price: '', duration_days: 30 });
+            if (data) {
+                setPlanFormData({ ...data, description: data.description || '' });
+            } else {
+                setPlanFormData({ id: null, name: '', description: '', price: '', duration_days: 30 });
+            }
         } else if (type === 'concepto') {
-            setConceptFormData({ name: '', category: 'otro', description: '', icon: 'bx-receipt', color: '#6366f1', default_amount: '', is_subscription: false, subscription_plan_id: '', sort_order: 99 });
+            if (data) {
+                setConceptFormData({ ...data, default_amount: data.default_amount || '', subscription_plan_id: data.subscription_plan_id || '' });
+            } else {
+                setConceptFormData({ id: null, name: '', category: 'otro', description: '', icon: 'bx-receipt', color: '#6366f1', default_amount: '', is_subscription: false, subscription_plan_id: '', sort_order: 99 });
+            }
         } else if (type === 'cancelar_pago') {
             setCancelData({ id: data?.id, reason: '' });
         } else if (type === 'ticket') {
@@ -142,6 +150,38 @@ const GestionPagos = () => {
             setCajaFormData({ opening_balance: 0, counted_balance: 0, notes: '' });
         }
         setShowModal(true);
+    };
+
+    const handleToggleConcept = async (id) => {
+        try {
+            await billingConceptsAPI.toggle(id);
+            addToast('✅ Estado del concepto actualizado', 'success');
+            loadData();
+        } catch (error) {
+            addToast('❌ ' + error.message, 'error');
+        }
+    };
+
+    const handleDeleteConcept = async (id) => {
+        if (!window.confirm('¿Estás seguro de eliminar este concepto? Esto solo es posible si no tiene transacciones asociadas.')) return;
+        try {
+            await billingConceptsAPI.delete(id);
+            addToast('✅ Concepto eliminado', 'success');
+            loadData();
+        } catch (error) {
+            addToast('❌ No se pudo eliminar (es probable que tenga pagos asociados)', 'error');
+        }
+    };
+
+    const handleDeletePlan = async (plan) => {
+        if (!window.confirm(`¿Estás seguro de desactivar/eliminar el plan "${plan.name}"?`)) return;
+        try {
+            await paymentsAPI.deletePlan(plan.id);
+            addToast('✅ Plan eliminado/desactivado correctamente', 'success');
+            loadData();
+        } catch (error) {
+            addToast('❌ Error al eliminar plan', 'error');
+        }
     };
 
     // ─────────────────────────────────────────────────────────
@@ -209,12 +249,24 @@ const GestionPagos = () => {
                 }
 
             } else if (modalType === 'cuota') {
-                await paymentsAPI.createPlan({ ...planFormData, price: parseFloat(planFormData.price), duration_days: parseInt(planFormData.duration_days) });
-                addToast('✅ Plan creado exitosamente', 'success');
+                const payload = { ...planFormData, price: parseFloat(planFormData.price), duration_days: parseInt(planFormData.duration_days) || 30 };
+                if (planFormData.id) {
+                    await paymentsAPI.updatePlan(planFormData.id, payload);
+                    addToast('✅ Plan actualizado', 'success');
+                } else {
+                    await paymentsAPI.createPlan(payload);
+                    addToast('✅ Plan creado exitosamente', 'success');
+                }
 
             } else if (modalType === 'concepto') {
-                await billingConceptsAPI.create({ ...conceptFormData, default_amount: conceptFormData.default_amount || null, subscription_plan_id: conceptFormData.subscription_plan_id || null });
-                addToast('✅ Concepto creado', 'success');
+                const payload = { ...conceptFormData, default_amount: conceptFormData.default_amount || null, subscription_plan_id: conceptFormData.subscription_plan_id || null };
+                if (conceptFormData.id) {
+                    await billingConceptsAPI.update(conceptFormData.id, payload);
+                    addToast('✅ Concepto actualizado', 'success');
+                } else {
+                    await billingConceptsAPI.create(payload);
+                    addToast('✅ Concepto creado', 'success');
+                }
 
             } else if (modalType === 'abrir_caja') {
                 await cashRegistersAPI.open(parseFloat(cajaFormData.opening_balance));
@@ -339,7 +391,7 @@ const GestionPagos = () => {
                         <div className="cuotas-section">
                             <div className="section-header">
                                 <h3>Planes de Membresía</h3>
-                                {currentUser?.role_id === 1 && (
+                                {currentUser?.role?.id === 1 && (
                                     <button className="btn-primary" onClick={() => handleOpenModal('cuota')}>
                                         <i className='bx bx-plus'></i> Nuevo Plan
                                     </button>
@@ -347,7 +399,7 @@ const GestionPagos = () => {
                             </div>
                             <div className="plans-table-container">
                                 <table className="payments-table">
-                                    <thead><tr><th>Nombre</th><th>Descripción</th><th>Precio</th><th>Duración</th><th>Concepto vinculado</th></tr></thead>
+                                    <thead><tr><th>Nombre</th><th>Descripción</th><th>Precio</th><th>Duración</th><th>Concepto vinculado</th>{currentUser?.role?.id === 1 && <th style={{ textAlign: 'center' }}>Acciones</th>}</tr></thead>
                                     <tbody>
                                         {planes.map(plan => {
                                             const linked = billingConcepts.find(c => c.subscription_plan_id === plan.id);
@@ -362,6 +414,16 @@ const GestionPagos = () => {
                                                             ? <span className="concept-badge" style={{ background: linked.color + '22', color: linked.color, border: `1px solid ${linked.color}44` }}><i className={`bx ${linked.icon}`}></i>{linked.name}</span>
                                                             : <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>Sin concepto</span>}
                                                     </td>
+                                                    {currentUser?.role?.id === 1 && (
+                                                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                            <button className="btn-icon" style={{ color: '#3b82f6', marginRight: '6px' }} title="Editar" onClick={() => handleOpenModal('cuota', plan)}>
+                                                                <i className="bx bx-edit-alt"></i>
+                                                            </button>
+                                                            <button className="btn-icon" style={{ color: '#ef4444' }} title="Eliminar" onClick={() => handleDeletePlan(plan)}>
+                                                                <i className="bx bx-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             );
                                         })}
@@ -376,7 +438,7 @@ const GestionPagos = () => {
                         <div className="conceptos-section">
                             <div className="section-header">
                                 <h3>Catálogo de Conceptos</h3>
-                                {currentUser?.role_id === 1 && (
+                                {currentUser?.role?.id === 1 && (
                                     <button className="btn-primary" onClick={() => handleOpenModal('concepto')}>
                                         <i className='bx bx-plus'></i> Nuevo Concepto
                                     </button>
@@ -388,7 +450,7 @@ const GestionPagos = () => {
                             </p>
                             <div className="plans-table-container" style={{ marginTop: '16px' }}>
                                 <table className="payments-table">
-                                    <thead><tr><th>Concepto</th><th>Categoría</th><th>Monto base</th><th>Vinculado a</th><th>Estado</th></tr></thead>
+                                    <thead><tr><th>Concepto</th><th>Categoría</th><th>Monto base</th><th>Vinculado a</th><th>Estado</th>{currentUser?.role?.id === 1 && <th style={{ textAlign: 'center' }}>Acciones</th>}</tr></thead>
                                     <tbody>
                                         {billingConcepts.map(c => {
                                             const cat = CATEGORIAS[c.category] || CATEGORIAS.otro;
@@ -407,11 +469,24 @@ const GestionPagos = () => {
                                                     <td className="amount">{c.default_amount ? `$${fmt(c.default_amount)}` : <span style={{ color: '#6b7280' }}>—</span>}</td>
                                                     <td style={{ color: '#9ca3af', fontSize: '0.9rem' }}>{vinculo}</td>
                                                     <td><span className={`status-badge ${c.is_active ? 'status-completed' : 'status-refunded'}`}>{c.is_active ? 'Activo' : 'Inactivo'}</span></td>
+                                                    {currentUser?.role?.id === 1 && (
+                                                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                            <button className="btn-icon" style={{ color: '#3b82f6', marginRight: '6px' }} title="Editar" onClick={() => handleOpenModal('concepto', c)}>
+                                                                <i className="bx bx-edit-alt"></i>
+                                                            </button>
+                                                            <button className="btn-icon" style={{ color: c.is_active ? '#f59e0b' : '#10b981', marginRight: '6px' }} title={c.is_active ? 'Desactivar' : 'Activar'} onClick={() => handleToggleConcept(c.id)}>
+                                                                <i className={`bx ${c.is_active ? 'bx-block' : 'bx-check'}`}></i>
+                                                            </button>
+                                                            <button className="btn-icon" style={{ color: '#ef4444' }} title="Eliminar" onClick={() => handleDeleteConcept(c.id)}>
+                                                                <i className="bx bx-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             );
                                         })}
                                         {billingConcepts.length === 0 && (
-                                            <tr><td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: '32px' }}>
+                                            <tr><td colSpan={currentUser?.role?.id === 1 ? 6 : 5} style={{ textAlign: 'center', color: '#6b7280', padding: '32px' }}>
                                                 <i className='bx bx-inbox' style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}></i>
                                                 Sin conceptos configurados.
                                             </td></tr>
