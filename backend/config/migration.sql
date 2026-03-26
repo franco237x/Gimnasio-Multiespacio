@@ -199,6 +199,26 @@ INSERT IGNORE INTO gym_config (config_key, config_value) VALUES
     ('payment_reminder', 'true'),
     ('reminder_days', '5');
 
+-- -----------------------------------------------------
+-- Tabla: cash_registers (Caja Registradora)
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS cash_registers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    opened_by INT NOT NULL,
+    opening_time DATETIME NOT NULL,
+    opening_balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    closed_by INT NULL,
+    closing_time DATETIME NULL,
+    closing_balance DECIMAL(10, 2) NULL,
+    counted_balance DECIMAL(10, 2) NULL,
+    discrepancy DECIMAL(10, 2) NULL,
+    notes TEXT NULL,
+    status ENUM('open', 'closed') DEFAULT 'open',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (opened_by) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (closed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =====================================================
 -- Tabla: billing_concepts
 -- Catálogo ÚNICO de conceptos/ítems cobrables.
