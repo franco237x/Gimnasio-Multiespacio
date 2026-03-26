@@ -173,6 +173,13 @@ export const authAPI = {
     changePassword: (data) => fetchAPI('/auth/change-password', { method: 'PUT', body: JSON.stringify(data) }),
 };
 
+// ============= CONTACTO WEB =============
+export const contactAPI = {
+    submitInquiry: (data) => fetchAPI('/contact', { method: 'POST', body: JSON.stringify(data) }),
+    getAll: () => fetchAPI('/contact'),
+    updateStatus: (id, status) => fetchAPI(`/contact/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+};
+
 // Export por defecto con todos los servicios
 export default {
     users: usersAPI,
@@ -184,4 +191,5 @@ export default {
     reports: reportsAPI,
     auth: authAPI,
     cashRegisters: cashRegistersAPI,
+    contact: contactAPI,
 };

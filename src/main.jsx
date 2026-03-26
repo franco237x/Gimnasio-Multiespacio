@@ -22,6 +22,7 @@ import MisReservas from './pages/MisReservas.jsx'
 import MiPerfil from './pages/MiPerfil.jsx'
 import MiProgreso from './pages/MiProgreso.jsx'
 import Consultas from './pages/Consultas.jsx'
+import PanelConsultasWeb from './pages/PanelConsultasWeb.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ProtectedRoute, RoleProtectedRoute, ROLES } from './components/auth/RoleProtectedRoute.jsx'
 
@@ -70,6 +71,11 @@ createRoot(document.getElementById('root')).render(
             <Route path="consultas" element={
               <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
                 <Consultas />
+              </RoleProtectedRoute>
+            } />
+            <Route path="consultas-web" element={
+              <RoleProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR, ROLES.RECEPCIONISTA]}>
+                <PanelConsultasWeb />
               </RoleProtectedRoute>
             } />
 

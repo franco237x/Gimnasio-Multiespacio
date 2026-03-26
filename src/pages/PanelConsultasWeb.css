@@ -1,0 +1,157 @@
+.panel-consultas-web {
+    padding: 20px;
+    background: var(--bg-card, #1f1f1f);
+    border-radius: 8px;
+    box-shadow: var(--shadow-dark, 0 10px 40px rgba(0, 0, 0, 0.5));
+    border: 1px solid rgba(255, 51, 51, 0.2);
+    color: var(--text-light, #ffffff);
+}
+
+.panel-consultas-web .page-header {
+    margin-bottom: 20px;
+}
+
+.panel-consultas-web .page-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-light, #ffffff);
+    margin: 0 0 5px 0;
+}
+
+.panel-consultas-web .page-header p {
+    color: var(--text-gray, #888888);
+    margin: 0;
+}
+
+.filters-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filters-section select {
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: var(--bg-dark, #0a0a0a);
+    color: var(--text-light, #ffffff);
+}
+
+.filters-section label {
+    color: var(--text-gray, #888888);
+    font-weight: 500;
+}
+
+.btn-refresh {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 15px;
+    background: var(--gradient-primary, linear-gradient(135deg, #ff3333 0%, #ff5555 100%));
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 51, 51, 0.3);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.inquiries-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.inquiries-table th, 
+.inquiries-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-light, #ffffff);
+}
+
+.inquiries-table td a {
+    color: var(--primary-color, #ff3333);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.inquiries-table td a:hover {
+    text-decoration: underline;
+}
+
+.inquiries-table th {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-gray, #888888);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.message-cell {
+    max-width: 300px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-gray, #aaa);
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Status variants tailored for dark background */
+.status-badge.pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.status-badge.in_progress {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.status-badge.resolved {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.status-select {
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: var(--bg-dark, #0a0a0a);
+    color: var(--text-light, #ffffff);
+}
+
+.status-select option {
+    background: var(--bg-dark, #0a0a0a);
+    color: var(--text-light, #ffffff);
+}
+
+.empty-state, .loading-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-gray, #888888);
+    font-size: 1.1rem;
+}

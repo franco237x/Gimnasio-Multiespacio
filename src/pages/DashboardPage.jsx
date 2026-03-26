@@ -52,6 +52,8 @@ const DashboardPage = () => {
         { icon: 'bx-calendar-event', label: 'Gestionar Actividades', path: '/dashboard/actividades' },
         { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' },
         { icon: 'bx-money', label: 'Gestión de Pagos', path: '/dashboard/pagos' },
+        { icon: 'bx-search', label: 'Consultas', path: '/dashboard/consultas' },
+        // { icon: 'bx-envelope', label: 'Mensajes Web', path: '/dashboard/consultas-web' },
         { icon: 'bx-bar-chart-alt-2', label: 'Reportes', path: '/dashboard/reportes' },
         { icon: 'bx-cog', label: 'Configuración', path: '/dashboard/configuracion' }
       ];
@@ -65,6 +67,7 @@ const DashboardPage = () => {
         { icon: 'bx-building-house', label: 'Alquileres y Reservas', path: '/dashboard/alquileres' },
         { icon: 'bx-money', label: 'Gestión de Pagos', path: '/dashboard/pagos' },
         { icon: 'bx-search', label: 'Consultas', path: '/dashboard/consultas' }
+        // { icon: 'bx-envelope', label: 'Mensajes Web', path: '/dashboard/consultas-web' }
       ];
     }
 

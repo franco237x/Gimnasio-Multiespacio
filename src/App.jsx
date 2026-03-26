@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { ToastContainer, useToast } from './components/ui/Toast'
+import { contactAPI } from './services/apiService'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import './App.css'
@@ -12,6 +13,11 @@ function App() {
   const { toasts, addToast, removeToast } = useToast()
   const [scrollY, setScrollY] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  
+  // States para el formulario de contacto
+  const [contactData, setContactData] = useState({ name: '', email: '', message: '' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isContactSuccess, setIsContactSuccess] = useState(false)
 
   useEffect(() => {
     // Inicializar AOS solo en dispositivos con ancho mayor a 768px
@@ -89,6 +95,40 @@ function App() {
   const handleDashboardClick = () => {
     navigate('/dashboard')
     closeMenu()
+  }
+
+  const handleContactChange = (e) => {
+    const { name, value } = e.target
+    setContactData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!contactData.name || !contactData.email || !contactData.message) {
+      addToast('Por favor, completa todos los campos requeridos', 'error')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactData.email)) {
+      addToast('El formato del correo electrónico es inválido', 'error')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      const res = await contactAPI.submitInquiry(contactData)
+      if (res.success) {
+        addToast(res.message, 'success')
+        setContactData({ name: '', email: '', message: '' }) // Reset form
+        setIsContactSuccess(true)
+      }
+    } catch (error) {
+      addToast(error.message || 'Error al enviar la consulta', 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -169,9 +209,8 @@ function App() {
             Tu espacio de transformación y bienestar
           </p>
         </div>
-        <div className="scroll-indicator">
-          <i className='bx bx-chevron-down scroll-arrow'></i>
-        </div>
+
+
       </section>
 
       {/* About Section */}
@@ -257,7 +296,6 @@ function App() {
       </section>
 
       {/* Services Section */}
-      {/* Services Section */}
       <section id="servicios" className="section">
         <div className="container">
           <div className="section-header" data-aos="fade-up">
@@ -326,12 +364,47 @@ function App() {
               </div>
             </div>
             <div className="contact-form" data-aos="fade-left">
-              <form>
-                <input type="text" placeholder="Tu nombre" data-aos="fade-up" data-aos-delay="100" />
-                <input type="email" placeholder="Tu email" data-aos="fade-up" data-aos-delay="200" />
-                <textarea placeholder="Tu mensaje" rows="4" data-aos="fade-up" data-aos-delay="300"></textarea>
-                <button type="submit" data-aos="fade-up" data-aos-delay="400">Enviar Mensaje</button>
-              </form>
+              {isContactSuccess ? (
+                <div className="contact-success-box" style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white' }}>
+                  <i className='bx bx-check-circle' style={{ fontSize: '4rem', color: '#10b981', marginBottom: '15px' }}></i>
+                  <h3 style={{ marginBottom: '10px' }}>¡Tu consulta fue enviada!</h3>
+                  <p style={{ marginBottom: '20px' }}>Te responderemos a la brevedad posible.</p>
+                  <button onClick={() => setIsContactSuccess(false)} style={{ background: 'transparent', border: '1px solid white', padding: '10px 20px', color: 'white', borderRadius: '4px', cursor: 'pointer' }}>Enviar otro mensaje</button>
+                </div>
+              ) : (
+                <form onSubmit={handleContactSubmit}>
+                  <input 
+                    type="text" 
+                    name="name" 
+                    placeholder="Tu nombre" 
+                    data-aos="fade-up" 
+                    data-aos-delay="100" 
+                    value={contactData.name} 
+                    onChange={handleContactChange} 
+                  />
+                  <input 
+                    type="email" 
+                    name="email" 
+                    placeholder="Tu email" 
+                    data-aos="fade-up" 
+                    data-aos-delay="200" 
+                    value={contactData.email} 
+                    onChange={handleContactChange} 
+                  />
+                  <textarea 
+                    name="message" 
+                    placeholder="Tu mensaje" 
+                    rows="4" 
+                    data-aos="fade-up" 
+                    data-aos-delay="300"
+                    value={contactData.message} 
+                    onChange={handleContactChange}
+                  ></textarea>
+                  <button type="submit" disabled={isSubmitting} data-aos="fade-up" data-aos-delay="400">
+                    {isSubmitting ? 'Enviando...' : 'Enviar Mensaje'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>

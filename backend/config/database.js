@@ -251,6 +251,21 @@ const initializeTables = async () => {
       }
     }
 
+    // Crear tabla de consultas de contacto web
+    const createContactInquiriesTable = `
+      CREATE TABLE IF NOT EXISTS contact_inquiries (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) NOT NULL,
+        message TEXT NOT NULL,
+        status ENUM('pending', 'in_progress', 'resolved') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await executeQuery(createContactInquiriesTable);
+    console.log('✅ Tabla contact_inquiries creada/verificada correctamente');
+
     // Ejecutar migración para tablas adicionales
     await runMigration();
 
