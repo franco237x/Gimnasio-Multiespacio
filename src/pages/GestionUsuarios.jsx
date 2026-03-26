@@ -4,12 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import './GestionUsuarios.css';
 
 const GestionUsuarios = () => {
     const { user: currentUser } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('todos');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const { toasts, addToast, removeToast } = useToast();
@@ -50,7 +53,7 @@ const GestionUsuarios = () => {
                 setUsuarios(mappedUsers);
             }
         } catch (error) {
-            showNotification('❌ Error al cargar usuarios', 'error');
+            showNotification('❌ Error al cargar usuarios: ' + (error.message || ''), 'error');
             console.error('Error cargando usuarios:', error);
         } finally {
             setLoading(false);
@@ -152,7 +155,7 @@ const GestionUsuarios = () => {
             showNotification('🗑️ Usuario eliminado correctamente', 'success');
             setUsuarios(prev => prev.filter(u => u.id !== confirmDelete.userId));
         } catch (error) {
-            showNotification('❌ Error al eliminar usuario', 'error');
+            showNotification('❌ Error al eliminar usuario: ' + (error.message || ''), 'error');
         } finally {
             setConfirmDelete({ show: false, userId: null, userName: '' });
         }
@@ -168,7 +171,7 @@ const GestionUsuarios = () => {
             showNotification('✅ Estado del usuario actualizado', 'success');
             setUsuarios(prev => prev.map(u => u.id === user.id ? { ...u, estado: user.estado === 'activo' ? 'inactivo' : 'activo' } : u));
         } catch (error) {
-            showNotification('❌ Error al actualizar estado', 'error');
+            showNotification('❌ Error al actualizar estado: ' + (error.message || ''), 'error');
         }
     };
 
@@ -190,6 +193,12 @@ const GestionUsuarios = () => {
         const matchesRole = filterRole === 'todos' || user.rol === filterRole;
         return matchesSearch && matchesRole;
     });
+
+    // Reset page on filter changes
+    useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRole]);
+
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <div className="gestion-usuarios">
@@ -248,7 +257,7 @@ const GestionUsuarios = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredUsers.map(user => (
+                                paginatedUsers.map(user => (
                                     <tr key={user.id}>
                                         <td className="user-name">{user.nombre}</td>
                                         <td>{user.email}</td>
@@ -294,6 +303,14 @@ const GestionUsuarios = () => {
                             )}
                         </tbody>
                     </table>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        totalItems={filteredUsers.length}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={(val) => { setItemsPerPage(val); setCurrentPage(1); }}
+                    />
                 </div>
             )}
 

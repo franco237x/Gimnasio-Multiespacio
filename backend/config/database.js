@@ -241,6 +241,16 @@ const initializeTables = async () => {
       }
     }
 
+    // Asegurar columnas de pago en reservations
+    try {
+      await executeQuery(`ALTER TABLE reservations ADD COLUMN payment_status ENUM('pending', 'partial', 'paid') DEFAULT 'pending' AFTER total_amount, ADD COLUMN payment_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER payment_status;`);
+      console.log('✅ Columnas de pago anadidas a reservations');
+    } catch (e) {
+      if (!e.message.includes('Duplicate column name')) {
+        console.log('ℹ️ Omitiendo alter de pagos en reservations (probablemente ya existen)');
+      }
+    }
+
     // Agregar activity_id a payments para vincular pagos con inscripciones en actividades
     try {
       await executeQuery(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS activity_id INT NULL;`);

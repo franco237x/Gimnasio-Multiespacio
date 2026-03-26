@@ -46,7 +46,7 @@ const MiProgreso = () => {
             }
         } catch (error) {
             console.error('Error al cargar datos:', error);
-            addToast('Error al cargar información', 'error');
+            addToast('Error al cargar información: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }

@@ -37,7 +37,7 @@ const MisClases = () => {
             }
         } catch (error) {
             console.error('Error al cargar clases', error);
-            addToast('Error al cargar tus clases', 'error');
+            addToast('Error al cargar tus clases: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -104,7 +104,7 @@ const MisClases = () => {
             }
         } catch (error) {
             console.error(error);
-            addToast('Error al guardar asistencia', 'error');
+            addToast('Error al guardar asistencia: ' + (error.message || ''), 'error');
         } finally {
             setSavingAttendance(false);
         }

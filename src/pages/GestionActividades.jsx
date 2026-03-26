@@ -3,6 +3,7 @@ import { activitiesAPI, reservationsAPI } from '../services/apiService';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import './GestionActividades.css';
 
 const GestionActividades = () => {
@@ -18,6 +19,8 @@ const GestionActividades = () => {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null, name: '' });
+    const [actPage, setActPage] = useState(1);
+    const [actPerPage, setActPerPage] = useState(10);
 
     const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 
@@ -48,7 +51,7 @@ const GestionActividades = () => {
             if (teachRes.success) setProfesores(teachRes.data);
             if (spaceRes.success) setEspacios(spaceRes.data);
         } catch (error) {
-            showNotification('❌ Error al cargar datos', 'error');
+            showNotification('❌ Error al cargar datos: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -99,7 +102,7 @@ const GestionActividades = () => {
                 setShowStudentsModal(true);
             }
         } catch (error) {
-            showNotification('❌ Error al cargar alumnos', 'error');
+            showNotification('❌ Error al cargar alumnos: ' + (error.message || ''), 'error');
         }
     };
 
@@ -113,7 +116,7 @@ const GestionActividades = () => {
                 showNotification('❌ ' + (res.message || 'Error al dar de alta'), 'error');
             }
         } catch (error) {
-            showNotification('❌ Error al dar de alta', 'error');
+            showNotification('❌ Error al dar de alta: ' + (error.message || ''), 'error');
         }
     };
 
@@ -148,7 +151,7 @@ const GestionActividades = () => {
             const actRes = await activitiesAPI.getAll();
             if (actRes.success) setActividades(actRes.data);
         } catch (error) {
-            showNotification('❌ Error al guardar actividad', 'error');
+            showNotification('❌ Error al guardar actividad: ' + (error.message || ''), 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -164,7 +167,7 @@ const GestionActividades = () => {
             showNotification('🗑️ Actividad eliminada', 'success');
             setActividades(prev => prev.filter(a => a.id !== confirmDelete.id));
         } catch (error) {
-            showNotification('❌ Error al eliminar actividad', 'error');
+            showNotification('❌ Error al eliminar actividad: ' + (error.message || ''), 'error');
         } finally {
             setConfirmDelete({ show: false, id: null, name: '' });
         }
@@ -269,7 +272,7 @@ const GestionActividades = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {actividades.map(act => (
+                            {actividades.slice((actPage - 1) * actPerPage, actPage * actPerPage).map(act => (
                                 <tr key={act.id}>
                                     <td><strong>{act.name}</strong></td>
                                     <td style={{ textTransform: 'capitalize' }}>{act.day_of_week ? act.day_of_week.replace(/,/g, ', ') : ''}</td>
@@ -292,6 +295,14 @@ const GestionActividades = () => {
                             ))}
                         </tbody>
                     </table>
+                    <Pagination
+                        currentPage={actPage}
+                        totalPages={Math.ceil(actividades.length / actPerPage)}
+                        onPageChange={setActPage}
+                        totalItems={actividades.length}
+                        itemsPerPage={actPerPage}
+                        onItemsPerPageChange={(val) => { setActPerPage(val); setActPage(1); }}
+                    />
                 </div>
             )}
 

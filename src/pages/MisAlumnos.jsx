@@ -5,6 +5,7 @@ import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Pagination from '../components/ui/Pagination';
 import './MisAlumnos.css';
 
 const MisAlumnos = () => {
@@ -13,6 +14,8 @@ const MisAlumnos = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [alumnos, setAlumnos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     // Modal state
     const [showFichaModal, setShowFichaModal] = useState(false);
@@ -49,7 +52,7 @@ const MisAlumnos = () => {
             }
         } catch (error) {
             console.error('Error al cargar alumnos', error);
-            addToast('Error al cargar alumnos', 'error');
+            addToast('Error al cargar alumnos: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -105,7 +108,7 @@ const MisAlumnos = () => {
             }
         } catch (error) {
             console.error(error);
-            addToast('Error al guardar ficha médica', 'error');
+            addToast('Error al guardar ficha médica: ' + (error.message || ''), 'error');
         } finally {
             setSavingMedical(false);
         }
@@ -135,7 +138,7 @@ const MisAlumnos = () => {
             }
         } catch (error) {
             console.error(error);
-            addToast('Error al registrar progreso', 'error');
+            addToast('Error al registrar progreso: ' + (error.message || ''), 'error');
         } finally {
             setSavingProgress(false);
         }
@@ -145,6 +148,11 @@ const MisAlumnos = () => {
         a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+
+    const totalPages = Math.ceil(filteredAlumnos.length / itemsPerPage);
+    const paginatedAlumnos = filteredAlumnos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <div className="mis-alumnos">
@@ -202,8 +210,9 @@ const MisAlumnos = () => {
                             <p>No se encontraron alumnos.</p>
                         </div>
                     ) : (
+                        <>
                         <div className="alumnos-grid">
-                            {filteredAlumnos.map((alumno) => (
+                            {paginatedAlumnos.map((alumno) => (
                                 <div key={alumno.id} className="alumno-card">
                                     <div className="alumno-header">
                                         <div className="alumno-avatar">
@@ -243,6 +252,15 @@ const MisAlumnos = () => {
                                 </div>
                             ))}
                         </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            totalItems={filteredAlumnos.length}
+                            itemsPerPage={itemsPerPage}
+                            onItemsPerPageChange={(val) => { setItemsPerPage(val); setCurrentPage(1); }}
+                        />
+                        </>
                     )}
                 </>
             )}

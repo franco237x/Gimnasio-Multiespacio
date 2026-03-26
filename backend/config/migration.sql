@@ -130,6 +130,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
+    payment_status ENUM('pending', 'partial', 'paid') DEFAULT 'pending',
+    payment_amount DECIMAL(10, 2) DEFAULT 0.00,
     status ENUM('confirmed', 'pending', 'cancelled') DEFAULT 'pending',
     notes TEXT,
     client_id INT,

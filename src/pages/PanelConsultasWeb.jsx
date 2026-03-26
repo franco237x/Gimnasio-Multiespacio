@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { contactAPI } from '../services/apiService';
 import { useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import './PanelConsultasWeb.css';
 
 const PanelConsultasWeb = () => {
@@ -8,6 +9,8 @@ const PanelConsultasWeb = () => {
     const [inquiries, setInquiries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     useEffect(() => {
         loadInquiries();
@@ -21,7 +24,7 @@ const PanelConsultasWeb = () => {
                 setInquiries(res.data);
             }
         } catch (error) {
-            addToast('Error al cargar los mensajes', 'error');
+            addToast('Error al cargar los mensajes: ' + (error.message || ''), 'error');
             console.error(error);
         } finally {
             setLoading(false);
@@ -37,7 +40,7 @@ const PanelConsultasWeb = () => {
                 setInquiries(prev => prev.map(inq => inq.id === id ? { ...inq, status: newStatus } : inq));
             }
         } catch (error) {
-            addToast('Error al actualizar el estado', 'error');
+            addToast('Error al actualizar el estado: ' + (error.message || ''), 'error');
         }
     };
 
@@ -53,6 +56,11 @@ const PanelConsultasWeb = () => {
     const filteredInquiries = filterStatus === 'all' 
         ? inquiries 
         : inquiries.filter(inq => inq.status === filterStatus);
+
+    useEffect(() => { setCurrentPage(1); }, [filterStatus]);
+
+    const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
+    const paginatedInquiries = filteredInquiries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     if (loading) return <div className="loading-state">Cargando mensajes...</div>;
 
@@ -80,6 +88,7 @@ const PanelConsultasWeb = () => {
                 {filteredInquiries.length === 0 ? (
                     <div className="empty-state">No hay mensajes para mostrar.</div>
                 ) : (
+                    <>
                     <div className="table-responsive">
                         <table className="inquiries-table">
                             <thead>
@@ -93,7 +102,7 @@ const PanelConsultasWeb = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredInquiries.map(inquiry => (
+                                {paginatedInquiries.map(inquiry => (
                                     <tr key={inquiry.id} className={`status-${inquiry.status}`}>
                                         <td>{new Date(inquiry.created_at).toLocaleDateString()}</td>
                                         <td>{inquiry.name}</td>
@@ -120,6 +129,15 @@ const PanelConsultasWeb = () => {
                             </tbody>
                         </table>
                     </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        totalItems={filteredInquiries.length}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={(val) => { setItemsPerPage(val); setCurrentPage(1); }}
+                    />
+                    </>
                 )}
             </div>
         </div>

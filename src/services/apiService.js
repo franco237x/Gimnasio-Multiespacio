@@ -25,15 +25,28 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     try {
         const response = await fetch(url, config);
-        const data = await response.json();
+        const contentType = response.headers.get("content-type");
 
-        if (!response.ok) {
-            throw new Error(data.message || 'Error en la petición');
+        if (contentType && contentType.includes("application/json")) {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error en la petición de la base de datos');
+            }
+            return data;
+        } else {
+            if (!response.ok) {
+                const text = await response.text();
+                console.error("Non-JSON API Error Response:", text);
+                throw new Error(`Error en el servidor (${response.status} ${response.statusText}). Revisa la consola para más detalles.`);
+            }
+            return await response.text();
         }
-
-        return data;
     } catch (error) {
         console.error('API Error:', error);
+        // Translate common network errors
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+            throw new Error('No se pudo conectar con el servidor. Verifica tu conexión.');
+        }
         throw error;
     }
 };

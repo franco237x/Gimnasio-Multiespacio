@@ -70,7 +70,7 @@ const Consultas = () => {
                 }
             }
         } catch (error) {
-            showNotification('❌ Error al buscar usuarios', 'error');
+            showNotification('❌ Error al buscar usuarios: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }

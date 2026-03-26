@@ -1,0 +1,105 @@
+.pagination-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 0 4px;
+    margin-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pagination-info {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #e5e7eb;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled):not(.active) {
+    background: rgba(8, 145, 178, 0.15);
+    border-color: rgba(8, 145, 178, 0.3);
+    color: #0891b2;
+}
+
+.pagination-btn.active {
+    background: linear-gradient(135deg, #0891b2, #06b6d4);
+    border-color: transparent;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(8, 145, 178, 0.35);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pagination-btn i {
+    font-size: 1.1rem;
+}
+
+.pagination-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 36px;
+    color: #6b7280;
+    font-size: 0.85rem;
+    user-select: none;
+}
+
+.pagination-per-page select {
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #e5e7eb;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.pagination-per-page select:hover {
+    border-color: rgba(8, 145, 178, 0.3);
+}
+
+.pagination-per-page select:focus {
+    outline: none;
+    border-color: #0891b2;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .pagination-container {
+        justify-content: center;
+    }
+
+    .pagination-info {
+        width: 100%;
+        text-align: center;
+    }
+}

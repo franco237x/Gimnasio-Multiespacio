@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { paymentsAPI, usersAPI, cashRegistersAPI, billingConceptsAPI } from '../services/apiService';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import './GestionPagos.css';
 
 // ─────────────────────────────────────────────────────────
@@ -43,6 +44,8 @@ const GestionPagos = () => {
     const [billingConcepts, setBillingConcepts] = useState([]);
     const [selectedPago, setSelectedPago] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [historialPage, setHistorialPage] = useState(1);
+    const [historialPerPage, setHistorialPerPage] = useState(10);
 
     // ── Estado del checkout multi-ítem ──
     const [clientMode, setClientMode] = useState('registered'); // 'registered' | 'guest'
@@ -90,7 +93,7 @@ const GestionPagos = () => {
                 setCajaSummary([]);
             }
         } catch {
-            addToast('Error al cargar datos', 'error');
+            addToast('Error al cargar datos: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -180,7 +183,7 @@ const GestionPagos = () => {
             addToast('✅ Plan eliminado/desactivado correctamente', 'success');
             loadData();
         } catch (error) {
-            addToast('❌ Error al eliminar plan', 'error');
+            addToast('❌ Error al eliminar plan: ' + (error.message || ''), 'error');
         }
     };
 
@@ -544,7 +547,7 @@ const GestionPagos = () => {
                                     <tr><th>Fecha</th><th>Cliente</th><th>Concepto</th><th>Método</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr>
                                 </thead>
                                 <tbody>
-                                    {historialPagos.map(pago => {
+                                    {historialPagos.slice((historialPage - 1) * historialPerPage, historialPage * historialPerPage).map(pago => {
                                         const { name: cName, icon: cIcon, color: cColor } = getConceptoDisplay(pago);
                                         const m = getMetodo(pago.payment_method);
                                         return (
@@ -579,6 +582,14 @@ const GestionPagos = () => {
                                     })}
                                 </tbody>
                             </table>
+                            <Pagination
+                                currentPage={historialPage}
+                                totalPages={Math.ceil(historialPagos.length / historialPerPage)}
+                                onPageChange={setHistorialPage}
+                                totalItems={historialPagos.length}
+                                itemsPerPage={historialPerPage}
+                                onItemsPerPageChange={(val) => { setHistorialPerPage(val); setHistorialPage(1); }}
+                            />
                         </div>
                     )}
 

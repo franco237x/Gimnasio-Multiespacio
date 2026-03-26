@@ -38,7 +38,7 @@ const MisCuotas = () => {
             }
         } catch (error) {
             console.error('Error al cargar datos', error);
-            addToast('Error al cargar tu suscripción', 'error');
+            addToast('Error al cargar tu suscripción: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
