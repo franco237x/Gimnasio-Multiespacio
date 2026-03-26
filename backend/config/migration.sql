@@ -130,6 +130,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
+    payment_status ENUM('pending', 'partial', 'paid') DEFAULT 'pending',
+    payment_amount DECIMAL(10, 2) DEFAULT 0.00,
     status ENUM('confirmed', 'pending', 'cancelled') DEFAULT 'pending',
     notes TEXT,
     client_id INT,
@@ -275,3 +277,17 @@ ALTER TABLE payments
 
 -- Índices adicionales para mejor rendimiento
 -- Los errores de índices duplicados o tablas inexistentes son manejados por database.js
+
+-- =====================================================
+-- Tabla: contact_inquiries
+-- Consultas recibidas desde la landing page
+-- =====================================================
+CREATE TABLE IF NOT EXISTS contact_inquiries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    status ENUM('pending', 'in_progress', 'resolved') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

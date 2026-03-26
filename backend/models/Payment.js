@@ -201,7 +201,7 @@ class Payment {
                 try {
                     const bc = await BillingConcept.getById(item.billing_concept_id);
                     if (bc) resolvedConcept = bc.category;
-                } catch (_) {}
+                } catch (_) { }
             }
 
             const result = await executeQuery(

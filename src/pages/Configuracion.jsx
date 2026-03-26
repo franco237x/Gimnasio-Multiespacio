@@ -48,7 +48,7 @@ const Configuracion = () => {
                 setConfig(prev => ({ ...prev, ...response.data }));
             }
         } catch (error) {
-            showNotification('❌ Error al cargar configuración', 'error');
+            showNotification('❌ Error al cargar configuración: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -70,7 +70,7 @@ const Configuracion = () => {
             await configAPI.update(config);
             showNotification('✅ Configuración guardada exitosamente', 'success');
         } catch (error) {
-            showNotification('❌ Error al guardar configuración', 'error');
+            showNotification('❌ Error al guardar configuración: ' + (error.message || ''), 'error');
         } finally {
             setSaving(false);
         }
@@ -164,7 +164,7 @@ const Configuracion = () => {
                     showNotification('✅ Plan desactivado correctamente', 'success');
                     await loadPlans();
                 } catch (error) {
-                    showNotification('❌ Error al desactivar plan', 'error');
+                    showNotification('❌ Error al desactivar plan: ' + (error.message || ''), 'error');
                 }
                 setConfirmDialog({ show: false });
             }

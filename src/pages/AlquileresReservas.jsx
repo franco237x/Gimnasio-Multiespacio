@@ -4,6 +4,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
 import { usePermissions } from '../components/auth/RoleProtectedRoute';
+import Pagination from '../components/ui/Pagination';
 import './AlquileresReservas.css';
 
 const AlquileresReservas = () => {
@@ -19,6 +20,8 @@ const AlquileresReservas = () => {
     const [confirmCancel, setConfirmCancel] = useState({ show: false, id: null });
     const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
     const [selectedReservation, setSelectedReservation] = useState(null);
+    const [reservasPage, setReservasPage] = useState(1);
+    const [reservasPerPage, setReservasPerPage] = useState(10);
     const [showSpaceModal, setShowSpaceModal] = useState(false);
     const [editingSpace, setEditingSpace] = useState(null);
     const [confirmDeleteSpace, setConfirmDeleteSpace] = useState({ show: false, id: null, name: '' });
@@ -87,7 +90,7 @@ const AlquileresReservas = () => {
             }
         } catch (error) {
             console.error('Error al cargar datos:', error);
-            addToast('❌ Error al cargar datos', 'error');
+            addToast('❌ Error al cargar datos: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -233,7 +236,7 @@ const AlquileresReservas = () => {
             showNotification('✅ Reserva confirmada', 'success');
             loadData();
         } catch (error) {
-            showNotification('❌ Error al confirmar', 'error');
+            showNotification('❌ Error al confirmar: ' + (error.message || ''), 'error');
         }
     };
 
@@ -247,7 +250,7 @@ const AlquileresReservas = () => {
             showNotification('🗑️ Reserva cancelada', 'success');
             loadData();
         } catch (error) {
-            showNotification('❌ Error al cancelar', 'error');
+            showNotification('❌ Error al cancelar: ' + (error.message || ''), 'error');
         } finally {
             setConfirmCancel({ show: false, id: null });
         }
@@ -263,7 +266,7 @@ const AlquileresReservas = () => {
             showNotification('🗑️ Reserva eliminada permanentemente', 'success');
             loadData();
         } catch (error) {
-            showNotification('❌ Error al eliminar reserva', 'error');
+            showNotification('❌ Error al eliminar reserva: ' + (error.message || ''), 'error');
         } finally {
             setConfirmDelete({ show: false, id: null });
         }
@@ -313,7 +316,7 @@ const AlquileresReservas = () => {
             handleCloseSpaceModal();
             loadData();
         } catch (error) {
-            showNotification('❌ Error al guardar espacio', 'error');
+            showNotification('❌ Error al guardar espacio: ' + (error.message || ''), 'error');
         }
     };
 
@@ -415,7 +418,7 @@ const AlquileresReservas = () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        reservas.map(reserva => (
+                                        reservas.slice((reservasPage - 1) * reservasPerPage, reservasPage * reservasPerPage).map(reserva => (
                                             <tr key={reserva.id}>
                                                 <td>{new Date(reserva.reservation_date).toLocaleDateString('es-AR')}</td>
                                                 <td>{reserva.start_time?.slice(0, 5)} - {reserva.end_time?.slice(0, 5)}</td>
@@ -461,6 +464,14 @@ const AlquileresReservas = () => {
                                     )}
                                 </tbody>
                             </table>
+                            <Pagination
+                                currentPage={reservasPage}
+                                totalPages={Math.ceil(reservas.length / reservasPerPage)}
+                                onPageChange={setReservasPage}
+                                totalItems={reservas.length}
+                                itemsPerPage={reservasPerPage}
+                                onItemsPerPageChange={(val) => { setReservasPerPage(val); setReservasPage(1); }}
+                            />
                         </div>
                     )}
 

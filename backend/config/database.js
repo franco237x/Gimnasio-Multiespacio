@@ -241,6 +241,16 @@ const initializeTables = async () => {
       }
     }
 
+    // Asegurar columnas de pago en reservations
+    try {
+      await executeQuery(`ALTER TABLE reservations ADD COLUMN payment_status ENUM('pending', 'partial', 'paid') DEFAULT 'pending' AFTER total_amount, ADD COLUMN payment_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER payment_status;`);
+      console.log('✅ Columnas de pago anadidas a reservations');
+    } catch (e) {
+      if (!e.message.includes('Duplicate column name')) {
+        console.log('ℹ️ Omitiendo alter de pagos en reservations (probablemente ya existen)');
+      }
+    }
+
     // Agregar activity_id a payments para vincular pagos con inscripciones en actividades
     try {
       await executeQuery(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS activity_id INT NULL;`);
@@ -250,6 +260,21 @@ const initializeTables = async () => {
         console.log('ℹ️ Omitiendo alter de activity_id en payments');
       }
     }
+
+    // Crear tabla de consultas de contacto web
+    const createContactInquiriesTable = `
+      CREATE TABLE IF NOT EXISTS contact_inquiries (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) NOT NULL,
+        message TEXT NOT NULL,
+        status ENUM('pending', 'in_progress', 'resolved') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await executeQuery(createContactInquiriesTable);
+    console.log('✅ Tabla contact_inquiries creada/verificada correctamente');
 
     // Ejecutar migración para tablas adicionales
     await runMigration();

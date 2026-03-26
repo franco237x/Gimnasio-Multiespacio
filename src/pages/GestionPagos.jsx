@@ -3,25 +3,26 @@ import { useAuth } from '../context/AuthContext';
 import { paymentsAPI, usersAPI, cashRegistersAPI, billingConceptsAPI } from '../services/apiService';
 import Modal from '../components/ui/Modal';
 import { ToastContainer, useToast } from '../components/ui/Toast';
+import Pagination from '../components/ui/Pagination';
 import './GestionPagos.css';
 
 // ─────────────────────────────────────────────────────────
 // CONSTANTES
 // ─────────────────────────────────────────────────────────
 const METODOS_PAGO = [
-    { value: 'efectivo',      label: 'Efectivo',        icon: 'bx-money',       color: '#10b981' },
-    { value: 'tarjeta',       label: 'Tarjeta',         icon: 'bx-credit-card', color: '#3b82f6' },
-    { value: 'transferencia', label: 'Transferencia',   icon: 'bx-transfer',    color: '#8b5cf6' },
-    { value: 'mercadopago',   label: 'MercadoPago',     icon: 'bx-qr',          color: '#f59e0b' },
-    { value: 'cuenta_cte',   label: 'Cta. Corriente',  icon: 'bx-book-open',   color: '#ef4444' },
+    { value: 'efectivo', label: 'Efectivo', icon: 'bx-money', color: '#10b981' },
+    { value: 'tarjeta', label: 'Tarjeta', icon: 'bx-credit-card', color: '#3b82f6' },
+    { value: 'transferencia', label: 'Transferencia', icon: 'bx-transfer', color: '#8b5cf6' },
+    { value: 'mercadopago', label: 'MercadoPago', icon: 'bx-qr', color: '#f59e0b' },
+    { value: 'cuenta_cte', label: 'Cta. Corriente', icon: 'bx-book-open', color: '#ef4444' },
 ];
 
 const CATEGORIAS = {
-    mensualidad:    { label: 'Mensualidades',    icon: 'bx-calendar-check', color: '#10b981' },
-    inscripcion:    { label: 'Inscripciones',    icon: 'bx-user-plus',      color: '#3b82f6' },
-    clase_especial: { label: 'Clases Especiales',icon: 'bx-dumbbell',       color: '#ef4444' },
-    alquiler:       { label: 'Alquileres',       icon: 'bx-building',       color: '#06b6d4' },
-    otro:           { label: 'Otros',            icon: 'bx-receipt',        color: '#6b7280' },
+    mensualidad: { label: 'Mensualidades', icon: 'bx-calendar-check', color: '#10b981' },
+    inscripcion: { label: 'Inscripciones', icon: 'bx-user-plus', color: '#3b82f6' },
+    clase_especial: { label: 'Clases Especiales', icon: 'bx-dumbbell', color: '#ef4444' },
+    alquiler: { label: 'Alquileres', icon: 'bx-building', color: '#06b6d4' },
+    otro: { label: 'Otros', icon: 'bx-receipt', color: '#6b7280' },
 };
 
 const fmt = (n) => parseFloat(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 0 });
@@ -29,40 +30,42 @@ const fmt = (n) => parseFloat(n || 0).toLocaleString('es-AR', { minimumFractionD
 // ─────────────────────────────────────────────────────────
 const GestionPagos = () => {
     const [activeTab, setActiveTab] = useState('pago');
-    const [showModal, setShowModal]   = useState(false);
-    const [modalType, setModalType]   = useState('pago');
+    const [showModal, setShowModal] = useState(false);
+    const [modalType, setModalType] = useState('pago');
     const { toasts, addToast, removeToast } = useToast();
     const { user: currentUser } = useAuth();
 
     // ── Datos maestros ──
-    const [allUsers, setAllUsers]           = useState([]);
-    const [planes, setPlanes]               = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
+    const [planes, setPlanes] = useState([]);
     const [historialPagos, setHistorialPagos] = useState([]);
-    const [cajaActiva, setCajaActiva]       = useState(null);
-    const [cajaSummary, setCajaSummary]     = useState([]);
+    const [cajaActiva, setCajaActiva] = useState(null);
+    const [cajaSummary, setCajaSummary] = useState([]);
     const [billingConcepts, setBillingConcepts] = useState([]);
-    const [selectedPago, setSelectedPago]   = useState(null);
-    const [loading, setLoading]             = useState(true);
+    const [selectedPago, setSelectedPago] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [historialPage, setHistorialPage] = useState(1);
+    const [historialPerPage, setHistorialPerPage] = useState(10);
 
     // ── Estado del checkout multi-ítem ──
-    const [clientMode, setClientMode]     = useState('registered'); // 'registered' | 'guest'
+    const [clientMode, setClientMode] = useState('registered'); // 'registered' | 'guest'
     const [selectedUserId, setSelectedUserId] = useState('');
-    const [guestName, setGuestName]       = useState('');
-    const [userSearch, setUserSearch]     = useState('');
+    const [guestName, setGuestName] = useState('');
+    const [userSearch, setUserSearch] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('efectivo');
     const [paymentStatus, setPaymentStatus] = useState('completed');
-    const [paymentNotes, setPaymentNotes]   = useState('');
-    const [cart, setCart]                   = useState([]); // [{id, concept, icon, color, amount, activity_id}]
+    const [paymentNotes, setPaymentNotes] = useState('');
+    const [cart, setCart] = useState([]); // [{id, concept, icon, color, amount, activity_id}]
 
     // ── Agregar ítem al carrito ──
     const [addingConceptId, setAddingConceptId] = useState('');
-    const [addingAmount, setAddingAmount]       = useState('');
+    const [addingAmount, setAddingAmount] = useState('');
 
     // ── Otros forms ──
-    const [planFormData, setPlanFormData]       = useState({ name: '', description: '', price: '', duration_days: 30 });
+    const [planFormData, setPlanFormData] = useState({ name: '', description: '', price: '', duration_days: 30 });
     const [conceptFormData, setConceptFormData] = useState({ name: '', category: 'otro', description: '', icon: 'bx-receipt', color: '#6366f1', default_amount: '', is_subscription: false, subscription_plan_id: '', sort_order: 99 });
-    const [cajaFormData, setCajaFormData]       = useState({ opening_balance: 0, counted_balance: 0, notes: '' });
-    const [cancelData, setCancelData]           = useState({ id: null, reason: '' });
+    const [cajaFormData, setCajaFormData] = useState({ opening_balance: 0, counted_balance: 0, notes: '' });
+    const [cancelData, setCancelData] = useState({ id: null, reason: '' });
 
     // ─────────────────────────────────────────────────────────
     useEffect(() => { loadData(); }, []);
@@ -90,7 +93,7 @@ const GestionPagos = () => {
                 setCajaSummary([]);
             }
         } catch {
-            addToast('Error al cargar datos', 'error');
+            addToast('Error al cargar datos: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
@@ -180,7 +183,7 @@ const GestionPagos = () => {
             addToast('✅ Plan eliminado/desactivado correctamente', 'success');
             loadData();
         } catch (error) {
-            addToast('❌ Error al eliminar plan', 'error');
+            addToast('❌ Error al eliminar plan: ' + (error.message || ''), 'error');
         }
     };
 
@@ -243,7 +246,7 @@ const GestionPagos = () => {
                                 user_id: parseInt(selectedUserId),
                                 plan_id: concept.subscription_plan_id,
                                 status: paymentStatus === 'completed' ? 'active' : 'pending'
-                            }).catch(() => {});
+                            }).catch(() => { });
                         }
                     }
                 }
@@ -320,11 +323,11 @@ const GestionPagos = () => {
             <div className="tabs-container">
                 <div className="tabs">
                     {[
-                        { key: 'pago',      icon: 'bx-cart-alt',     label: 'Registrar Pago' },
-                        { key: 'cuota',     icon: 'bx-receipt',      label: 'Planes' },
-                        { key: 'conceptos', icon: 'bx-list-ul',      label: 'Conceptos' },
-                        { key: 'caja',      icon: 'bx-store-alt',    label: 'Caja' },
-                        { key: 'historial', icon: 'bx-history',      label: 'Historial' },
+                        { key: 'pago', icon: 'bx-cart-alt', label: 'Registrar Pago' },
+                        { key: 'cuota', icon: 'bx-receipt', label: 'Planes' },
+                        { key: 'conceptos', icon: 'bx-list-ul', label: 'Conceptos' },
+                        { key: 'caja', icon: 'bx-store-alt', label: 'Caja' },
+                        { key: 'historial', icon: 'bx-history', label: 'Historial' },
                     ].map(t => (
                         <button key={t.key}
                             className={`tab ${activeTab === t.key ? 'active' : ''}`}
@@ -544,7 +547,7 @@ const GestionPagos = () => {
                                     <tr><th>Fecha</th><th>Cliente</th><th>Concepto</th><th>Método</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr>
                                 </thead>
                                 <tbody>
-                                    {historialPagos.map(pago => {
+                                    {historialPagos.slice((historialPage - 1) * historialPerPage, historialPage * historialPerPage).map(pago => {
                                         const { name: cName, icon: cIcon, color: cColor } = getConceptoDisplay(pago);
                                         const m = getMetodo(pago.payment_method);
                                         return (
@@ -579,6 +582,14 @@ const GestionPagos = () => {
                                     })}
                                 </tbody>
                             </table>
+                            <Pagination
+                                currentPage={historialPage}
+                                totalPages={Math.ceil(historialPagos.length / historialPerPage)}
+                                onPageChange={setHistorialPage}
+                                totalItems={historialPagos.length}
+                                itemsPerPage={historialPerPage}
+                                onItemsPerPageChange={(val) => { setHistorialPerPage(val); setHistorialPage(1); }}
+                            />
                         </div>
                     )}
 
@@ -592,13 +603,13 @@ const GestionPagos = () => {
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
                 title={
-                    modalType === 'pago'         ? 'Registrar Cobro' :
-                    modalType === 'cuota'        ? 'Nuevo Plan' :
-                    modalType === 'concepto'     ? 'Nuevo Concepto' :
-                    modalType === 'abrir_caja'   ? 'Abrir Caja' :
-                    modalType === 'cerrar_caja'  ? 'Cerrar Caja' :
-                    modalType === 'cancelar_pago'? 'Anular Pago' :
-                    'Comprobante'
+                    modalType === 'pago' ? 'Registrar Cobro' :
+                        modalType === 'cuota' ? 'Nuevo Plan' :
+                            modalType === 'concepto' ? 'Nuevo Concepto' :
+                                modalType === 'abrir_caja' ? 'Abrir Caja' :
+                                    modalType === 'cerrar_caja' ? 'Cerrar Caja' :
+                                        modalType === 'cancelar_pago' ? 'Anular Pago' :
+                                            'Comprobante'
                 }
                 size={modalType === 'ticket' ? 'sm' : 'lg'}
             >
@@ -950,12 +961,12 @@ const GestionPagos = () => {
                         <div className="form-actions">
                             <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                             <button type="submit" className={modalType === 'cancelar_pago' ? 'btn-danger' : 'btn-primary'}>
-                                {modalType === 'pago'          ? `Confirmar Cobro${cart.length > 0 ? ` — $${fmt(cartTotal)}` : ''}` :
-                                 modalType === 'cuota'         ? 'Crear Plan' :
-                                 modalType === 'concepto'      ? 'Crear Concepto' :
-                                 modalType === 'abrir_caja'    ? 'Abrir Caja' :
-                                 modalType === 'cerrar_caja'   ? 'Ejecutar Cierre' :
-                                 'Confirmar Anulación'}
+                                {modalType === 'pago' ? `Confirmar Cobro${cart.length > 0 ? ` — $${fmt(cartTotal)}` : ''}` :
+                                    modalType === 'cuota' ? 'Crear Plan' :
+                                        modalType === 'concepto' ? 'Crear Concepto' :
+                                            modalType === 'abrir_caja' ? 'Abrir Caja' :
+                                                modalType === 'cerrar_caja' ? 'Ejecutar Cierre' :
+                                                    'Confirmar Anulación'}
                             </button>
                         </div>
                     )}

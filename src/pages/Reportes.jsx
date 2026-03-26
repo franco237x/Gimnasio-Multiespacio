@@ -40,7 +40,7 @@ const Reportes = () => {
                 byDay: actRes.data.byDay || []
             });
         } catch (error) {
-            showNotification('❌ Error al cargar reportes', 'error');
+            showNotification('❌ Error al cargar reportes: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }

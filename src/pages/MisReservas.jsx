@@ -32,7 +32,7 @@ const MisReservas = () => {
             }
         } catch (error) {
             console.error('Error al cargar datos:', error);
-            addToast('❌ Error al cargar actividades', 'error');
+            addToast('❌ Error al cargar actividades: ' + (error.message || ''), 'error');
         } finally {
             setLoading(false);
         }
